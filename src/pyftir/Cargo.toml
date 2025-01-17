@@ -1,0 +1,15 @@
+[package]
+name = "pyftir"
+edition = "2021"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+
+[lib]
+name = "pyftir"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = {workspace = true}
+ftir = {path = "../ftir"}
