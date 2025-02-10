@@ -1,3 +1,4 @@
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Pauli {
     I,
     X,
@@ -5,6 +6,7 @@ pub enum Pauli {
     Y,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BicycleISA {
     SyndromeCycle, // Syndrome cycle
     CSSInitZero,   // Initialize the block in |0>^12
