@@ -23,6 +23,8 @@ impl TryFrom<&char> for Pauli {
     }
 }
 
+/// Specify what automorphism to perform.
+/// Since each automorphism has order 6, the x and y parameters wrapped to be in {0,1,...,5}.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AutomorphismData {
     x: u8,
@@ -42,6 +44,7 @@ impl AutomorphismData {
         self.y
     }
 
+    /// Generate the parity map associated with this automorphism on the Gross code
     pub fn parity_map_gross(&self) -> Matrix6<u32> {
         let mx_array: [u32; 36] = [
             1, 1, 0, 1, 1, 1, //
@@ -66,6 +69,7 @@ impl AutomorphismData {
         Matrix6::pow(&mx, self.x.into()) * Matrix6::pow(&my, self.y.into()).map(|v| v % 2)
     }
 
+    /// Generate the parity map associated with this automorphism on the Disgusting code
     pub fn parity_map_disgusting(&self) -> Matrix6<u32> {
         // Disgusting code
         let mx_array: [u32; 36] = [
@@ -92,6 +96,7 @@ impl AutomorphismData {
     }
 }
 
+/// Measure two qubits independently in the same basis, which must be X or Z
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct ParallelMeasureData {
     p: Pauli,
@@ -110,6 +115,7 @@ impl ParallelMeasureData {
     }
 }
 
+/// Measure in two bases, one of which must not be identity
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct TwoBases {
     p1: Pauli,
@@ -134,6 +140,7 @@ impl TwoBases {
     }
 }
 
+/// Store what kind of T gate is being implemented.  Must be in X or Z basis.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct TGateData {
     basis: Pauli,
