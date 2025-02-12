@@ -6,3 +6,4 @@ authors.workspace = true
 description.workspace = true
 
 [dependencies]
+nalgebra = "0.33.2"
