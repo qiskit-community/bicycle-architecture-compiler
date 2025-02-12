@@ -6,6 +6,7 @@ pub enum Pauli {
     Y,
 }
 
+// See also docs/compiler_worshop_isa.pdf for an explanation of these instructions
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BicycleISA {
     SyndromeCycle, // Syndrome cycle
