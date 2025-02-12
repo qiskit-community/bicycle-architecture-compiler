@@ -6,6 +6,20 @@ pub enum Pauli {
     Y,
 }
 
+impl TryFrom<&char> for Pauli {
+    type Error = String;
+
+    fn try_from(value: &char) -> Result<Self, Self::Error> {
+        match value.to_ascii_lowercase() {
+            'i' => Ok(Pauli::I),
+            'x' => Ok(Pauli::X),
+            'z' => Ok(Pauli::Z),
+            'y' => Ok(Pauli::Y),
+            c => Err(format!("Cannot convert {} to Pauli", c)),
+        }
+    }
+}
+
 // See also docs/compiler_worshop_isa.pdf for an explanation of these instructions
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BicycleISA {
