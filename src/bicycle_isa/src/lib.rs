@@ -23,7 +23,6 @@ impl TryFrom<&char> for Pauli {
     }
 }
 
-// See also docs/compiler_worshop_isa.pdf for an explanation of these instructions
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AutomorphismData {
     x: u8,
@@ -154,6 +153,7 @@ impl TGateData {
     }
 }
 
+// See also docs/compiler_worshop_isa.pdf for an explanation of these instructions
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BicycleISA {
     SyndromeCycle, // Syndrome cycle
