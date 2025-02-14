@@ -44,6 +44,11 @@ impl AutomorphismData {
         self.y
     }
 
+    /// Compute the inverse automorphism
+    pub fn inv(&self) -> Self {
+        AutomorphismData::new(6 - self.x, 6 - self.y)
+    }
+
     /// Generate the parity map associated with this automorphism on the Gross code
     pub fn parity_map_gross(&self) -> Matrix6<u32> {
         let mx_array: [u32; 36] = [
