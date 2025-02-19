@@ -129,10 +129,9 @@ pub struct TwoBases {
 
 impl TwoBases {
     pub fn new(p1: Pauli, p7: Pauli) -> Option<Self> {
-        if p1 != Pauli::I || p7 == Pauli::I {
-            Some(TwoBases { p1, p7 })
-        } else {
-            None
+        match (p1, p7) {
+            (Pauli::I, Pauli::I) => None,
+            _ => Some(TwoBases { p1, p7 }),
         }
     }
 
@@ -191,4 +190,21 @@ pub enum BicycleISA {
     // Magic
     InitT,            // Initialization into 8 physical-noise |T> states
     TGate(TGateData), // Apply exp(iπ/8 P), with P in {X, X', Z, Z'}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_two_bases() {
+        assert_eq!(None, TwoBases::new(Pauli::I, Pauli::I));
+        assert_eq!(
+            Some(TwoBases {
+                p1: Pauli::X,
+                p7: Pauli::Z
+            }),
+            TwoBases::new(Pauli::X, Pauli::Z)
+        );
+    }
 }
