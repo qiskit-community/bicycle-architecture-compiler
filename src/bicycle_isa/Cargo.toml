@@ -7,3 +7,4 @@ description.workspace = true
 
 [dependencies]
 nalgebra = "0.33.2"
+serde = { version = "1.0.217", features = ["derive"] }

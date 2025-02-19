@@ -1,7 +1,8 @@
 extern crate nalgebra as na;
 use na::Matrix6;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Pauli {
     I,
     X,
@@ -25,7 +26,7 @@ impl TryFrom<&char> for Pauli {
 
 /// Specify what automorphism to perform.
 /// Since each automorphism has order 6, the x and y parameters wrapped to be in {0,1,...,5}.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct AutomorphismData {
     x: u8,
     y: u8,
@@ -102,7 +103,7 @@ impl AutomorphismData {
 }
 
 /// Measure two qubits independently in the same basis, which must be X or Z
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ParallelMeasureData {
     p: Pauli,
 }
@@ -121,7 +122,7 @@ impl ParallelMeasureData {
 }
 
 /// Measure in two bases, one of which must not be identity
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TwoBases {
     p1: Pauli,
     p7: Pauli,
@@ -145,7 +146,7 @@ impl TwoBases {
 }
 
 /// Store what kind of T gate is being implemented.  Must be in X or Z basis.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TGateData {
     basis: Pauli,
     pub primed: bool,
@@ -165,7 +166,7 @@ impl TGateData {
 }
 
 // See also docs/compiler_worshop_isa.pdf for an explanation of these instructions
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum BicycleISA {
     SyndromeCycle, // Syndrome cycle
     CSSInitZero,   // Initialize the block in |0>^12
