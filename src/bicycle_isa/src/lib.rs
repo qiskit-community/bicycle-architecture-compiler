@@ -150,12 +150,17 @@ impl TwoBases {
 pub struct TGateData {
     basis: Pauli,
     pub primed: bool,
+    pub adjoint: bool,
 }
 
 impl TGateData {
-    pub fn new(basis: Pauli, primed: bool) -> Option<Self> {
+    pub fn new(basis: Pauli, primed: bool, adjoint: bool) -> Option<Self> {
         match basis {
-            Pauli::X | Pauli::Z => Some(TGateData { basis, primed }),
+            Pauli::X | Pauli::Z => Some(TGateData {
+                basis,
+                primed,
+                adjoint,
+            }),
             _ => None,
         }
     }
