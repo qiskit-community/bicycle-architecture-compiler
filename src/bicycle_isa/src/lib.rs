@@ -1,4 +1,6 @@
 extern crate nalgebra as na;
+use std::fmt::Display;
+
 use na::Matrix6;
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +10,12 @@ pub enum Pauli {
     X,
     Z,
     Y,
+}
+
+impl Display for Pauli {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl TryFrom<&char> for Pauli {
@@ -196,6 +204,30 @@ pub enum BicycleISA {
     // Magic
     InitT,            // Initialization into 8 physical-noise |T> states
     TGate(TGateData), // Apply exp(iπ/8 P), with P in {X, X', Z, Z'}
+}
+
+impl Display for BicycleISA {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BicycleISA::SyndromeCycle => write!(f, "sc"),
+            BicycleISA::CSSInitZero => write!(f, "init0"),
+            BicycleISA::CSSInitPlus => write!(f, "init+"),
+            BicycleISA::DestructiveZ => write!(f, "measZ"),
+            BicycleISA::DestructiveX => write!(f, "measX"),
+            BicycleISA::Automorphism(data) => write!(f, "aut({},{})", data.get_x(), data.get_y()),
+            BicycleISA::Measure(bases) => {
+                write!(f, "meas({},{})", bases.get_basis_1(), bases.get_basis_7())
+            }
+            BicycleISA::JointMeasure(bases) => {
+                write!(f, "jMeas({},{})", bases.get_basis_1(), bases.get_basis_7())
+            }
+            BicycleISA::ParallelMeasure(basis) => write!(f, "pMeas({})", basis.get_basis()),
+            BicycleISA::JointBellInit => write!(f, "jBell"),
+            BicycleISA::JointTransversalCX => write!(f, "jCnot"),
+            BicycleISA::InitT => write!(f, "initT"),
+            BicycleISA::TGate(basis) => write!(f, "T({})", basis.get_basis()),
+        }
+    }
 }
 
 #[cfg(test)]
