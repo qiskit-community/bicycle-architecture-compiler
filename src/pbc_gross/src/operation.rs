@@ -1,0 +1,130 @@
+use std::{f64::consts::PI, fmt::Display};
+
+use bicycle_isa::{AutomorphismData, BicycleISA, Pauli, TwoBases};
+use serde::{Deserialize, Serialize};
+
+/// Single-qubit rotation on the pivot
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RotationData {
+    basis: Pauli,
+    pub angle: f64,
+}
+
+impl RotationData {
+    pub fn new(basis: Pauli, angle: f64) -> Option<Self> {
+        match basis {
+            Pauli::X | Pauli::Z => Some(RotationData { basis, angle }),
+            _ => None,
+        }
+    }
+
+    pub fn get_basis(&self) -> Pauli {
+        self.basis
+    }
+}
+
+/// A simplified instruction set (compared to the Bicycle ISA) that is output from the PBC compiler
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+pub enum Instruction {
+    // Automorphism generators with x in {0,...,5} and y in {0,1,2} and x+y>0
+    Automorphism(AutomorphismData),
+
+    // Measurements
+    // Measure qubits 1 and 7 with specified Paulis, one of which must not be identity
+    Measure(TwoBases),
+    // Measure qubits 1 and 7 in a joint operation with another block, one of which must not be identity.
+    JointMeasure(TwoBases),
+
+    // Magic
+    Rotation(RotationData), // Apply exp(iπ/8 P), with P in {X, X', Z, Z'}
+}
+
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Instruction::Automorphism(data) => write!(f, "aut({},{})", data.get_x(), data.get_y()),
+            Instruction::Measure(bases) => {
+                write!(f, "meas({},{})", bases.get_basis_1(), bases.get_basis_7())
+            }
+            Instruction::JointMeasure(bases) => {
+                write!(f, "jMeas({},{})", bases.get_basis_1(), bases.get_basis_7())
+            }
+            Instruction::Rotation(rot) => {
+                write!(f, "{}({:.4})", rot.get_basis(), rot.angle)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum InstructionConversionError {
+    PrimedGate,
+    InvalidISA,
+}
+
+impl Display for InstructionConversionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PrimedGate => write!(f, "Cannot convert T gate on dual pivot."),
+            Self::InvalidISA => write!(
+                f,
+                "This BicycleISA instruction does not have a representation as an Instruction"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for InstructionConversionError {}
+
+impl TryFrom<BicycleISA> for Instruction {
+    type Error = InstructionConversionError;
+
+    fn try_from(value: BicycleISA) -> Result<Self, Self::Error> {
+        match value {
+            BicycleISA::Automorphism(a) => Ok(Instruction::Automorphism(a)),
+            BicycleISA::Measure(b) => Ok(Instruction::Measure(b)),
+            BicycleISA::JointMeasure(b) => Ok(Instruction::JointMeasure(b)),
+            BicycleISA::TGate(d) => {
+                if d.primed {
+                    Err(InstructionConversionError::PrimedGate)
+                } else {
+                    let mut angle = PI / 4.0;
+                    if d.primed {
+                        angle = -angle;
+                    }
+                    Ok(Instruction::Rotation(
+                        RotationData::new(d.get_basis(), angle)
+                            .expect("The BicycleISA basis should be compatible with RotationData"),
+                    ))
+                }
+            }
+            _ => Err(InstructionConversionError::InvalidISA),
+        }
+    }
+}
+
+// Could expand this into single block and joint block operations,
+// but I think, effectively, we want to just be able to verify if an operation fits the architecture.
+pub type Operation = Vec<(usize, Instruction)>;
+
+/// Pretty print an Operation
+pub fn fmt_operation(op: &Operation, f: &mut dyn std::fmt::Write) -> std::fmt::Result {
+    let mut s = String::from("[");
+    for (i, isa) in op {
+        s += &format!("({}, {}),", i, isa);
+    }
+    s += "]";
+    write!(f, "{}", s)
+}
+
+/// Pretty print a sequence of Operations
+pub fn fmt_operations(ops: &Vec<Operation>, f: &mut dyn std::fmt::Write) -> std::fmt::Result {
+    writeln!(f, "[")?;
+    for op in ops {
+        write!(f, "\t")?;
+        fmt_operation(op, f)?;
+        writeln!(f)?;
+    }
+
+    write!(f, "]")
+}

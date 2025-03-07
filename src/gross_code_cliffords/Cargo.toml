@@ -1,0 +1,12 @@
+[package]
+name = "gross_code_cliffords"
+edition = "2021"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+
+[dependencies]
+env_logger = "0.11.6"
+log = "0.4.26"
+nalgebra = "0.33.2"
+serde = "1.0.218"
