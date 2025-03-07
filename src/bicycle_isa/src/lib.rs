@@ -12,6 +12,18 @@ pub enum Pauli {
     Y,
 }
 
+impl Pauli {
+    /// Give the Paulis that anticommute with this Pauli.
+    pub fn anticommuting(&self) -> Option<(Self, Self)> {
+        match self {
+            Self::I => None,
+            Self::X => Some((Self::Z, Self::Y)),
+            Self::Z => Some((Self::X, Self::Y)),
+            Self::Y => Some((Self::X, Self::Z)),
+        }
+    }
+}
+
 impl Display for Pauli {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
@@ -225,7 +237,14 @@ impl Display for BicycleISA {
             BicycleISA::JointBellInit => write!(f, "jBell"),
             BicycleISA::JointTransversalCX => write!(f, "jCnot"),
             BicycleISA::InitT => write!(f, "initT"),
-            BicycleISA::TGate(basis) => write!(f, "T({})", basis.get_basis()),
+            BicycleISA::TGate(basis) => {
+                let prime = if basis.primed { "'" } else { "" };
+                let dagger = if basis.adjoint { "†" } else { "" };
+                write!(f, "T({}", basis.get_basis())?;
+                write!(f, "{}", prime)?;
+                write!(f, "{}", dagger)?;
+                write!(f, ")")
+            }
         }
     }
 }
