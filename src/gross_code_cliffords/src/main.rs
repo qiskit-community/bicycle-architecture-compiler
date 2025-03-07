@@ -1,14 +1,10 @@
-mod decomposition;
-mod native_measurement;
-mod pauli_rotation;
-mod tableau;
-
 use std::error::Error;
 
-use crate::native_measurement::NativeMeasurement;
-use decomposition::MeasurementTableBuilder;
 use log::debug;
-use pauli_rotation::PauliString;
+
+use gross_code_cliffords::{
+    native_measurement::NativeMeasurement, MeasurementTableBuilder, PauliString,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();

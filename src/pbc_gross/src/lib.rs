@@ -2,7 +2,8 @@ mod architecture;
 mod compile;
 pub mod language;
 pub mod operation;
-mod parser;
+pub mod parser;
 mod small_angle;
 
+pub use architecture::PathArchitecture;
 pub use compile::compile;

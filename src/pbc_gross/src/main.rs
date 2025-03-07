@@ -1,13 +1,6 @@
 use std::{error, fs::File};
 
-use architecture::PathArchitecture;
-
-mod architecture;
-mod compile;
-mod language;
-mod operation;
-mod parser;
-mod small_angle;
+use pbc_gross::{parser, PathArchitecture};
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     env_logger::init();
@@ -20,7 +13,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let test = ops.iter();
 
     let architecture = PathArchitecture { data_blocks: 2 };
-    compile::compile(architecture, ops.into_iter());
+    pbc_gross::compile(architecture, ops.into_iter());
 
     Ok(())
 }
