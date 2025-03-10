@@ -18,27 +18,27 @@ impl NativeMeasurement {
         let one = Vector6::identity();
         let zero = Vector6::zeros();
 
-        let primary = match self.logical.get_basis_1() {
-            Pauli::I => stack![zero; zero],
-            Pauli::X => stack![one; zero],
-            Pauli::Z => stack![zero; one],
-            Pauli::Y => stack![one; one],
+        let (x1, z1) = match self.logical.get_basis_1() {
+            Pauli::I => (zero, zero),
+            Pauli::X => (one, zero),
+            Pauli::Z => (zero, one),
+            Pauli::Y => (one, one),
         };
 
-        let secondary = match self.logical.get_basis_7() {
-            Pauli::I => stack![zero; zero],
-            Pauli::X => stack![one; zero],
-            Pauli::Z => stack![zero; one],
-            Pauli::Y => stack![one; one],
+        let (x7, z7) = match self.logical.get_basis_7() {
+            Pauli::I => (zero, zero),
+            Pauli::X => (one, zero),
+            Pauli::Z => (zero, one),
+            Pauli::Y => (one, one),
         };
 
-        let vec = stack![primary; secondary];
+        let vec = stack![x1; x7; z1; z7];
 
         let aut = self.automorphism.parity_map_gross();
         let inv = self.automorphism.inv().parity_map_gross();
 
         let mat: SMatrix<u32, 24, 24> =
-            stack![aut, 0, 0, 0; 0, inv, 0, 0; 0, 0, aut, 0; 0, 0, 0, inv];
+            stack![aut, 0, 0, 0; 0, aut, 0, 0; 0, 0, inv, 0; 0, 0, 0, inv];
 
         let result = (mat * vec).map(|v| v % 2);
 
@@ -105,6 +105,7 @@ impl NativeMeasurement {
 mod tests {
 
     use std::collections::HashSet;
+    use Pauli::{I, X, Y, Z};
 
     use super::*;
 
@@ -122,10 +123,11 @@ mod tests {
     fn valid_paulistrings() {
         for native in NativeMeasurement::all() {
             let p = native.measures();
-            if p.0 >= 2_u32.pow(24) {
-                println!("{}, {:?}", p, p);
-            }
-            assert!(p.0 < 2_u32.pow(24))
+            assert!(
+                p.0 < 2_u32.pow(24),
+                "PauliString {:?} integer is too large",
+                p
+            );
         }
     }
 
@@ -148,5 +150,44 @@ mod tests {
 
         let set: HashSet<_> = all_native.iter().map(|n| n.measures()).collect();
         assert_eq!(15 * 36, set.len());
+    }
+
+    fn paulis_support(ps: &[Pauli; 12]) -> (bool, bool) {
+        (
+            ps[0..6].iter().any(|p| p != &I),
+            ps[6..].iter().any(|p| p != &I),
+        )
+    }
+
+    /// Test that the support of a native measurement on the primal / dual block
+    /// does not "spill over" to the dual/primal block.
+    #[test]
+    fn pivot_duality() {
+        let nontrivial_paulis = [X, Y, Z];
+
+        for pauli in nontrivial_paulis {
+            let logicals = [
+                TwoBases::new(pauli, I).unwrap(),
+                TwoBases::new(I, pauli).unwrap(),
+            ];
+
+            for (support_i, logical) in logicals.into_iter().enumerate() {
+                let expected_support = (support_i == 0, support_i == 1);
+                for x in 0..=5 {
+                    for y in 0..=5 {
+                        let automorphism = AutomorphismData::new(x, y);
+                        let native_meas = NativeMeasurement {
+                            logical,
+                            automorphism,
+                        };
+                        dbg!(native_meas);
+                        println!("{}", native_meas.measures());
+                        let paulis: [Pauli; 12] = (&native_meas.measures()).into();
+
+                        assert_eq!(expected_support, paulis_support(&paulis));
+                    }
+                }
+            }
+        }
     }
 }
