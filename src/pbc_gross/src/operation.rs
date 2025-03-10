@@ -117,14 +117,19 @@ pub fn fmt_operation(op: &Operation, f: &mut dyn std::fmt::Write) -> std::fmt::R
     write!(f, "{}", s)
 }
 
-/// Pretty print a sequence of Operations
-pub fn fmt_operations(ops: &Vec<Operation>, f: &mut dyn std::fmt::Write) -> std::fmt::Result {
-    writeln!(f, "[")?;
-    for op in ops {
-        write!(f, "\t")?;
-        fmt_operation(op, f)?;
-        writeln!(f)?;
-    }
+/// Wrapper for a vector of operations for pretty printing
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Operations(pub Vec<Operation>);
 
-    write!(f, "]")
+impl Display for Operations {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "[")?;
+        for op in &self.0 {
+            write!(f, "\t")?;
+            fmt_operation(op, f)?;
+            writeln!(f)?;
+        }
+
+        write!(f, "]")
+    }
 }
