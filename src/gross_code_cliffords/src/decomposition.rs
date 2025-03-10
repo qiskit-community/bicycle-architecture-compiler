@@ -141,6 +141,10 @@ impl MeasurementTableBuilder {
         let mut base_rots: HashMap<PauliString, MeasurementImpl> = HashMap::new();
         for native_impl in self.native_impls() {
             let p = native_impl.implements();
+            // Must have pivot support so we can prepare an ancilla there
+            if !p.has_pivot_support() {
+                continue;
+            }
 
             // Insert cheapest measurement implementation
             base_rots
@@ -225,9 +229,12 @@ impl MeasurementTableBuilder {
 
     fn index(p: PauliString) -> usize {
         let i = p.0 as usize;
-        if i > 4_usize.pow(12) {
-            error!("PauliString {:?} has index too large", p);
-        }
+
+        assert!(
+            i <= 4_usize.pow(12),
+            "PauliString {:?} has index too large",
+            p
+        );
         i
     }
 
@@ -247,6 +254,10 @@ impl MeasurementTableBuilder {
 
     pub fn len(&self) -> usize {
         self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len > 0
     }
 
     fn native_impls(&self) -> impl Iterator<Item = &MeasurementImpl> {

@@ -20,7 +20,7 @@ pub fn synthesize_angle(theta: f64, accuracy: f64) -> (Vec<SingleRotation>, Vec<
 
     // Do I need scientific notation here? E.g. for the accuracy.
     let gates = run_pygridsynth(&theta.to_string(), &accuracy.to_string())
-        .expect("Pygridsynth should run succesfully");
+        .expect("Pygridsynth should run successfully. Is it installed? See README.");
     compile_rots(&gates).expect("Should be able to parse MA normal form provided by pygridsynth")
 }
 
