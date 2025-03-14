@@ -252,7 +252,7 @@ pub fn compile_rotation(
     // Prepare GHZ state
     ops.extend(ghz_prep(architecture));
 
-    // Apply native measurements on nontrivial blocks, except block 1
+    // Apply native measurements on nontrivial blocks
     for (block_i, (meas, _)) in rotation_impls
         .iter()
         .enumerate()
@@ -314,7 +314,7 @@ mod tests {
 
     use std::f64::consts::PI;
 
-    use crate::operation::Operations;
+    use crate::{language::PbcOperation, operation::Operations};
 
     use super::*;
 
@@ -543,42 +543,48 @@ mod tests {
         let basis = vec![I, I, I, I, I, Y, I, I, I, I];
         let controlled_basis = [X, I, I, I, I, I, I, Y, I, I, I, I];
         let ps: PauliString = (&controlled_basis).into();
-        let p_meas_impl = MEASUREMENT_IMPLS.implementation(ps);
-        dbg!(&p_meas_impl);
+        let (p_meas, p_rots) = MEASUREMENT_IMPLS.implementation(ps);
+        assert_eq!(1, p_rots.len());
+        let p_rot = p_rots[0];
 
         // The conjugating rotation is implemented by the native measurement IIIIXIIIIIYZ,
         // so the state preparation is in X then Y.
-        println!("{}", p_meas_impl.1[0].measures());
+        println!("base {} with rot {}", &p_meas, &p_rot);
+
+        assert_eq!(
+            ps,
+            p_meas
+                .measures()
+                .conjugate_with(p_rot.measures().zero_pivot())
+        );
 
         let rot = PI / 16.;
         let ops = Operations(compile_rotation(&arch, basis, rot));
         println!("Compiled: {}", ops);
 
-        // Auts are the same by coincidence
-        let aut_meas = AutomorphismData::new(0, 4);
-        let aut_rot = AutomorphismData::new(0, 2);
+        let mut expected: Vec<Operation> = rotation_instructions(p_rot)
+            .into_iter()
+            .map(|instr| vec![(0, instr)])
+            .collect();
+        // Insert native rotation and replace with small-angle
+        let mut expected_rot: Vec<Operation> = rotation_instructions(p_meas)
+            .into_iter()
+            .map(|instr| vec![(0, instr)])
+            .collect();
+        expected_rot[2] = vec![(
+            0,
+            Instruction::Rotation(RotationData::new(X, PI / 16.).unwrap()),
+        )];
+        expected.append(&mut expected_rot);
 
-        let expected = Operations(vec![
-            // Rotate block
-            // State prep in Z, see above
-            vec![(0, Instruction::Measure(TwoBases::new(X, I).unwrap()))],
-            vec![(0, Instruction::Automorphism(aut_rot))],
-            vec![(0, Instruction::Measure(TwoBases::new(Y, X).unwrap()))],
-            vec![(0, Instruction::Automorphism(aut_rot.inv()))],
-            vec![(0, Instruction::Measure(TwoBases::new(Y, I).unwrap()))],
-            // Apply non-clifford rotation
-            vec![(0, Instruction::Measure(TwoBases::new(X, I).unwrap()))],
-            vec![(0, Instruction::Automorphism(aut_meas))],
-            vec![(0, Instruction::Rotation(RotationData::new(X, rot).unwrap()))],
-            vec![(0, Instruction::Automorphism(aut_meas.inv()))],
-            vec![(0, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
-            // Unrotate block
-            vec![(0, Instruction::Measure(TwoBases::new(Y, I).unwrap()))],
-            vec![(0, Instruction::Automorphism(aut_rot.inv()))],
-            vec![(0, Instruction::Measure(TwoBases::new(Y, X).unwrap()))],
-            vec![(0, Instruction::Automorphism(aut_rot))],
-            vec![(0, Instruction::Measure(TwoBases::new(X, I).unwrap()))],
-        ]);
+        // Unrotate
+        expected.extend(
+            rotation_instructions(p_rot)
+                .into_iter()
+                .map(|instr| vec![(0, instr)]),
+        );
+
+        let expected = Operations(expected);
         println!("Expected: {}", expected);
 
         for (op0, op1) in expected.0.iter().zip(&ops.0) {
