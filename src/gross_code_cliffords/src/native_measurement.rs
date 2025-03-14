@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::pauli_rotation::PauliString;
 use nalgebra::{stack, SMatrix, Vector6};
 
@@ -98,6 +100,18 @@ impl NativeMeasurement {
             BicycleISA::Measure(self.logical),
             BicycleISA::Automorphism(self.automorphism.inv()),
         ]
+    }
+}
+
+impl Display for NativeMeasurement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "NativeMeasurement({}) = ({} conjugated with {})",
+            self.measures(),
+            BicycleISA::Measure(self.logical),
+            BicycleISA::Automorphism(self.automorphism)
+        )
     }
 }
 
