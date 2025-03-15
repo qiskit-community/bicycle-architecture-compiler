@@ -1,26 +1,20 @@
 use std::{f64::consts::PI, fmt::Display};
 
 use bicycle_isa::{AutomorphismData, BicycleISA, Pauli, TwoBases};
+use gross_code_cliffords::native_measurement::NativeMeasurement;
 use serde::{Deserialize, Serialize};
 
 /// Single-qubit rotation on the pivot
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RotationData {
-    basis: Pauli,
+    pub basis: [Pauli; 10],
     pub angle: f64,
 }
 
-impl RotationData {
-    pub fn new(basis: Pauli, angle: f64) -> Option<Self> {
-        match basis {
-            Pauli::X | Pauli::Z => Some(RotationData { basis, angle }),
-            _ => None,
-        }
-    }
-
-    pub fn get_basis(&self) -> Pauli {
-        self.basis
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NativeRotation {
+    pub native_measurement: NativeMeasurement,
+    pub angle: f64,
 }
 
 /// A simplified instruction set (compared to the Bicycle ISA) that is output from the PBC compiler
@@ -36,7 +30,7 @@ pub enum Instruction {
     JointMeasure(TwoBases),
 
     // Magic
-    Rotation(RotationData), // Apply exp(iπ/8 P), with P in {X, X', Z, Z'}
+    Rotation(RotationData), // Apply exp(iπ/8 P), where P is a list of Paulis
 }
 
 impl Display for Instruction {
@@ -50,7 +44,17 @@ impl Display for Instruction {
                 write!(f, "jMeas({},{})", bases.get_basis_1(), bases.get_basis_7())
             }
             Instruction::Rotation(rot) => {
-                write!(f, "{}({:.4})", rot.get_basis(), rot.angle)
+                write!(
+                    f,
+                    "rot([{}],{:.4})",
+                    rot.basis
+                        .iter()
+                        .rev() // Pauli 0 comes last in the string
+                        .map(|p| format!("{}", p))
+                        .collect::<Vec<_>>()
+                        .join(""),
+                    rot.angle
+                )
             }
         }
     }
