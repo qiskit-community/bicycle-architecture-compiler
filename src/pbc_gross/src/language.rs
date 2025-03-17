@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bicycle_isa::Pauli;
 
 use crate::{architecture::PathArchitecture, compile, operation::Operation};
@@ -26,6 +28,43 @@ impl PbcOperation {
             }
             PbcOperation::Rotation { basis, angle } => {
                 compile::compile_rotation(architecture, basis.to_vec(), *angle)
+            }
+        }
+    }
+}
+
+impl Display for PbcOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PbcOperation::Measurement { basis, flip_result } => {
+                write!(
+                    f,
+                    "Measurement([{}],",
+                    basis
+                        .iter()
+                        .rev()
+                        .map(|p| p.to_string())
+                        .collect::<Vec<_>>()
+                        .join("")
+                )?;
+                if *flip_result {
+                    write!(f, "flipped)")
+                } else {
+                    write!(f, "regular)")
+                }
+            }
+            PbcOperation::Rotation { basis, angle } => {
+                write!(
+                    f,
+                    "Rotation([{}],{})",
+                    basis
+                        .iter()
+                        .rev()
+                        .map(|p| p.to_string())
+                        .collect::<Vec<_>>()
+                        .join(""),
+                    angle
+                )
             }
         }
     }
