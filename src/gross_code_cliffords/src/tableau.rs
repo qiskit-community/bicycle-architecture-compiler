@@ -1,5 +1,4 @@
 use core::fmt;
-use log::debug;
 use std::{array, error::Error, hash::Hash};
 
 use crate::pauli_rotation::PauliString;
