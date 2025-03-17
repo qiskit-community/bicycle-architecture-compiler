@@ -1,4 +1,4 @@
-use std::{f64::consts::PI, fmt::Display};
+use std::fmt::Display;
 
 use bicycle_isa::{AutomorphismData, BicycleISA, Pauli, TwoBases};
 use gross_code_cliffords::native_measurement::NativeMeasurement;
@@ -30,7 +30,7 @@ pub enum Instruction {
     JointMeasure(TwoBases),
 
     // Magic
-    Rotation(RotationData), // Apply exp(iπ/8 P), where P is a list of Paulis
+    Rotation(RotationData), // Apply exp(iπ/8 P), where P is a list of 10 Paulis
 }
 
 impl Display for Instruction {
@@ -83,25 +83,14 @@ impl std::error::Error for InstructionConversionError {}
 impl TryFrom<BicycleISA> for Instruction {
     type Error = InstructionConversionError;
 
+    /// Try to convert a BicycleISA instruction to an Instruction
+    /// Note that a TGate cannot be converted since it acts on the pivot implicitly,
+    /// whereas an Instruction::Rotation acts only on data.
     fn try_from(value: BicycleISA) -> Result<Self, Self::Error> {
         match value {
             BicycleISA::Automorphism(a) => Ok(Instruction::Automorphism(a)),
             BicycleISA::Measure(b) => Ok(Instruction::Measure(b)),
             BicycleISA::JointMeasure(b) => Ok(Instruction::JointMeasure(b)),
-            BicycleISA::TGate(d) => {
-                if d.primed {
-                    Err(InstructionConversionError::PrimedGate)
-                } else {
-                    let mut angle = PI / 4.0;
-                    if d.primed {
-                        angle = -angle;
-                    }
-                    Ok(Instruction::Rotation(
-                        RotationData::new(d.get_basis(), angle)
-                            .expect("The BicycleISA basis should be compatible with RotationData"),
-                    ))
-                }
-            }
             _ => Err(InstructionConversionError::InvalidISA),
         }
     }
