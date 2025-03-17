@@ -2,7 +2,6 @@ use core::fmt;
 use std::error;
 use std::io;
 
-use crate::language;
 use crate::language::PbcOperation;
 use bicycle_isa::Pauli;
 

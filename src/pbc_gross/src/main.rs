@@ -1,5 +1,6 @@
 use std::{error, fs::File};
 
+use log::{debug, info};
 use pbc_gross::{parser, PathArchitecture};
 
 fn main() -> Result<(), Box<dyn error::Error>> {
@@ -7,13 +8,27 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let f = File::open("data/simple.csv")?;
     let ops = parser::parse_buf(f)?;
-
-    println!("{:?}", ops);
-
-    let test = ops.iter();
+    info!("Read input");
+    debug!(
+        "[{}]",
+        ops.iter()
+            .map(|op| op.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
 
     let architecture = PathArchitecture { data_blocks: 2 };
-    pbc_gross::compile(architecture, ops.into_iter());
+    let compiled = pbc_gross::compile(architecture, ops.into_iter());
+
+    for op in compiled {
+        print!("[");
+        let formatted = op
+            .into_iter()
+            .map(|(block_i, instr)| format!("({},{})", block_i, instr))
+            .collect::<Vec<_>>()
+            .join(",");
+        println!("{}]", formatted);
+    }
 
     Ok(())
 }
