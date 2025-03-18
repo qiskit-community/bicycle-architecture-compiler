@@ -102,9 +102,11 @@ pub type Operation = Vec<(usize, Instruction)>;
 /// Pretty print an Operation
 pub fn fmt_operation(op: &Operation, f: &mut dyn std::fmt::Write) -> std::fmt::Result {
     let mut s = String::from("[");
-    for (i, isa) in op {
-        s += &format!("({}, {}),", i, isa);
-    }
+    s += &op
+        .iter()
+        .map(|(i, isa)| format!("({i},{isa})"))
+        .collect::<Vec<_>>()
+        .join(",");
     s += "]";
     write!(f, "{}", s)
 }
