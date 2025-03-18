@@ -19,8 +19,8 @@ mod test {
     #[test]
     fn integration_test_rotation() -> Result<(), Box<dyn Error>> {
         let program = "r,xxiiiiiiiii,-0.125";
-
-        let parsed = parser::parse_buf(program.as_bytes())?;
+        let mut parser = parser::PbcParser::new(program.as_bytes());
+        let parsed = parser.stream().collect::<Result<Vec<_>, _>>()?;
         dbg!(&parsed);
         assert_eq!(1, parsed.len());
 

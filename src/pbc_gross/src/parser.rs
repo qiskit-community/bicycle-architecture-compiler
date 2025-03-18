@@ -55,9 +55,6 @@ impl<R: io::Read> PbcParser<R> {
                 for ch in record[1].chars() {
                     basis.push(Pauli::try_from(&ch)?);
                 }
-                if basis.len() % 11 != 0 {
-                    return Err(Box::from(SerializationError));
-                }
 
                 Ok(PbcOperation::Measurement {
                     basis,
@@ -68,10 +65,6 @@ impl<R: io::Read> PbcParser<R> {
                 let mut basis = Vec::new();
                 for ch in record[1].chars() {
                     basis.push(Pauli::try_from(&ch)?);
-                }
-
-                if basis.len() % 11 != 0 {
-                    return Err(Box::from(SerializationError));
                 }
 
                 let angle: f64 = record[2].parse()?;
@@ -99,7 +92,8 @@ r,yyyiiiiiiii,-0.25
 m,ziiiiiiiiii,-
 m,iziiiiiiiii,+
 ";
-        let result = parse_buf(input.as_bytes())?;
+        let mut parser = PbcParser::new(input.as_bytes());
+        let result = parser.stream().collect::<Result<Vec<_>, _>>()?;
 
         let expected = vec![
             PbcOperation::Rotation {

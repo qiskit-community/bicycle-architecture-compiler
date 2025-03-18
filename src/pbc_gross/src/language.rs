@@ -31,6 +31,16 @@ impl PbcOperation {
             }
         }
     }
+
+    pub fn basis(&self) -> &Vec<Pauli> {
+        match self {
+            PbcOperation::Measurement {
+                basis,
+                flip_result: _,
+            } => basis,
+            PbcOperation::Rotation { basis, angle: _ } => basis,
+        }
+    }
 }
 
 impl Display for PbcOperation {
