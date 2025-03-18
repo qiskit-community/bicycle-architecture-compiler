@@ -1,6 +1,6 @@
 # Pauli-based compilation for the Gross Code
 
-## Installation
+## NOT NEEDED: Gridsynth installation
 Please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
 The following command should succeed
 ```
