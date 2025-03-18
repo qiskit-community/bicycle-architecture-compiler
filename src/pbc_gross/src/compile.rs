@@ -322,7 +322,7 @@ mod tests {
 
     use std::f64::consts::PI;
 
-    use crate::{language::PbcOperation, operation::Operations};
+    use crate::operation::Operations;
 
     use super::*;
 
@@ -627,6 +627,7 @@ mod tests {
 
         let compiled = compile_rotation(architecture, basis, angle);
         let compiled_ops = Operations(compiled);
+        println!("{compiled_ops}");
 
         let basis0 = vec![X, X, I, I, I, I, I, I, I, I, I];
         let (meas0, rot0) = controlled_rotation(&basis0);
@@ -651,19 +652,8 @@ mod tests {
             vec![(1, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
         ]);
 
-        println!("{compiled_ops}");
-    }
+        let expected = Operations(expected);
 
-    #[test]
-    fn test_compile_ops() {
-        let ops = vec![PbcOperation::Rotation {
-            basis: vec![X, X, I, I, I, I, I, I, I, I, I, I],
-            angle: -0.125,
-        }];
-        let architecture = PathArchitecture { data_blocks: 2 };
-        let compiled: Vec<_> = compile(architecture, ops.into_iter()).collect();
-        let compiled_ops = Operations(compiled);
-
-        println!("{compiled_ops}");
+        assert_eq!(expected, compiled_ops);
     }
 }
