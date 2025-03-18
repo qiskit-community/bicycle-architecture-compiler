@@ -6,7 +6,7 @@ use pbc_gross::{parser, PathArchitecture};
 fn main() -> Result<(), Box<dyn error::Error>> {
     env_logger::init();
 
-    let f = File::open("data/simple.csv")?;
+    let f = File::open("example/simple.csv")?;
     let ops = parser::parse_buf(f)?;
     info!("Read input");
     debug!(

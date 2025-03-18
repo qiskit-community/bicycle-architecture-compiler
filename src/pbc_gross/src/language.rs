@@ -42,10 +42,9 @@ impl Display for PbcOperation {
                     "Measurement([{}],",
                     basis
                         .iter()
-                        .rev()
                         .map(|p| p.to_string())
                         .collect::<Vec<_>>()
-                        .join("")
+                        .join(",")
                 )?;
                 if *flip_result {
                     write!(f, "flipped)")
@@ -59,10 +58,9 @@ impl Display for PbcOperation {
                     "Rotation([{}],{})",
                     basis
                         .iter()
-                        .rev()
                         .map(|p| p.to_string())
                         .collect::<Vec<_>>()
-                        .join(""),
+                        .join(","),
                     angle
                 )
             }

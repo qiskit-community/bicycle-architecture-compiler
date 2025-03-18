@@ -221,10 +221,7 @@ pub fn compile_rotation(
 
     // Find implementation for each block
     let chunk_iter = basis.chunks_exact(11);
-    let magic_basis: [Pauli; 10] = chunk_iter
-        .remainder()
-        .try_into()
-        .expect("The magic block should have 10 Paulis on it");
+    let magic_basis = chunk_iter.remainder();
     let rotation_impls: Vec<_> = chunk_iter
         .map(|paulis| {
             // Only apply a controlled-Pauli if its non-trivial, except for the last block,
@@ -270,11 +267,15 @@ pub fn compile_rotation(
         }
     }
 
-    // Apply small-angle rotation on block n
+    // Apply small-angle X⊗P rotation on block n
+    let mut small_rotation_basis = vec![Pauli::X];
+    small_rotation_basis.extend_from_slice(magic_basis);
     ops.push(vec![(
         n - 1,
         Instruction::Rotation(RotationData {
-            basis: magic_basis,
+            basis: small_rotation_basis
+                .try_into()
+                .expect("The rotation basis should have 11 Paulis"),
             angle,
         }),
     )]);
@@ -321,14 +322,11 @@ mod tests {
 
     use std::f64::consts::PI;
 
-    use crate::operation::Operations;
+    use crate::{language::PbcOperation, operation::Operations};
 
     use super::*;
 
-    use bicycle_isa::{
-        AutomorphismData,
-        Pauli::{I, X, Y, Z},
-    };
+    use bicycle_isa::Pauli::{I, X, Y, Z};
 
     /// Convert a native measurement to a list of Instructions
     fn native_instructions(
@@ -497,7 +495,7 @@ mod tests {
         let arch = PathArchitecture { data_blocks: 1 };
         // XXI... is a native measurement so we don't need to apply rotations
         let basis = vec![X];
-        let expected_basis = [X, I, I, I, I, I, I, I, I, I];
+        let expected_basis = [X, X, I, I, I, I, I, I, I, I, I];
         let angle = PI / 4.;
 
         let ops = Operations(compile_rotation(&arch, basis, angle));
@@ -537,9 +535,14 @@ mod tests {
         println!("Compiled: {}", ops);
 
         let mut expected = ghz_prep(&arch);
+        let mut expected_basis = vec![X];
+        expected_basis.extend_from_slice(&basis);
         expected.push(vec![(
             0,
-            Instruction::Rotation(RotationData { basis, angle }),
+            Instruction::Rotation(RotationData {
+                basis: expected_basis.try_into().expect("Should have 11 elements"),
+                angle,
+            }),
         )]);
 
         expected.push(vec![(
@@ -587,10 +590,12 @@ mod tests {
         expected.extend(meas1_impl);
 
         // Insert rotation on block 1
+        let mut expected_basis = vec![X];
+        expected_basis.extend_from_slice(&block1_pauli);
         expected.push(vec![(
             1,
             Instruction::Rotation(RotationData {
-                basis: block1_pauli,
+                basis: expected_basis.try_into().expect("Should have 11 elements"),
                 angle,
             }),
         )]);
@@ -612,5 +617,53 @@ mod tests {
         assert_eq!(ops, expected);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_compile_rotation_blocks() {
+        let basis = vec![X, X, I, I, I, I, I, I, I, I, I, I];
+        let angle = -0.125;
+        let architecture = &PathArchitecture { data_blocks: 2 };
+
+        let compiled = compile_rotation(architecture, basis, angle);
+        let compiled_ops = Operations(compiled);
+
+        let basis0 = vec![X, X, I, I, I, I, I, I, I, I, I];
+        let (meas0, rot0) = controlled_rotation(&basis0);
+        assert!(rot0.is_empty());
+
+        let mut expected = ghz_prep(architecture);
+        expected.append(&mut native_instructions(0, meas0));
+
+        let mut expected_basis = [I; 11];
+        expected_basis[0] = X;
+        expected.push(vec![(
+            1,
+            Instruction::Rotation(RotationData {
+                basis: expected_basis,
+                angle,
+            }),
+        )]);
+
+        // Uncompute GHZ
+        expected.append(&mut vec![
+            vec![(0, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(1, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
+        ]);
+
+        println!("{compiled_ops}");
+    }
+
+    #[test]
+    fn test_compile_ops() {
+        let ops = vec![PbcOperation::Rotation {
+            basis: vec![X, X, I, I, I, I, I, I, I, I, I, I],
+            angle: -0.125,
+        }];
+        let architecture = PathArchitecture { data_blocks: 2 };
+        let compiled: Vec<_> = compile(architecture, ops.into_iter()).collect();
+        let compiled_ops = Operations(compiled);
+
+        println!("{compiled_ops}");
     }
 }

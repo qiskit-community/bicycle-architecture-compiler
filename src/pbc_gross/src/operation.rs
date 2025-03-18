@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// Single-qubit rotation on the pivot
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RotationData {
-    pub basis: [Pauli; 10],
+    pub basis: [Pauli; 11],
     pub angle: f64,
 }
 
@@ -30,7 +30,7 @@ pub enum Instruction {
     JointMeasure(TwoBases),
 
     // Magic
-    Rotation(RotationData), // Apply exp(iπ/8 P), where P is a list of 10 Paulis
+    Rotation(RotationData), // Apply exp(iπ/8 P), where P is a list of 11 Paulis
 }
 
 impl Display for Instruction {
@@ -49,10 +49,9 @@ impl Display for Instruction {
                     "rot([{}],{:.4})",
                     rot.basis
                         .iter()
-                        .rev() // Pauli 0 comes last in the string
                         .map(|p| format!("{}", p))
                         .collect::<Vec<_>>()
-                        .join(""),
+                        .join(","),
                     rot.angle
                 )
             }
