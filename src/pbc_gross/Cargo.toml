@@ -14,3 +14,4 @@ regex = "1.11.1"
 serde = { version = "1.0.218", features = ["derive"] }
 bicycle_isa = { path = "../bicycle_isa" }
 gross_code_cliffords = { path = "../gross_code_cliffords" }
+serde_json = { version = "1.0.140", features = ["float_roundtrip"] }

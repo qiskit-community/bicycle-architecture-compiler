@@ -4,6 +4,8 @@ use std::io;
 
 use crate::language::PbcOperation;
 use bicycle_isa::Pauli;
+use csv::Reader;
+use csv::StringRecord;
 
 #[derive(Clone, Debug)]
 pub struct SerializationError;
@@ -16,20 +18,38 @@ impl fmt::Display for SerializationError {
 
 impl error::Error for SerializationError {}
 
-// Parse a read buffer into a vector of operations
-// Could make this an iterable and parse in streaming fashion?
-// Should probably write a proper parser for the input language to get line-by-line errors.
-// See: e.g. Chumsky for Rust (but what about other languages? Would a Yacc grammar be easier?)
-pub fn parse_buf<R: io::Read>(readme: R) -> Result<Vec<PbcOperation>, Box<dyn error::Error>> {
-    let mut rdr = csv::ReaderBuilder::new()
-        .has_headers(false)
-        .flexible(true)
-        .comment(Some(b'#'))
-        .from_reader(readme);
-    let mut ops = vec![];
-    for result in rdr.records() {
-        let record = result?;
-        let operation = match &record[0] {
+pub struct PbcParser<R: io::Read> {
+    rdr: Reader<R>,
+}
+
+impl<R: io::Read> PbcParser<R> {
+    pub fn new(readme: R) -> Self
+    where
+        R: io::Read,
+    {
+        let rdr = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .flexible(true)
+            .comment(Some(b'#'))
+            .from_reader(readme);
+        Self { rdr }
+    }
+
+    /// Parse a read buffer into a vector of operations
+    /// Could make this an iterable and parse in streaming fashion?
+    /// Should probably write a proper parser for the input language to get line-by-line errors.
+    /// See: e.g. Chumsky for Rust (but what about other languages? Would a Yacc grammar be easier?)
+    pub fn stream(
+        &mut self,
+    ) -> impl Iterator<Item = Result<PbcOperation, Box<dyn error::Error>>> + '_ {
+        self.rdr.records().map(|result| {
+            let record = result?;
+            Self::parse_record(record)
+        })
+    }
+
+    fn parse_record(record: StringRecord) -> Result<PbcOperation, Box<dyn error::Error>> {
+        match &record[0] {
             "m" => {
                 let mut basis = Vec::new();
                 for ch in record[1].chars() {
@@ -57,12 +77,9 @@ pub fn parse_buf<R: io::Read>(readme: R) -> Result<Vec<PbcOperation>, Box<dyn er
                 let angle: f64 = record[2].parse()?;
                 Ok(PbcOperation::Rotation { basis, angle })
             }
-            _ => Err(SerializationError),
-        };
-        ops.push(operation?);
+            _ => Err(Box::new(SerializationError)),
+        }
     }
-
-    Ok(ops)
 }
 
 #[cfg(test)]
