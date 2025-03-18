@@ -1,5 +1,50 @@
 # Pauli-based compilation for the Gross Code
 
+This is a compiler targeting the Gross code architecture
+for programs given in Pauli-based compilation (PBC) form.
+It consist of a Rust library and a main binary.
+
+## Input Program
+The input program must be in a PBC form.
+We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.11391890))
+```csv
+r,xxiiiiiiiii,-0.125
+r,izziiiiiiii,0.25
+r,yyyiiiiiiii,-0.25
+# Now we measure
+m,ziiiiiiiiii,-
+m,iziiiiiiiii,+
+```
+which shows the only two operations allowed in such a PBC program: Rotations and Measurements.
+All operations should act on the same number of logical qubits.
+Rotations are specified by starting with `r`, followed by the basis, then the rotation angle in radians.
+Measurements are specified by starting with `m`, followed by the basis, then whether the resulting measurement result should be flipped (currently not used).
+We also allow lines of comments that start with `#`.
+
+## Running the program
+
+(TODO) You can pipe a program of the above format into the binary by running
+
+```
+cat example/simple.csv | cargo run --release
+```
+
+## Output
+
+The output looks like
+```
+[(0,meas(X,I))]
+[(1,meas(Z,I))]
+[(0,jMeas(Z,I)),(1,jMeas(Z,I))]
+[(0,aut(3,2))]
+[(0,meas(X,I))]
+[(0,aut(3,4))]
+[(1,rot([X,I,I,I,I,I,I,I,I,I,I],-0.1250))]
+[(0,meas(Z,I))]
+[(1,meas(Z,I))]
+...
+```
+
 ## NOT NEEDED: Gridsynth installation
 Please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
 The following command should succeed
