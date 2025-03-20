@@ -36,16 +36,17 @@ impl<R: io::Read> PbcParser<R> {
     }
 
     /// Parse a read buffer into a vector of operations
-    /// Could make this an iterable and parse in streaming fashion?
+    /// This operation can panic if it encounters a record that it cannot convert to a PbcOperation
     /// Should probably write a proper parser for the input language to get line-by-line errors.
     /// See: e.g. Chumsky for Rust (but what about other languages? Would a Yacc grammar be easier?)
-    pub fn stream(
-        &mut self,
-    ) -> impl Iterator<Item = Result<PbcOperation, Box<dyn error::Error>>> + '_ {
-        self.rdr.records().map(|result| {
-            let record = result?;
-            Self::parse_record(record)
-        })
+    pub fn stream(&mut self) -> impl Iterator<Item = PbcOperation> + '_ {
+        self.rdr
+            .records()
+            .map(|result| {
+                let record = result?;
+                Self::parse_record(record)
+            })
+            .map(|res| res.unwrap())
     }
 
     fn parse_record(record: StringRecord) -> Result<PbcOperation, Box<dyn error::Error>> {
