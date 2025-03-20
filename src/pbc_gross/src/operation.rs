@@ -11,6 +11,24 @@ pub struct RotationData {
     pub angle: f64,
 }
 
+impl RotationData {
+    /// Try to merge this rotation with another
+    /// Only if the bases coincide will the angles add up
+    pub fn partial_mul(self, rhs: Self) -> (RotationData, Option<RotationData>) {
+        if self.basis == rhs.basis {
+            (
+                Self {
+                    basis: self.basis,
+                    angle: self.angle + rhs.angle,
+                },
+                None,
+            )
+        } else {
+            (self, Some(rhs))
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NativeRotation {
     pub native_measurement: NativeMeasurement,
