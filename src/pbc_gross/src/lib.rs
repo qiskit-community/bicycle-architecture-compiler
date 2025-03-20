@@ -2,6 +2,7 @@ mod architecture;
 mod compile;
 pub mod language;
 pub mod operation;
+pub mod optimize;
 pub mod parser;
 mod small_angle;
 
@@ -20,7 +21,7 @@ mod test {
     fn integration_test_rotation() -> Result<(), Box<dyn Error>> {
         let program = "r,xxiiiiiiiii,-0.125";
         let mut parser = parser::PbcParser::new(program.as_bytes());
-        let parsed = parser.stream().collect::<Result<Vec<_>, _>>()?;
+        let parsed = parser.stream().collect::<Vec<_>>();
         dbg!(&parsed);
         assert_eq!(1, parsed.len());
 
