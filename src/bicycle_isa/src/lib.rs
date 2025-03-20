@@ -1,5 +1,8 @@
 extern crate nalgebra as na;
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    ops::{Mul, MulAssign},
+};
 
 use na::Matrix6;
 use serde::{Deserialize, Serialize};
@@ -120,6 +123,20 @@ impl AutomorphismData {
         let my = Matrix6::from_row_slice(&my_array);
 
         Matrix6::pow(&mx, self.x.into()) * Matrix6::pow(&my, self.y.into()).map(|v| v % 2)
+    }
+}
+
+impl Mul for AutomorphismData {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self::new(self.x + rhs.x, self.y + rhs.y)
+    }
+}
+
+impl MulAssign for AutomorphismData {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = Self::new(self.x + rhs.x, self.y + rhs.y);
     }
 }
 
