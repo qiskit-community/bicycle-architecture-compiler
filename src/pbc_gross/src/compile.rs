@@ -224,8 +224,7 @@ pub fn compile_rotation(
     let magic_basis = chunk_iter.remainder();
     let rotation_impls: Vec<_> = chunk_iter
         .map(|paulis| {
-            // Only apply a controlled-Pauli if its non-trivial, except for the last block,
-            // which needs to apply P(φ) in any case
+            // Only apply a controlled-Pauli if its non-trivial
             if paulis.iter().all(|p| *p == Pauli::I) {
                 None
             } else {
@@ -352,7 +351,7 @@ mod tests {
             let z_bits = (p.0 & !((1 << 12) - 1)) >> 12;
             let any_bits = x_bits | z_bits;
 
-            if rots.len() == 0 && any_bits.count_ones() == 2 {
+            if rots.len() == 0 && any_bits.count_ones() == 1 {
                 println!("{}", p);
             }
         }
