@@ -1,10 +1,9 @@
 use std::{error, io};
 
-use bicycle_isa::AutomorphismData;
 use io::Write;
 
 use log::debug;
-use pbc_gross::{operation::Instruction, optimize, parser::PbcParser, PathArchitecture};
+use pbc_gross::{optimize, parser::PbcParser, PathArchitecture};
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     env_logger::init();
@@ -28,17 +27,15 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let compiled = peek_ops.flat_map(|op| op.compile(&architecture));
 
-    let optimized_ops = optimize::remove_duplicates(compiled);
+    let optimized_ops = optimize::remove_duplicate_measurements(compiled);
     let mut handle = io::stdout();
-    // for res in ops {
-
-    //     let ops =
-    //     for op in ops {
-    //         debug!("{op:?}");
-    //         serde_json::to_writer(&mut handle, &op)?;
-    //         writeln!(&mut handle)?;
-    //     }
-    // }
+    for op in optimized_ops {
+        for gate in op {
+            debug!("{gate:?}");
+            serde_json::to_writer(&mut handle, &gate)?;
+            writeln!(&mut handle)?;
+        }
+    }
 
     Ok(())
 }

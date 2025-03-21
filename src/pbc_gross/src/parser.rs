@@ -94,7 +94,7 @@ m,ziiiiiiiiii,-
 m,iziiiiiiiii,+
 ";
         let mut parser = PbcParser::new(input.as_bytes());
-        let result = parser.stream().collect::<Result<Vec<_>, _>>()?;
+        let result: Vec<_> = parser.stream().collect();
 
         let expected = vec![
             PbcOperation::Rotation {
