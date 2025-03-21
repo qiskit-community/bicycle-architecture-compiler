@@ -1,9 +1,11 @@
 use core::str;
 use std::{error::Error, io};
 
-use csv::ErrorKind;
+use log::debug;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+
     let args: Vec<_> = std::env::args().collect();
     let qubits = str::parse::<usize>(&args[1])?;
     assert!(qubits > 0);
@@ -24,9 +26,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
         out.push(String::from("+"));
 
-        // If failed to write, just quit.
+        // If I/O failed, just quit gracefully.
         // Could happen when pipe was closed (e.g. head -n 10)
         if let Err(e) = writer.write_record(out) {
+            debug!("Error when writing record: {e}");
             if e.is_io_error() {
                 break;
             } else {
