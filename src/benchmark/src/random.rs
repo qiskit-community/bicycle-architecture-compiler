@@ -3,6 +3,7 @@ use pbc_gross::language::PbcOperation;
 
 use rand::{distr::Uniform, prelude::*};
 
+/// Generate an infinite iterator of random measurements
 pub fn random_measurements(qubits: usize) -> impl Iterator<Item = PbcOperation> {
     let mut rng = rand::rng();
     let range = Uniform::new_inclusive(0, 3).unwrap();
@@ -25,6 +26,8 @@ pub fn random_measurements(qubits: usize) -> impl Iterator<Item = PbcOperation> 
             flip_result: false,
         }
     })
+    // Remove measurements that are all identity
+    .filter(|measurement| !measurement.basis().iter().all(|p| *p == Pauli::I))
 }
 
 pub fn random_paulis() -> impl Iterator<Item = Pauli> + 'static {
