@@ -25,7 +25,7 @@ pub fn random_measurements(qubits: usize) -> impl Iterator<Item = PbcOperation> 
         .filter(|measurement| !measurement.basis().iter().all(|p| *p == Pauli::I))
 }
 
-pub fn random_paulis() -> impl Iterator<Item = Pauli> + 'static {
+pub fn random_paulis() -> impl Iterator<Item = Pauli> {
     let mut rng = rand::rng();
     let range = Uniform::new_inclusive(0, 3).unwrap();
 
