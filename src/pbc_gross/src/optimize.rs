@@ -61,22 +61,34 @@ fn merge_instructions(
 pub fn remove_duplicate_measurements(
     ops: impl IntoIterator<Item = Operation>,
 ) -> impl Iterator<Item = Operation> {
+    remove_duplicate_measurement_chunked(ops.into_iter().map(|op| vec![op])).flatten()
+}
+
+/// Remove measurements that are repeated but respect the chunk boundaries as they are given
+pub fn remove_duplicate_measurement_chunked(
+    chunked_ops: impl IntoIterator<Item = impl IntoIterator<Item = Operation>>,
+) -> impl Iterator<Item = Vec<Operation>> {
     let mut history: Vec<Option<Instruction>> = Vec::new();
 
-    ops.into_iter().filter(move |ops_list| {
-        for (i, instr) in ops_list {
-            history.resize_with(history.len().max(i + 1), Default::default);
+    chunked_ops.into_iter().map(move |ops_chunk| {
+        ops_chunk
+            .into_iter()
+            .filter(|ops_list| {
+                for (i, instr) in ops_list {
+                    history.resize_with(history.len().max(i + 1), Default::default);
 
-            if let Instruction::Measure(_) = instr {
-                if history[*i] == Some(*instr) {
-                    return false;
+                    if let Instruction::Measure(_) = instr {
+                        if history[*i] == Some(*instr) {
+                            return false;
+                        }
+                    }
+                    // Copy seen instructions into history
+                    // Cannot reference because that would make instructions immutable
+                    history[*i] = Some(*instr);
                 }
-            }
-            // Copy seen instructions into history
-            // Cannot reference because that would make instructions immutable
-            history[*i] = Some(*instr);
-        }
-        true
+                true
+            })
+            .collect()
     })
 }
 
