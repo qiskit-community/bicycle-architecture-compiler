@@ -1,0 +1,12 @@
+[package]
+name = "numerics"
+edition = "2021"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+
+[dependencies]
+pbc_gross = { path = "../pbc_gross" }
+benchmark = { path = "../benchmark" }
+env_logger = "0.11.7"
+log = "0.4.27"

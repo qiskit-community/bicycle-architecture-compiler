@@ -61,11 +61,11 @@ fn merge_instructions(
 pub fn remove_duplicate_measurements(
     ops: impl IntoIterator<Item = Operation>,
 ) -> impl Iterator<Item = Operation> {
-    remove_duplicate_measurement_chunked(ops.into_iter().map(|op| vec![op])).flatten()
+    remove_duplicate_measurements_chunked(ops.into_iter().map(|op| vec![op])).flatten()
 }
 
 /// Remove measurements that are repeated but respect the chunk boundaries as they are given
-pub fn remove_duplicate_measurement_chunked(
+pub fn remove_duplicate_measurements_chunked(
     chunked_ops: impl IntoIterator<Item = impl IntoIterator<Item = Operation>>,
 ) -> impl Iterator<Item = Vec<Operation>> {
     let mut history: Vec<Option<Instruction>> = Vec::new();

@@ -7,6 +7,12 @@ pub struct PathArchitecture {
 }
 
 impl PathArchitecture {
+    pub fn for_qubits(qubits: usize) -> Self {
+        let data_blocks = (qubits + 1).div_ceil(11);
+
+        Self { data_blocks }
+    }
+
     pub fn data_blocks(&self) -> usize {
         self.data_blocks
     }
