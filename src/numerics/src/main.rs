@@ -50,31 +50,32 @@ fn main() -> Result<(), Box<dyn Error>> {
         "i,qubits,blocks,rotations,automorphisms,measurements,joint measurements,cumulative measurement depth"
     );
 
-    let mut depths: Vec<u64> = vec![Default::default(); data_blocks];
+    let mut depths: Vec<u64> = vec![0; data_blocks];
+    let mut times: Vec<f64> = vec![0.0; data_blocks];
     for (i, meas_impl) in optimized_measurements.enumerate() {
         let mut counter: InstructionCounter = Default::default();
         // Accumulate counts. Or use a fold.
         meas_impl.iter().for_each(|instr| counter.add(&instr[0].1));
 
-        // Compute the new depths for each block
+        // Compute the new depths and timing for each block
         for op in meas_impl {
-            // Update the InstructionCounter of the involved blocks to be the max
-            if op.len() > 1 {
-                let mut max_counter: u64 = Default::default();
-                for (block_i, _) in op.iter() {
-                    max_counter = max_counter.max(depths[*block_i]);
-                }
-                for (block_i, _) in op.iter() {
-                    depths[*block_i] = max_counter;
-                }
+            // Find the max depth/time between blocks
+            let mut max_counter = 0;
+            let mut max_time: f64 = 0.0;
+            for (block_i, _) in op.iter() {
+                max_counter = max_counter.max(depths[*block_i]);
+                max_time = max_time.max(times[*block_i]);
             }
-
-            // Add the instruction to each block
             for (block_i, instr) in op {
+                depths[block_i] = max_counter;
                 match instr {
-                    Instruction::Measure(_) | Instruction::JointMeasure(_) => depths[block_i] += 1,
-                    _ => {}
+                    Instruction::Measure(_) | Instruction::JointMeasure(_) => {
+                        depths[block_i] = max_counter + 1
+                    }
+                    _ => depths[block_i] = max_counter,
                 }
+
+                times[block_i] += timing(&instr);
             }
         }
 
@@ -93,6 +94,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             measurement_depth,
         );
     }
+    // TODO: Compute timing information using dummy microsecond timings
 
     Ok(())
+}
+
+/// Time it takes to perform an instruction
+pub fn timing(instruction: &Instruction) -> f64 {
+    match instruction {
+        Instruction::Rotation(_) => 30.0,
+        Instruction::Automorphism(_) => 3.0,
+        Instruction::Measure(_) => 7.0,
+        Instruction::JointMeasure(_) => 7.0,
+    }
 }
