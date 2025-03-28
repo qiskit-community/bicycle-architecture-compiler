@@ -282,4 +282,18 @@ mod tests {
             TwoBases::new(Pauli::X, Pauli::Z)
         );
     }
+
+    // Check that the order of the automorphism generators is 6
+    #[test]
+    fn automorphism_order() {
+        let x1 = AutomorphismData { x: 1, y: 0 }.parity_map_gross();
+        assert_eq!(x1, x1.pow(7).map(|v| v % 2));
+        let y1 = AutomorphismData { x: 0, y: 1 }.parity_map_gross();
+        assert_eq!(y1, y1.pow(7).map(|v| v % 2));
+
+        let x1 = AutomorphismData { x: 1, y: 0 }.parity_map_disgusting();
+        assert_eq!(x1, x1.pow(7).map(|v| v % 2));
+        let y1 = AutomorphismData { x: 0, y: 1 }.parity_map_disgusting();
+        assert_eq!(y1, y1.pow(7).map(|v| v % 2));
+    }
 }
