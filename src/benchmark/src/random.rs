@@ -5,7 +5,7 @@ use pbc_gross::language::PbcOperation;
 
 use rand::{distr::Uniform, prelude::*};
 
-/// Generate random circuit with non-trivial π/8 rotations, equivalent to a Clifford+T circuit
+/// Generate random circuit with non-trivial rotations, equivalent to a Clifford+T circuit
 pub fn random_rotations(qubits: usize, angle: f64) -> impl Iterator<Item = PbcOperation> {
     random_pauli_strings(qubits)
         .map(move |ps| PbcOperation::Rotation { basis: ps, angle })
