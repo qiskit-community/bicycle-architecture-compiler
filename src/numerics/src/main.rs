@@ -1,7 +1,10 @@
 use std::error::Error;
 
+use fixed::types::U24F40;
 use log::trace;
 use pbc_gross::operation::Instruction;
+
+type ErrorPrecision = U24F40;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct InstructionCounter {
@@ -47,11 +50,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let data_blocks = architecture.data_blocks();
     println!(
-        "i,qubits,blocks,rotations,automorphisms,measurements,joint measurements,cumulative measurement depth,execution time"
+        "i,qubits,blocks,rotations,automorphisms,measurements,joint measurements,cumulative measurement depth,syndrome time,error rate"
     );
 
     let mut depths: Vec<u64> = vec![0; data_blocks];
-    let mut times: Vec<f64> = vec![0.0; data_blocks];
+    let mut times: Vec<u64> = vec![0; data_blocks];
+    let mut total_error = ErrorPrecision::ZERO;
     for (i, meas_impl) in optimized_measurements.enumerate() {
         let mut counter: InstructionCounter = Default::default();
         // Accumulate counts. Or use a fold.
@@ -61,30 +65,43 @@ fn main() -> Result<(), Box<dyn Error>> {
         for op in meas_impl {
             // Find the max depth/time between blocks
             let mut max_depth = 0;
-            let mut max_time: f64 = 0.0;
+            let mut max_time = 0;
             for (block_i, _) in op.iter() {
                 max_depth = max_depth.max(depths[*block_i]);
                 max_time = max_time.max(times[*block_i]);
             }
-            for (block_i, instr) in op {
-                depths[block_i] = max_depth;
+
+            for (block_i, instr) in op.iter() {
+                depths[*block_i] = max_depth;
                 match instr {
                     Instruction::Measure(_) | Instruction::JointMeasure(_) => {
-                        depths[block_i] = max_depth + 1
+                        depths[*block_i] = max_depth + 1
                     }
-                    _ => depths[block_i] = max_depth,
+                    _ => depths[*block_i] = max_depth,
                 }
 
-                times[block_i] = max_time + timing(&instr);
+                // Insert idling noise
+                let time_diff = max_time - times[*block_i];
+                // Only add if diff > 0 due to float rounding
+                // Not sure if necessary
+                if time_diff != 0 {
+                    total_error += idling_error(time_diff);
+                }
+
+                times[*block_i] = max_time + timing(instr);
             }
+
+            // Update error rate once per op
+            let (_, instr) = &op[0];
+            total_error += error_rate(instr);
         }
 
         // Calculate the max depth currently
         let measurement_depth = depths.iter().reduce(|a, b| a.max(b)).unwrap();
-        let end_time = times.iter().fold(0.0_f64, |maxt, t| maxt.max(*t));
+        let end_time = times.iter().reduce(|maxt, t| maxt.max(t)).unwrap();
 
         println!(
-            "{},{},{},{},{},{},{},{},{:.1}",
+            "{},{},{},{},{},{},{},{},{},{}",
             i + 1,
             qubits,
             data_blocks,
@@ -94,6 +111,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             counter.joint_measurements,
             measurement_depth,
             end_time,
+            total_error,
         );
     }
 
@@ -101,20 +119,29 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 /// Time it takes to perform an instruction
-pub fn timing(instruction: &Instruction) -> f64 {
+pub fn timing(instruction: &Instruction) -> u64 {
     match instruction {
-        Instruction::Rotation(_) => 30.0,
-        Instruction::Automorphism(_) => 3.0,
-        Instruction::Measure(_) => 7.33,
-        Instruction::JointMeasure(_) => 7.0,
+        Instruction::Rotation(_) => 30,
+        Instruction::Automorphism(_) => 3,
+        Instruction::Measure(_) => 10,
+        Instruction::JointMeasure(_) => 10,
     }
 }
 
-pub fn infidelity(instruction: &Instruction) -> f64 {
+// 1e-11 ≈ 2^{-36.5}
+const HIGH_ERROR: ErrorPrecision = ErrorPrecision::lit("0b1p-36");
+// 1e-12 ≈ 2^{-39.9}
+const LOW_ERROR: ErrorPrecision = ErrorPrecision::lit("0b1p-40");
+
+pub fn error_rate(instruction: &Instruction) -> ErrorPrecision {
     match instruction {
-        Instruction::Rotation(_) => 1e-4,
-        Instruction::Automorphism(_) => 1e-10,
-        Instruction::Measure(_) => 4e-8,
-        Instruction::JointMeasure(_) => 2e-6,
+        Instruction::Rotation(_) => HIGH_ERROR,
+        Instruction::Measure(_) => HIGH_ERROR,
+        Instruction::JointMeasure(_) => HIGH_ERROR,
+        Instruction::Automorphism(_) => LOW_ERROR,
     }
+}
+
+pub fn idling_error(cycles: u64) -> ErrorPrecision {
+    LOW_ERROR * cycles
 }
