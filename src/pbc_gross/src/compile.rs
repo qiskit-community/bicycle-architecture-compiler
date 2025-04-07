@@ -123,7 +123,7 @@ fn extend_basis(basis: &mut Vec<Pauli>) {
 
 /// Compile a Pauli measurement to ISA instructions
 pub fn compile_measurement(
-    architecture: &PathArchitecture,
+    _architecture: &PathArchitecture,
     mut basis: Vec<Pauli>,
 ) -> Vec<Operation> {
     let mut ops: Vec<Operation> = vec![];
@@ -164,7 +164,19 @@ pub fn compile_measurement(
         }
     }
 
-    ops.extend(ghz_prep(0, architecture.data_blocks()));
+    // Find the range for which we need to prepare a GHZ state
+    let first_nontrivial = rotation_impls
+        .iter()
+        .position(|rot| !rot.is_none())
+        .unwrap();
+    let last_nontrivial = rotation_impls
+        .iter()
+        .rposition(|rot| !rot.is_none())
+        .unwrap();
+    ops.extend(ghz_prep(
+        first_nontrivial,
+        last_nontrivial - first_nontrivial + 1,
+    ));
 
     // Apply local measurements on each data block
     for (block_i, rotation_impl) in rotation_impls.iter().enumerate() {
@@ -253,8 +265,12 @@ pub fn compile_rotation(
         }
     }
 
-    // Prepare GHZ state
-    ops.extend(ghz_prep(0, architecture.data_blocks()));
+    // Find the range for which we need to prepare a GHZ state
+    let first_nontrivial = rotation_impls
+        .iter()
+        .position(|rot| !rot.is_none())
+        .unwrap_or(n - 1);
+    ops.extend(ghz_prep(first_nontrivial, n - first_nontrivial));
 
     // Apply native measurements on nontrivial blocks
     for (block_i, (meas, _)) in rotation_impls
