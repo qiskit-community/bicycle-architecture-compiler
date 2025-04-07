@@ -65,20 +65,24 @@ fn controlled_rotation(basis: &[Pauli]) -> (&NativeMeasurement, Vec<&NativeMeasu
     MEASUREMENT_IMPLS.implementation(p)
 }
 
-/// Construct GHZ state spanning the entire architecture
-fn ghz_prep(architecture: &PathArchitecture) -> Vec<Operation> {
+/// Construct GHZ state on a path architecture from start to end
+fn ghz_prep(start: usize, blocks: usize) -> Vec<Operation> {
+    assert!(blocks > 0);
+    let end = start + blocks;
     let x1 = TwoBases::new(Pauli::X, Pauli::I).unwrap();
     let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
-    let n = architecture.data_blocks();
 
     let mut ops = vec![];
     // Init pivots in |+>|0...0>
-    ops.push(vec![(0, Instruction::Measure(x1))]);
-    for block in 1..n {
+    ops.push(vec![(start, Instruction::Measure(x1))]);
+    for block in (start + 1)..end {
         ops.push(vec![(block, Instruction::Measure(z1))]);
     }
     // Perform ZZ measurements on adjacent blocks. Alternating even then odd blocks.
-    for r in (0..n - 1).step_by(2).chain((1..n - 1).step_by(2)) {
+    for r in (start..(end - 1))
+        .step_by(2)
+        .chain(((start + 1)..(end - 1)).step_by(2))
+    {
         let op = vec![
             (r, Instruction::JointMeasure(z1)),
             (r + 1, Instruction::JointMeasure(z1)),
@@ -160,7 +164,7 @@ pub fn compile_measurement(
         }
     }
 
-    ops.extend(ghz_prep(architecture));
+    ops.extend(ghz_prep(0, architecture.data_blocks()));
 
     // Apply local measurements on each data block
     for (block_i, rotation_impl) in rotation_impls.iter().enumerate() {
@@ -250,7 +254,7 @@ pub fn compile_rotation(
     }
 
     // Prepare GHZ state
-    ops.extend(ghz_prep(architecture));
+    ops.extend(ghz_prep(0, architecture.data_blocks()));
 
     // Apply native measurements on nontrivial blocks
     for (block_i, (meas, _)) in rotation_impls
@@ -383,7 +387,7 @@ mod tests {
         let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
         let arch = PathArchitecture { data_blocks: 2 };
 
-        let ops = ghz_prep(&arch);
+        let ops = ghz_prep(0, arch.data_blocks());
 
         // One joint operation
         let joint_ops: Vec<_> = ops.iter().filter(|op| op.len() == 2).collect();
@@ -417,7 +421,7 @@ mod tests {
         let joint_ops: Vec<_> = ops.0.iter().filter(|op| op.len() == 2).collect();
         assert_eq!(1, joint_ops.len());
 
-        let mut expected = ghz_prep(&arch);
+        let mut expected = ghz_prep(0, arch.data_blocks());
 
         expected.append(&mut native_instructions(0, meas0));
         expected.append(&mut native_instructions(1, meas1));
@@ -463,7 +467,7 @@ mod tests {
             .map(|op| vec![(0_usize, op)])
             .collect();
 
-        expected.append(&mut ghz_prep(&arch));
+        expected.append(&mut ghz_prep(0, arch.data_blocks()));
         expected.append(&mut native_instructions(0, meas0));
         expected.append(&mut native_instructions(1, meas1));
         // Uncompute GHZ
@@ -500,7 +504,7 @@ mod tests {
         let ops = Operations(compile_rotation(&arch, basis, angle));
         println!("Compiled: {}", ops);
 
-        let mut expected = ghz_prep(&arch);
+        let mut expected = ghz_prep(0, arch.data_blocks());
 
         expected.push(vec![(
             0,
@@ -533,7 +537,7 @@ mod tests {
         let ops = Operations(compile_rotation(&arch, basis.to_vec(), angle));
         println!("Compiled: {}", ops);
 
-        let mut expected = ghz_prep(&arch);
+        let mut expected = ghz_prep(0, arch.data_blocks());
         let mut expected_basis = vec![X];
         expected_basis.extend_from_slice(&basis);
         expected.push(vec![(
@@ -581,7 +585,7 @@ mod tests {
         println!("Compiled: {}", ops);
 
         // Prepare GHZ
-        let mut expected: Vec<Vec<(usize, Instruction)>> = ghz_prep(&arch);
+        let mut expected: Vec<Vec<(usize, Instruction)>> = ghz_prep(0, arch.data_blocks());
         // Native measure block 0
         let meas1_impl = meas0
             .implementation()
@@ -632,7 +636,7 @@ mod tests {
         let (meas0, rot0) = controlled_rotation(&basis0);
         assert!(rot0.is_empty());
 
-        let mut expected = ghz_prep(architecture);
+        let mut expected = ghz_prep(0, architecture.data_blocks());
         expected.append(&mut native_instructions(0, meas0));
 
         let mut expected_basis = [I; 11];
