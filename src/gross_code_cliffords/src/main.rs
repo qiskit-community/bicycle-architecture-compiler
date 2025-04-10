@@ -18,6 +18,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Map into one string before sending to stdout for speed
     let output_lines = (1..4_u32.pow(12)).map(|i| {
+        // let x_bits = i & ((1 << 11) - 1);
+        // let z_bits = i >> 11;
+        // let p = PauliString((z_bits << 13) | (x_bits << 1));
         let p = PauliString(i);
         let (base_meas, rots) = complete.implementation(p);
         format!("{},{},{}", p, base_meas.measures(), rots.len(),)
