@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::native_measurement::NativeMeasurement;
 use crate::pauli_rotation::PauliString;
+use crate::{native_measurement::NativeMeasurement, pauli_rotation};
 
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -47,7 +47,7 @@ impl CompleteMeasurementTable {
     /// The ordering of rotations is such that the first element conjugates the measurement first.
     /// The given PauliString must be a valid measurement defined on 12 qubits.
     pub fn implementation(&self, p: PauliString) -> (&NativeMeasurement, Vec<&NativeMeasurement>) {
-        assert!(p.0 <= 4_u32.pow(12));
+        assert!(p.0 <= 4_u32.pow(12), "{}", p);
         assert!(p.0 != 0); // Cannot measure identity
 
         let mut implementation = self.get(p).unwrap();
@@ -69,6 +69,26 @@ impl CompleteMeasurementTable {
             .rev()
             .collect();
         (base_meas, native_rots)
+    }
+
+    /// Find an implementation for a rotation given by p such that the number of rotations is minimized.
+    pub fn rotation(&self, p: PauliString) -> (&NativeMeasurement, Vec<&NativeMeasurement>) {
+        assert!(p.0 <= 4_u32.pow(12), "{}", p);
+        assert!(
+            p.pivot_bits() == pauli_rotation::ID,
+            "Expected identity on pivot for {}",
+            p
+        );
+
+        // Find minimum-length implementation out of three options for the pivot.
+        let res = [pauli_rotation::X1, pauli_rotation::Z1, pauli_rotation::Y1]
+            .into_iter()
+            .map(|pivot_pauli| p * pivot_pauli) // insert pivot basis
+            .map(|q| self.implementation(q)) // look up implementation
+            .min_by(|impl0, impl1| impl0.1.len().cmp(&impl1.1.len()))
+            .unwrap();
+
+        res
     }
 }
 
