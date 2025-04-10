@@ -158,11 +158,38 @@ mod tests {
     }
 
     #[test]
+    fn all_native_rotations() {
+        let base = NativeMeasurement::all();
+        let rots: HashSet<_> = base
+            .into_iter()
+            .map(|m| m.measures().zero_pivot())
+            .collect();
+
+        // Some code to print native rotations
+        // let mut sorted_rots: Vec<_> = rots.into_iter().collect();
+        // sorted_rots.sort();
+        // println!("{}", sorted_rots.len());
+
+        // for rot in &sorted_rots {
+        //     println!("{rot}");
+        // }
+        assert_eq!(511, rots.len());
+    }
+
+    #[test]
     fn all_native() {
         let all_native = NativeMeasurement::all();
         assert_eq!(15 * 36, all_native.len());
 
         let set: HashSet<_> = all_native.iter().map(|n| n.measures()).collect();
+
+        // Some code to print the native measurements
+        // let mut ms: Vec<_> = set.iter().collect();
+        // ms.sort();
+
+        // for m in ms {
+        //     println!("{m}");
+        // }
         assert_eq!(15 * 36, set.len());
     }
 
