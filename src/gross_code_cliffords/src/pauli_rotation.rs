@@ -64,11 +64,9 @@ impl PauliString {
         }
     }
 
-    /// Return Pauli string on 1 qubit with logical bits removed
+    /// Return Pauli string on qubit 1
     pub fn pivot_bits(self) -> PauliString {
-        let z_bit = (self.0 & (1 << 12)) >> 12;
-        let x_bit = self.0 & 1;
-        let bits = z_bit << 1 | x_bit;
+        let bits = self.0 & (1 | (1 << 12));
         PauliString(bits)
     }
 
@@ -87,6 +85,11 @@ impl PauliString {
         PauliString(bits)
     }
 }
+
+pub const ID: PauliString = PauliString(0);
+pub const X1: PauliString = PauliString(1);
+pub const Z1: PauliString = PauliString(1 << 12);
+pub const Y1: PauliString = PauliString(1 | (1 << 12));
 
 impl Mul for PauliString {
     type Output = Self;
@@ -220,15 +223,12 @@ impl fmt::Display for PauliString {
 mod tests {
     use bicycle_isa::Pauli;
 
-    use super::PauliString;
+    use super::*;
 
     use Pauli::{I, X, Y, Z};
 
-    const I_STR: PauliString = PauliString(0);
-    const X1: PauliString = PauliString(1);
     const X2: PauliString = PauliString(1 << 1);
     const X5: PauliString = PauliString(1 << 4);
-    const Z1: PauliString = PauliString(1 << 12);
     const Z2: PauliString = PauliString(1 << 13);
 
     #[test]
