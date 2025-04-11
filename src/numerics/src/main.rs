@@ -1,10 +1,12 @@
 use std::error::Error;
 
-use fixed::types::U24F40;
+use fixed::types::U32F96;
 use log::trace;
 use pbc_gross::operation::Instruction;
 
-type ErrorPrecision = U24F40;
+// Because we need to support precision up to 10^-20,
+// which is >2^-65
+type ErrorPrecision = U32F96;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct InstructionCounter {
@@ -85,7 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // Only add if diff > 0 due to float rounding
                 // Not sure if necessary
                 if time_diff != 0 {
-                    total_error += idling_error(time_diff);
+                    total_error += GROSS_10E3.idling_error(time_diff);
                 }
 
                 times[*block_i] = max_time + timing(instr);
@@ -93,7 +95,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             // Update error rate once per op
             let (_, instr) = &op[0];
-            total_error += error_rate(instr);
+            total_error += GROSS_10E3.instruction_error(instr);
         }
 
         // Calculate the max depth currently
@@ -128,20 +130,58 @@ pub fn timing(instruction: &Instruction) -> u64 {
     }
 }
 
-// 1e-11 ≈ 2^{-36.5}
-const HIGH_ERROR: ErrorPrecision = ErrorPrecision::lit("0b1p-36");
-// 1e-12 ≈ 2^{-39.9}
-const LOW_ERROR: ErrorPrecision = ErrorPrecision::lit("0b1p-40");
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+struct ErrorModel {
+    idle: ErrorPrecision,
+    shift: ErrorPrecision,
+    inmodule: ErrorPrecision,
+    intermodule: ErrorPrecision,
+    t_inj: ErrorPrecision,
+}
 
-pub fn error_rate(instruction: &Instruction) -> ErrorPrecision {
-    match instruction {
-        Instruction::Rotation(_) => HIGH_ERROR,
-        Instruction::Measure(_) => HIGH_ERROR,
-        Instruction::JointMeasure(_) => HIGH_ERROR,
-        Instruction::Automorphism(_) => LOW_ERROR,
+impl ErrorModel {
+    pub fn instruction_error(&self, instruction: &Instruction) -> ErrorPrecision {
+        match instruction {
+            Instruction::Rotation(_) => self.t_inj,
+            Instruction::Measure(_) => self.inmodule,
+            Instruction::JointMeasure(_) => self.intermodule,
+            Instruction::Automorphism(_) => self.shift,
+        }
+    }
+
+    pub fn idling_error(&self, cycles: u64) -> ErrorPrecision {
+        (cycles.div_ceil(8) as u128) * self.idle
     }
 }
 
-pub fn idling_error(cycles: u64) -> ErrorPrecision {
-    LOW_ERROR * cycles
-}
+const GROSS_10E3: ErrorModel = ErrorModel {
+    idle: ErrorPrecision::lit("1e-6"),
+    shift: ErrorPrecision::lit("1e-5"),
+    inmodule: ErrorPrecision::lit("1e-4"),
+    intermodule: ErrorPrecision::lit("1e-4"),
+    t_inj: ErrorPrecision::lit("1e-4"),
+};
+
+const GROSS_10E4: ErrorModel = ErrorModel {
+    idle: ErrorPrecision::lit("1e-11"),
+    shift: ErrorPrecision::lit("1e-10"),
+    inmodule: ErrorPrecision::lit("1e-9"),
+    intermodule: ErrorPrecision::lit("1e-9"),
+    t_inj: ErrorPrecision::lit("1e-9"),
+};
+
+const TWO_GROSS_10E3: ErrorModel = ErrorModel {
+    idle: ErrorPrecision::lit("1e-11"),
+    shift: ErrorPrecision::lit("1e-10"),
+    inmodule: ErrorPrecision::lit("1e-9"),
+    intermodule: ErrorPrecision::lit("1e-9"),
+    t_inj: ErrorPrecision::lit("1e-10"),
+};
+
+const TWO_GROSS_10E4: ErrorModel = ErrorModel {
+    idle: ErrorPrecision::lit("1e-20"),
+    shift: ErrorPrecision::lit("1e-19"),
+    inmodule: ErrorPrecision::lit("1e-18"),
+    intermodule: ErrorPrecision::lit("1e-18"),
+    t_inj: ErrorPrecision::lit("1e-18"),
+};
