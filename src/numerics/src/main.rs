@@ -120,6 +120,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+struct Model {
+    pub timing: TimingModel,
+    pub error: ErrorModel,
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 struct TimingModel {
     idle: u64,
@@ -146,14 +152,14 @@ const GROSS_TIMING: TimingModel = TimingModel {
     shift: 16,
     inmodule: 101,
     intermodule: 101,
-    t_inj: 102,
+    t_inj: 100 + 102,
 };
-const TWO_GROSS: TimingModel = TimingModel {
+const TWO_GROSS_TIMING: TimingModel = TimingModel {
     idle: 8,
     shift: 16,
     inmodule: 173,
     intermodule: 173,
-    t_inj: 174,
+    t_inj: 100 + 174,
 };
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -180,34 +186,46 @@ impl ErrorModel {
     }
 }
 
-const GROSS_10E3: ErrorModel = ErrorModel {
-    idle: ErrorPrecision::lit("1e-6"),
-    shift: ErrorPrecision::lit("1e-5"),
-    inmodule: ErrorPrecision::lit("1e-4"),
-    intermodule: ErrorPrecision::lit("1e-4"),
-    t_inj: ErrorPrecision::lit("1e-4"),
+const GROSS_10E3: Model = Model {
+    error: ErrorModel {
+        idle: ErrorPrecision::lit("1e-6"),
+        shift: ErrorPrecision::lit("1e-5"),
+        inmodule: ErrorPrecision::lit("1e-4"),
+        intermodule: ErrorPrecision::lit("1e-4"),
+        t_inj: ErrorPrecision::lit("1e-4"),
+    },
+    timing: GROSS_TIMING,
 };
 
-const GROSS_10E4: ErrorModel = ErrorModel {
-    idle: ErrorPrecision::lit("1e-11"),
-    shift: ErrorPrecision::lit("1e-10"),
-    inmodule: ErrorPrecision::lit("1e-9"),
-    intermodule: ErrorPrecision::lit("1e-9"),
-    t_inj: ErrorPrecision::lit("1e-9"),
+const GROSS_10E4: Model = Model {
+    error: ErrorModel {
+        idle: ErrorPrecision::lit("1e-11"),
+        shift: ErrorPrecision::lit("1e-10"),
+        inmodule: ErrorPrecision::lit("1e-9"),
+        intermodule: ErrorPrecision::lit("1e-9"),
+        t_inj: ErrorPrecision::lit("1e-9"),
+    },
+    timing: GROSS_TIMING,
 };
 
-const TWO_GROSS_10E3: ErrorModel = ErrorModel {
-    idle: ErrorPrecision::lit("1e-11"),
-    shift: ErrorPrecision::lit("1e-10"),
-    inmodule: ErrorPrecision::lit("1e-9"),
-    intermodule: ErrorPrecision::lit("1e-9"),
-    t_inj: ErrorPrecision::lit("1e-10"),
+const TWO_GROSS_10E3: Model = Model {
+    error: ErrorModel {
+        idle: ErrorPrecision::lit("1e-11"),
+        shift: ErrorPrecision::lit("1e-10"),
+        inmodule: ErrorPrecision::lit("1e-9"),
+        intermodule: ErrorPrecision::lit("1e-9"),
+        t_inj: ErrorPrecision::lit("1e-10"),
+    },
+    timing: TWO_GROSS_TIMING,
 };
 
-const TWO_GROSS_10E4: ErrorModel = ErrorModel {
-    idle: ErrorPrecision::lit("1e-20"),
-    shift: ErrorPrecision::lit("1e-19"),
-    inmodule: ErrorPrecision::lit("1e-18"),
-    intermodule: ErrorPrecision::lit("1e-18"),
-    t_inj: ErrorPrecision::lit("1e-18"),
+const TWO_GROSS_10E4: Model = Model {
+    error: ErrorModel {
+        idle: ErrorPrecision::lit("1e-20"),
+        shift: ErrorPrecision::lit("1e-19"),
+        inmodule: ErrorPrecision::lit("1e-18"),
+        intermodule: ErrorPrecision::lit("1e-18"),
+        t_inj: ErrorPrecision::lit("1e-18"),
+    },
+    timing: TWO_GROSS_TIMING,
 };
