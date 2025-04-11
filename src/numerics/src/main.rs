@@ -120,15 +120,41 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Time it takes to perform an instruction
-pub fn timing(instruction: &Instruction) -> u64 {
-    match instruction {
-        Instruction::Rotation(_) => 30,
-        Instruction::Automorphism(_) => 3,
-        Instruction::Measure(_) => 10,
-        Instruction::JointMeasure(_) => 10,
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+struct TimingModel {
+    idle: u64,
+    shift: u64,
+    inmodule: u64,
+    intermodule: u64,
+    t_inj: u64,
+}
+
+impl TimingModel {
+    /// Time it takes to perform an instruction
+    pub fn timing(&self, instruction: &Instruction) -> u64 {
+        match instruction {
+            Instruction::Rotation(_) => self.t_inj,
+            Instruction::Automorphism(_) => self.shift,
+            Instruction::Measure(_) => self.inmodule,
+            Instruction::JointMeasure(_) => self.intermodule,
+        }
     }
 }
+
+const GROSS_TIMING: TimingModel = TimingModel {
+    idle: 8,
+    shift: 16,
+    inmodule: 101,
+    intermodule: 101,
+    t_inj: 102,
+};
+const TWO_GROSS: TimingModel = TimingModel {
+    idle: 8,
+    shift: 16,
+    inmodule: 173,
+    intermodule: 173,
+    t_inj: 174,
+};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 struct ErrorModel {
