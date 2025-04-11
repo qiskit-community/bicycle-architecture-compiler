@@ -1,12 +1,13 @@
 use std::error::Error;
 
-use fixed::types::U32F96;
 use log::trace;
-use pbc_gross::operation::Instruction;
+use model::Model;
+use pbc_gross::{
+    operation::{Instruction, Operation},
+    PathArchitecture,
+};
 
-// Because we need to support precision up to 10^-20,
-// which is >2^-65
-type ErrorPrecision = U32F96;
+pub mod model;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct InstructionCounter {
@@ -36,29 +37,21 @@ impl InstructionCounter {
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::init();
-
-    let args: Vec<_> = std::env::args().collect();
-    let qubits = str::parse::<usize>(&args[1])?;
-    trace!("Number of qubits: {qubits}");
-    let random_circuit = benchmark::random::random_measurements(qubits);
-
-    let architecture = pbc_gross::PathArchitecture::for_qubits(qubits);
-
-    let compiled_measurements = random_circuit.map(|meas| meas.compile(&architecture));
-    let optimized_measurements =
-        pbc_gross::optimize::remove_duplicate_measurements_chunked(compiled_measurements);
-
-    let data_blocks = architecture.data_blocks();
+fn numerics(
+    operations: impl Iterator<Item = Vec<Operation>>,
+    architecture: PathArchitecture,
+    model: Model,
+) {
     println!(
         "i,qubits,blocks,rotations,automorphisms,measurements,joint measurements,cumulative measurement depth,syndrome time,error rate"
     );
+    let data_blocks = architecture.data_blocks();
+    let qubits = architecture.qubits();
 
     let mut depths: Vec<u64> = vec![0; data_blocks];
     let mut times: Vec<u64> = vec![0; data_blocks];
-    let mut total_error = ErrorPrecision::ZERO;
-    for (i, meas_impl) in optimized_measurements.enumerate() {
+    let mut total_error = model::ErrorPrecision::ZERO;
+    for (i, meas_impl) in operations.enumerate() {
         let mut counter: InstructionCounter = Default::default();
         // Accumulate counts. Or use a fold.
         meas_impl.iter().for_each(|instr| counter.add(&instr[0].1));
@@ -84,18 +77,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 // Insert idling noise
                 let time_diff = max_time - times[*block_i];
-                // Only add if diff > 0 due to float rounding
-                // Not sure if necessary
-                if time_diff != 0 {
-                    total_error += GROSS_10E3.idling_error(time_diff);
-                }
+                total_error += model.idling_error(time_diff);
 
-                times[*block_i] = max_time + timing(instr);
+                times[*block_i] = max_time + model.timing(instr);
             }
 
             // Update error rate once per op
             let (_, instr) = &op[0];
-            total_error += GROSS_10E3.instruction_error(instr);
+            total_error += model.instruction_error(instr);
         }
 
         // Calculate the max depth currently
@@ -116,116 +105,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             total_error,
         );
     }
+}
 
+fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+
+    let args: Vec<_> = std::env::args().collect();
+    let qubits = str::parse::<usize>(&args[1])?;
+    trace!("Number of qubits: {qubits}");
+    let random_circuit = benchmark::random::random_measurements(qubits);
+
+    let architecture = pbc_gross::PathArchitecture::for_qubits(qubits);
+
+    let compiled_measurements = random_circuit.map(|meas| meas.compile(&architecture));
+    let optimized_measurements =
+        pbc_gross::optimize::remove_duplicate_measurements_chunked(compiled_measurements);
+
+    numerics(optimized_measurements, architecture, model::GROSS_10E3);
     Ok(())
 }
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-struct Model {
-    pub timing: TimingModel,
-    pub error: ErrorModel,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-struct TimingModel {
-    idle: u64,
-    shift: u64,
-    inmodule: u64,
-    intermodule: u64,
-    t_inj: u64,
-}
-
-impl TimingModel {
-    /// Time it takes to perform an instruction
-    pub fn timing(&self, instruction: &Instruction) -> u64 {
-        match instruction {
-            Instruction::Rotation(_) => self.t_inj,
-            Instruction::Automorphism(_) => self.shift,
-            Instruction::Measure(_) => self.inmodule,
-            Instruction::JointMeasure(_) => self.intermodule,
-        }
-    }
-}
-
-const GROSS_TIMING: TimingModel = TimingModel {
-    idle: 8,
-    shift: 16,
-    inmodule: 101,
-    intermodule: 101,
-    t_inj: 100 + 102,
-};
-const TWO_GROSS_TIMING: TimingModel = TimingModel {
-    idle: 8,
-    shift: 16,
-    inmodule: 173,
-    intermodule: 173,
-    t_inj: 100 + 174,
-};
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-struct ErrorModel {
-    idle: ErrorPrecision,
-    shift: ErrorPrecision,
-    inmodule: ErrorPrecision,
-    intermodule: ErrorPrecision,
-    t_inj: ErrorPrecision,
-}
-
-impl ErrorModel {
-    pub fn instruction_error(&self, instruction: &Instruction) -> ErrorPrecision {
-        match instruction {
-            Instruction::Rotation(_) => self.t_inj,
-            Instruction::Measure(_) => self.inmodule,
-            Instruction::JointMeasure(_) => self.intermodule,
-            Instruction::Automorphism(_) => self.shift,
-        }
-    }
-
-    pub fn idling_error(&self, cycles: u64) -> ErrorPrecision {
-        (cycles.div_ceil(8) as u128) * self.idle
-    }
-}
-
-const GROSS_10E3: Model = Model {
-    error: ErrorModel {
-        idle: ErrorPrecision::lit("1e-6"),
-        shift: ErrorPrecision::lit("1e-5"),
-        inmodule: ErrorPrecision::lit("1e-4"),
-        intermodule: ErrorPrecision::lit("1e-4"),
-        t_inj: ErrorPrecision::lit("1e-4"),
-    },
-    timing: GROSS_TIMING,
-};
-
-const GROSS_10E4: Model = Model {
-    error: ErrorModel {
-        idle: ErrorPrecision::lit("1e-11"),
-        shift: ErrorPrecision::lit("1e-10"),
-        inmodule: ErrorPrecision::lit("1e-9"),
-        intermodule: ErrorPrecision::lit("1e-9"),
-        t_inj: ErrorPrecision::lit("1e-9"),
-    },
-    timing: GROSS_TIMING,
-};
-
-const TWO_GROSS_10E3: Model = Model {
-    error: ErrorModel {
-        idle: ErrorPrecision::lit("1e-11"),
-        shift: ErrorPrecision::lit("1e-10"),
-        inmodule: ErrorPrecision::lit("1e-9"),
-        intermodule: ErrorPrecision::lit("1e-9"),
-        t_inj: ErrorPrecision::lit("1e-10"),
-    },
-    timing: TWO_GROSS_TIMING,
-};
-
-const TWO_GROSS_10E4: Model = Model {
-    error: ErrorModel {
-        idle: ErrorPrecision::lit("1e-20"),
-        shift: ErrorPrecision::lit("1e-19"),
-        inmodule: ErrorPrecision::lit("1e-18"),
-        intermodule: ErrorPrecision::lit("1e-18"),
-        t_inj: ErrorPrecision::lit("1e-18"),
-    },
-    timing: TWO_GROSS_TIMING,
-};

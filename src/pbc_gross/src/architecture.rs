@@ -17,6 +17,10 @@ impl PathArchitecture {
         self.data_blocks
     }
 
+    pub fn qubits(&self) -> usize {
+        self.data_blocks * 11 - 1
+    }
+
     pub fn validate_operation(&self, op: &Operation) -> bool {
         // Check that operations act on successive blocks
         if op.len() == 1 {
