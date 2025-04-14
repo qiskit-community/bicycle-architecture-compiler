@@ -1,7 +1,8 @@
 use std::error::Error;
 
+use clap::Parser;
 use log::trace;
-use model::Model;
+use model::{Model, ModelChoices};
 use pbc_gross::{
     operation::{Instruction, Operation},
     PathArchitecture,
@@ -38,7 +39,7 @@ impl InstructionCounter {
 }
 
 fn numerics(
-    operations: impl Iterator<Item = Vec<Operation>>,
+    mut operations: impl Iterator<Item = Vec<Operation>>,
     architecture: PathArchitecture,
     model: Model,
 ) {
@@ -51,7 +52,9 @@ fn numerics(
     let mut depths: Vec<u64> = vec![0; data_blocks];
     let mut times: Vec<u64> = vec![0; data_blocks];
     let mut total_error = model::ErrorPrecision::ZERO;
-    for (i, meas_impl) in operations.enumerate() {
+    let mut i = 0;
+    while total_error <= 1e-10 {
+        let meas_impl = operations.next().unwrap();
         let mut counter: InstructionCounter = Default::default();
         // Accumulate counts. Or use a fold.
         meas_impl.iter().for_each(|instr| counter.add(&instr[0].1));
@@ -104,23 +107,33 @@ fn numerics(
             end_time,
             total_error,
         );
+
+        trace!("{total_error}");
+
+        i += 1;
     }
+}
+
+#[derive(Parser)]
+struct Cli {
+    qubits: usize,
+    model: ModelChoices,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    let args: Vec<_> = std::env::args().collect();
-    let qubits = str::parse::<usize>(&args[1])?;
-    trace!("Number of qubits: {qubits}");
-    let random_circuit = benchmark::random::random_measurements(qubits);
+    let cli = Cli::parse();
+    trace!("Number of qubits: {}", cli.qubits);
+    let model = cli.model.model();
+    let random_circuit = benchmark::random::random_rotations(cli.qubits, 0.123);
 
-    let architecture = pbc_gross::PathArchitecture::for_qubits(qubits);
+    let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
 
     let compiled_measurements = random_circuit.map(|meas| meas.compile(&architecture));
     let optimized_measurements =
         pbc_gross::optimize::remove_duplicate_measurements_chunked(compiled_measurements);
 
-    numerics(optimized_measurements, architecture, model::GROSS_10E3);
+    numerics(optimized_measurements, architecture, model);
     Ok(())
 }

@@ -1,3 +1,4 @@
+use clap::ValueEnum;
 use fixed::types::U32F96;
 use pbc_gross::operation::Instruction;
 
@@ -85,18 +86,37 @@ impl ErrorModel {
     }
 }
 
-pub const GROSS_10E3: Model = Model {
+#[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
+pub enum ModelChoices {
+    Gross1e3,
+    Gross1e4,
+    TwoGross1e3,
+    TwoGross1e4,
+}
+
+impl ModelChoices {
+    pub fn model(self) -> Model {
+        match self {
+            Self::Gross1e3 => GROSS_1E3,
+            Self::Gross1e4 => GROSS_1E4,
+            Self::TwoGross1e3 => TWO_GROSS_1E3,
+            Self::TwoGross1e4 => TWO_GROSS_1E4,
+        }
+    }
+}
+
+pub const GROSS_1E3: Model = Model {
     error: ErrorModel {
         idle: ErrorPrecision::lit("1e-6"),
         shift: ErrorPrecision::lit("1e-5"),
-        inmodule: ErrorPrecision::lit("1e-4"),
-        intermodule: ErrorPrecision::lit("1e-4"),
+        inmodule: ErrorPrecision::lit("1e-5"),
+        intermodule: ErrorPrecision::lit("1e-5"),
         t_inj: ErrorPrecision::lit("1e-4"),
     },
     timing: GROSS_TIMING,
 };
 
-pub const GROSS_10E4: Model = Model {
+pub const GROSS_1E4: Model = Model {
     error: ErrorModel {
         idle: ErrorPrecision::lit("1e-11"),
         shift: ErrorPrecision::lit("1e-10"),
@@ -107,7 +127,7 @@ pub const GROSS_10E4: Model = Model {
     timing: GROSS_TIMING,
 };
 
-pub const TWO_GROSS_10E3: Model = Model {
+pub const TWO_GROSS_1E3: Model = Model {
     error: ErrorModel {
         idle: ErrorPrecision::lit("1e-11"),
         shift: ErrorPrecision::lit("1e-10"),
@@ -118,7 +138,7 @@ pub const TWO_GROSS_10E3: Model = Model {
     timing: TWO_GROSS_TIMING,
 };
 
-pub const TWO_GROSS_10E4: Model = Model {
+pub const TWO_GROSS_1E4: Model = Model {
     error: ErrorModel {
         idle: ErrorPrecision::lit("1e-20"),
         shift: ErrorPrecision::lit("1e-19"),
