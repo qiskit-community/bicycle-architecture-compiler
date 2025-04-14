@@ -7,43 +7,51 @@ It consist of a Rust library and a main binary.
 ## Input Program
 The input program must be in a PBC form.
 We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.11391890))
-```csv
-r,xxiiiiiiiii,-0.125
-r,izziiiiiiii,0.25
-r,yyyiiiiiiii,-0.25
-# Now we measure
-m,ziiiiiiiiii,-
-m,iziiiiiiiii,+
+```json
+{"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","Y"],"angle":0.125}}
+{"Rotation":{"basis":["Z","Z","I","I","I","I","I","I","I","I","I","I"],"angle":0.5}}
+{"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","I"],"angle":-0.125}}
+{"Measurement":{"basis":["Z","X","I","I","I","I","I","I","I","I","I","I"],"flip_result":true}}
+{"Measurement":{"basis":["X","I","I","I","I","Z","I","A","I","I","I","I"],"flip_result":false}}
+
 ```
 which shows the only two operations allowed in such a PBC program: Rotations and Measurements.
 All operations should act on the same number of logical qubits.
-Rotations are specified by starting with `r`, followed by the basis, then the rotation angle in radians.
-Measurements are specified by starting with `m`, followed by the basis, then whether the resulting measurement result should be flipped (currently not used).
-We also allow lines of comments that start with `#`.
+Rotations are specified objections with a Rotation field and includes the basis and the rotation angle.
+Measurements are specified by objects with a Measurement field, and includes the basis, then whether the resulting measurement result should be flipped (currently not used).
+
+Note that the input program is a JSON "array" that can be delineated by whitespace (or newlines).
+We can generate the above input from a JSON file by running, for example,
+```
+cat examples/simple.json | jq --compact-output '.[]'
+```
+which uses the `jq` program.
 
 ## Running the program
 
 (TODO) You can pipe a program of the above format into the binary by running
 
 ```
-cat example/simple.csv | cargo run --release
+cat example/simple.json | jq --compact-output '.[]' | cargo run --release
 ```
 
 ## Output
 
 The output looks like
-```
-[(0,meas(X,I))]
-[(1,meas(Z,I))]
-[(0,jMeas(Z,I)),(1,jMeas(Z,I))]
-[(0,aut(3,2))]
-[(0,meas(X,I))]
-[(0,aut(3,4))]
-[(1,rot([X,I,I,I,I,I,I,I,I,I,I],-0.1250))]
-[(0,meas(Z,I))]
-[(1,meas(Z,I))]
+```json
+[0,{"Measure":{"p1":"X","p7":"I"}}]
+[1,{"Measure":{"p1":"Z","p7":"I"}}]
+[0,{"JointMeasure":{"p1":"Z","p7":"I"}}]
+[1,{"JointMeasure":{"p1":"Z","p7":"I"}}]
+[0,{"Automorphism":{"x":3,"y":2}}]
+[0,{"Measure":{"p1":"X","p7":"I"}}]
+[0,{"Automorphism":{"x":3,"y":4}}]
+[1,{"Rotation":{"basis":["X","Y","I","I","I","I","I","I","I","I","I"],"angle":0.125}}]
+[0,{"Measure":{"p1":"Z","p7":"I"}}]
+[1,{"Measure":{"p1":"Z","p7":"I"}}]
 ...
 ```
+This output is similarly delineated by newlines.
 
 ## NOT NEEDED: Gridsynth installation
 Please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.

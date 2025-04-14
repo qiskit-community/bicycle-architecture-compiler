@@ -1,37 +1,67 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "PBC Program",
+    "definitions": {
+        "basis": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "I",
+                    "X",
+                    "Y",
+                    "Z"
+                ]
+            }
+        }
+    },
     "type": "array",
     "items": {
         "oneOf": [
             {
                 "type": "object",
                 "properties": {
-                    "rotation": {
-                        "type": "number"
-                    },
-                    "basis": {
-                        "type": "string"
+                    "Rotation": {
+                        "type": "object",
+                        "properties": {
+                            "basis": {
+                                "$ref": "#/definitions/basis"
+                            },
+                            "angle": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "basis",
+                            "angle"
+                        ]
                     }
                 },
                 "required": [
-                    "rotation",
-                    "basis"
+                    "Rotation"
                 ]
             },
             {
                 "type": "object",
                 "properties": {
-                    "measurement": {
-                        "type": "boolean"
-                    },
-                    "basis": {
-                        "type": "string"
+                    "Measurement": {
+                        "type": "object",
+                        "properties": {
+                            "basis": {
+                                "$ref": "#/definitions/basis"
+                            },
+                            "flip_result": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "basis",
+                            "flip_result"
+                        ]
                     }
                 },
                 "required": [
-                    "measurement",
-                    "basis"
+                    "Measurement"
                 ]
             }
         ]

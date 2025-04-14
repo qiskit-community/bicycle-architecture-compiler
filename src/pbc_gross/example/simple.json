@@ -1,22 +1,97 @@
 [
   {
-    "basis": "xxiiiiiiiii",
-    "rotation": -0.125
+    "Rotation": {
+      "basis": [
+        "X",
+        "X",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "Y"
+      ],
+      "angle": 0.125
+    }
   },
   {
-    "basis": "izziiiiiiii",
-    "rotation": 0.25
+    "Rotation": {
+      "basis": [
+        "Z",
+        "Z",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I"
+      ],
+      "angle": 0.5
+    }
   },
   {
-    "basis": "yyyiiiiiiii",
-    "rotation": -0.25
+    "Rotation": {
+      "basis": [
+        "X",
+        "X",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I"
+      ],
+      "angle": -0.125
+    }
   },
   {
-    "basis": "ziiiiiiiiii",
-    "measurement": true
+    "Measurement": {
+      "basis": [
+        "Z",
+        "X",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I"
+      ],
+      "flip_result": true
+    }
   },
   {
-    "basis": "iziiiiiiiii",
-    "measurement": false
+    "Measurement": {
+      "basis": [
+        "X",
+        "I",
+        "I",
+        "I",
+        "I",
+        "Z",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I",
+        "I"
+      ],
+      "flip_result": false
+    }
   }
 ]

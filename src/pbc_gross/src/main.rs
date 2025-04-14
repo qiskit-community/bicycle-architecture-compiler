@@ -1,16 +1,21 @@
 use std::{error, io};
 
+use pbc_gross::language::PbcOperation;
+use serde_json::Deserializer;
+
 use io::Write;
 
 use log::debug;
-use pbc_gross::{optimize, parser::PbcParser, PathArchitecture};
+use pbc_gross::{optimize, PathArchitecture};
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     env_logger::init();
 
     let read = io::stdin();
-    let mut parser = PbcParser::new(read);
-    let ops = parser.stream();
+    let reader = read.lock();
+
+    let de = Deserializer::from_reader(reader);
+    let ops = de.into_iter::<PbcOperation>().map(|op| op.unwrap());
 
     let mut peek_ops = ops.peekable();
 

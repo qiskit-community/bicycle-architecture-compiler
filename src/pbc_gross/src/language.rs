@@ -1,13 +1,14 @@
 use std::fmt::Display;
 
 use bicycle_isa::Pauli;
+use serde::{Deserialize, Serialize};
 
 use crate::{architecture::PathArchitecture, compile, operation::Operation};
 
 /// A PBC program operation
 /// Consider replacing the angle with a rational to improve precision.
 /// But f64 has 52-bit mantissa, so seems sufficient for all practical purposes.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum PbcOperation {
     Measurement {
         basis: Vec<Pauli>,
