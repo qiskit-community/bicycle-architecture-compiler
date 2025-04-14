@@ -8,7 +8,7 @@ pub struct PathArchitecture {
 
 impl PathArchitecture {
     pub fn for_qubits(qubits: usize) -> Self {
-        let data_blocks = (qubits + 1).div_ceil(11);
+        let data_blocks = qubits.div_ceil(11);
 
         Self { data_blocks }
     }
@@ -18,7 +18,7 @@ impl PathArchitecture {
     }
 
     pub fn qubits(&self) -> usize {
-        self.data_blocks * 11 - 1
+        self.data_blocks * 11
     }
 
     pub fn validate_operation(&self, op: &Operation) -> bool {
