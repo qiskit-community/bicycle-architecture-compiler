@@ -1,0 +1,11 @@
+{
+    "json.schemas": [
+        {
+            "fileMatch": [
+                "/src/pbc_gross/example/*.json",
+                "/src/pbc_gross/example/*.jsonl",
+            ],
+            "url": "./src/pbc_gross/pbc_schema.json"
+        }
+    ]
+}

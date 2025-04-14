@@ -1,0 +1,22 @@
+[
+  {
+    "basis": "xxiiiiiiiii",
+    "rotation": -0.125
+  },
+  {
+    "basis": "izziiiiiiii",
+    "rotation": 0.25
+  },
+  {
+    "basis": "yyyiiiiiiii",
+    "rotation": -0.25
+  },
+  {
+    "basis": "ziiiiiiiiii",
+    "measurement": true
+  },
+  {
+    "basis": "iziiiiiiiii",
+    "measurement": false
+  }
+]

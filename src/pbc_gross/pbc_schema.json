@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "PBC Program",
+    "type": "array",
+    "items": {
+        "oneOf": [
+            {
+                "type": "object",
+                "properties": {
+                    "rotation": {
+                        "type": "number"
+                    },
+                    "basis": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "rotation",
+                    "basis"
+                ]
+            },
+            {
+                "type": "object",
+                "properties": {
+                    "measurement": {
+                        "type": "boolean"
+                    },
+                    "basis": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "measurement",
+                    "basis"
+                ]
+            }
+        ]
+    }
+}
