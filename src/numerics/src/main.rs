@@ -53,7 +53,7 @@ fn numerics(
     let mut times: Vec<u64> = vec![0; data_blocks];
     let mut total_error = model::ErrorPrecision::ZERO;
     let mut i = 0;
-    while total_error <= 1e-10 {
+    while total_error <= 0.5 {
         let meas_impl = operations.next().unwrap();
         let mut counter: InstructionCounter = Default::default();
         // Accumulate counts. Or use a fold.
