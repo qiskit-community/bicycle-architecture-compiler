@@ -97,13 +97,7 @@ fn rotation_instructions(native_measurement: &NativeMeasurement) -> Vec<BicycleI
         .anticommuting()
         .expect("Pivot measurement should not be identity.");
     ops.push(Measure(TwoBases::new(p0, Pauli::I).unwrap()));
-    for native_impl in native_measurement.implementation() {
-        ops.push(
-            native_impl
-                .try_into()
-                .expect("Should be able to convert native measurement isa instructions"),
-        );
-    }
+    ops.extend(native_measurement.implementation());
     ops.push(Measure(TwoBases::new(p1, Pauli::I).unwrap()));
     ops
 }
@@ -119,12 +113,12 @@ fn extend_basis(basis: &mut Vec<Pauli>) {
 
 /// Compile a Pauli measurement to ISA instructions
 pub fn compile_measurement(
-    _architecture: &PathArchitecture,
+    architecture: &PathArchitecture,
     mut basis: Vec<Pauli>,
 ) -> Vec<Operation> {
     let mut ops: Vec<Operation> = vec![];
+    let n = architecture.data_blocks();
 
-    let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
     let x1 = TwoBases::new(Pauli::X, Pauli::I).unwrap();
     let y1 = TwoBases::new(Pauli::Y, Pauli::I).unwrap();
 
@@ -158,6 +152,22 @@ pub fn compile_measurement(
         }
     }
 
+    // Prepare initial state
+    for block_i in 0..n {
+        ops.push(vec![(block_i, Measure(x1))]);
+    }
+
+    // Apply native measurements on nontrivial blocks
+    for (block_i, (meas, _)) in rotation_impls
+        .iter()
+        .enumerate()
+        .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
+    {
+        for isa in meas.implementation() {
+            ops.push(vec![(block_i, isa)]);
+        }
+    }
+
     // Find the range for which we need to prepare a GHZ state
     let first_nontrivial = rotation_impls
         .iter()
@@ -172,30 +182,10 @@ pub fn compile_measurement(
         last_nontrivial - first_nontrivial + 1,
     ));
 
-    // Apply local measurements on each data block
-    for (block_i, rotation_impl) in rotation_impls.iter().enumerate() {
-        match rotation_impl {
-            // If the rotation was trivial on this block, we just measure out the GHZ state using an X measurement.
-            None => ops.push(vec![(block_i, Measure(x1))]),
-            // Otherwise, we need to apply the local rotation and do a Z measurement.
-            Some((meas, _)) => {
-                for native_impl in meas.implementation() {
-                    ops.push(vec![(
-                        block_i,
-                        native_impl.try_into().expect(
-                            "Should be able to convert native measurement BicycleISA instructions",
-                        ),
-                    )]);
-                }
-            }
-        }
-    }
-
     // Uncompute GHZ
-    // TODO: Must measure blocks in X that have trivial basis
     for (block_i, opt) in rotation_impls.iter().enumerate() {
         match opt {
-            None => ops.push(vec![(block_i, Measure(x1))]),
+            None => ops.push(vec![(block_i, Measure(x1))]), // was trivial
             Some(_) => ops.push(vec![(block_i, Measure(y1))]),
         }
     }
@@ -276,10 +266,7 @@ pub fn compile_rotation(
         .enumerate()
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for isa in meas.implementation().map(|isa| {
-            isa.try_into()
-                .expect("Should be able to convert native measurement instructions")
-        }) {
+        for isa in meas.implementation() {
             ops.push(vec![(block_i, isa)]);
         }
     }
@@ -356,7 +343,7 @@ mod tests {
         native_measurement
             .implementation()
             .into_iter()
-            .map(|isa| vec![(block, isa.try_into().unwrap())])
+            .map(|isa| vec![(block, isa)])
             .collect()
     }
 
