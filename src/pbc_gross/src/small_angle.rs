@@ -5,6 +5,7 @@ use std::{
     process::Command,
 };
 
+use bicycle_isa::Pauli;
 use regex::Regex;
 
 /// Synthesize a rotation e^{iθZ} in terms of e^{iπ/8Z} and e^{iπ/8X} rotations, followed by Cliffords.
@@ -69,6 +70,13 @@ impl SingleRotation {
             Self::Z { dagger } => *self = Self::X { dagger: *dagger },
             Self::X { dagger } => *self = Self::Z { dagger: *dagger },
         };
+    }
+
+    pub fn basis(&self) -> Pauli {
+        match self {
+            &Self::Z { dagger: _ } => Pauli::Z,
+            &Self::X { dagger: _ } => Pauli::X,
+        }
     }
 }
 

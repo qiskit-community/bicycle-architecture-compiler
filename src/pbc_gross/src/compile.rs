@@ -4,16 +4,18 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::LazyLock;
 
-use bicycle_isa::{Pauli, TwoBases};
+use bicycle_isa::{BicycleISA, Pauli, TGateData, TwoBases};
 use gross_code_cliffords::native_measurement::NativeMeasurement;
 use log::{debug, info};
 
-use crate::operation::{Instruction, RotationData};
+use crate::small_angle::SingleRotation;
 use crate::{architecture::PathArchitecture, operation::Operation};
 
-use crate::language;
+use crate::{language, small_angle};
 
 use gross_code_cliffords::{CompleteMeasurementTable, MeasurementTableBuilder, PauliString};
+
+use BicycleISA::{Automorphism, JointMeasure, Measure, TGate};
 
 /// Statically store a database to look up measurement implementations on the gross code
 /// by sequences of native measurements.
@@ -53,10 +55,13 @@ fn try_create_cache(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Err
     Ok(table)
 }
 
-/// Find implementation of a controlled-rotation by using the pivot
-fn controlled_rotation(basis: &[Pauli]) -> (&NativeMeasurement, Vec<&NativeMeasurement>) {
-    let mut local_basis = vec![Pauli::X];
-    local_basis.extend_from_slice(basis);
+/// Find implementation of a general Pauli measurement on a code module using the pivot
+fn general_measurement(
+    pivot_basis: Pauli,
+    data_basis: &[Pauli],
+) -> (&NativeMeasurement, Vec<&NativeMeasurement>) {
+    let mut local_basis = vec![pivot_basis];
+    local_basis.extend_from_slice(data_basis);
     let local_basis: [Pauli; 12] = local_basis
         .try_into()
         .expect("Should have a length 12 vector");
@@ -66,42 +71,32 @@ fn controlled_rotation(basis: &[Pauli]) -> (&NativeMeasurement, Vec<&NativeMeasu
 }
 
 /// Construct GHZ state on a path architecture from start to end
-fn ghz_prep(start: usize, blocks: usize) -> Vec<Operation> {
+fn ghz_meas(start: usize, blocks: usize) -> Vec<Operation> {
     assert!(blocks > 0);
     let end = start + blocks;
-    let x1 = TwoBases::new(Pauli::X, Pauli::I).unwrap();
     let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
 
     let mut ops = vec![];
-    // Init pivots in |+>|0...0>
-    ops.push(vec![(start, Instruction::Measure(x1))]);
-    for block in (start + 1)..end {
-        ops.push(vec![(block, Instruction::Measure(z1))]);
-    }
     // Perform ZZ measurements on adjacent blocks. Alternating even then odd blocks.
     for r in (start..(end - 1))
         .step_by(2)
         .chain(((start + 1)..(end - 1)).step_by(2))
     {
-        let op = vec![
-            (r, Instruction::JointMeasure(z1)),
-            (r + 1, Instruction::JointMeasure(z1)),
-        ];
+        let op = vec![(r, JointMeasure(z1)), (r + 1, JointMeasure(z1))];
         ops.push(op);
-
-        // TODO pauli corrections?
     }
+
     ops
 }
 
 /// Compile a native measurement, including conjugating state preparation and measurement
-fn rotation_instructions(native_measurement: &NativeMeasurement) -> Vec<Instruction> {
+fn rotation_instructions(native_measurement: &NativeMeasurement) -> Vec<BicycleISA> {
     let mut ops = vec![];
     let ps: [Pauli; 12] = (&native_measurement.measures()).into();
     let (p0, p1) = ps[0]
         .anticommuting()
         .expect("Pivot measurement should not be identity.");
-    ops.push(Instruction::Measure(TwoBases::new(p0, Pauli::I).unwrap()));
+    ops.push(Measure(TwoBases::new(p0, Pauli::I).unwrap()));
     for native_impl in native_measurement.implementation() {
         ops.push(
             native_impl
@@ -109,16 +104,17 @@ fn rotation_instructions(native_measurement: &NativeMeasurement) -> Vec<Instruct
                 .expect("Should be able to convert native measurement isa instructions"),
         );
     }
-    ops.push(Instruction::Measure(TwoBases::new(p1, Pauli::I).unwrap()));
+    ops.push(Measure(TwoBases::new(p1, Pauli::I).unwrap()));
     ops
 }
 
-/// Extend basis to a multiple of 11, excluding one qubit for dual pivot
-/// Dual pivot on injection block is set to I
+/// Extend basis to a multiple of 11
 fn extend_basis(basis: &mut Vec<Pauli>) {
-    while (basis.len() + 1) % 11 != 0 {
+    while basis.len() % 11 != 0 {
         basis.push(Pauli::I);
     }
+
+    assert!(basis.len() % 11 == 0);
 }
 
 /// Compile a Pauli measurement to ISA instructions
@@ -130,11 +126,9 @@ pub fn compile_measurement(
 
     let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
     let x1 = TwoBases::new(Pauli::X, Pauli::I).unwrap();
+    let y1 = TwoBases::new(Pauli::Y, Pauli::I).unwrap();
 
     extend_basis(&mut basis);
-    // Insert identity rotation on the dual pivot
-    basis.insert(basis.len() - 6, Pauli::I);
-    assert!(basis.len() % 11 == 0);
 
     // Find implementation for each block
     let rotation_impls: Vec<_> = basis
@@ -144,7 +138,7 @@ pub fn compile_measurement(
             if paulis.iter().all(|p| *p == Pauli::I) {
                 None
             } else {
-                Some(controlled_rotation(paulis))
+                Some(general_measurement(Pauli::Y, paulis))
             }
         })
         .collect();
@@ -173,7 +167,7 @@ pub fn compile_measurement(
         .iter()
         .rposition(|rot| !rot.is_none())
         .unwrap();
-    ops.extend(ghz_prep(
+    ops.extend(ghz_meas(
         first_nontrivial,
         last_nontrivial - first_nontrivial + 1,
     ));
@@ -182,7 +176,7 @@ pub fn compile_measurement(
     for (block_i, rotation_impl) in rotation_impls.iter().enumerate() {
         match rotation_impl {
             // If the rotation was trivial on this block, we just measure out the GHZ state using an X measurement.
-            None => ops.push(vec![(block_i, Instruction::Measure(x1))]),
+            None => ops.push(vec![(block_i, Measure(x1))]),
             // Otherwise, we need to apply the local rotation and do a Z measurement.
             Some((meas, _)) => {
                 for native_impl in meas.implementation() {
@@ -199,8 +193,11 @@ pub fn compile_measurement(
 
     // Uncompute GHZ
     // TODO: Must measure blocks in X that have trivial basis
-    for (block_i, _) in rotation_impls.iter().enumerate() {
-        ops.push(vec![(block_i, Instruction::Measure(z1))]);
+    for (block_i, opt) in rotation_impls.iter().enumerate() {
+        match opt {
+            None => ops.push(vec![(block_i, Measure(x1))]),
+            Some(_) => ops.push(vec![(block_i, Measure(y1))]),
+        }
     }
 
     // Undo rotations on non-trivial blocks
@@ -234,17 +231,19 @@ pub fn compile_rotation(
 
     let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
     let x1 = TwoBases::new(Pauli::X, Pauli::I).unwrap();
+    let y1 = TwoBases::new(Pauli::Y, Pauli::I).unwrap();
 
     // Find implementation for each block
-    let chunk_iter = basis.chunks_exact(11);
-    let magic_basis = chunk_iter.remainder();
-    let rotation_impls: Vec<_> = chunk_iter
-        .map(|paulis| {
+    let rotation_impls: Vec<_> = basis
+        .chunks_exact(11)
+        .enumerate()
+        .map(|(block_i, paulis)| {
             // Only apply a controlled-Pauli if its non-trivial
             if paulis.iter().all(|p| *p == Pauli::I) {
                 None
             } else {
-                Some(controlled_rotation(paulis))
+                let pivot_basis = if block_i < n { Pauli::Y } else { Pauli::X };
+                Some(general_measurement(pivot_basis, paulis))
             }
         })
         .collect();
@@ -265,12 +264,11 @@ pub fn compile_rotation(
         }
     }
 
-    // Find the range for which we need to prepare a GHZ state
-    let first_nontrivial = rotation_impls
-        .iter()
-        .position(|rot| !rot.is_none())
-        .unwrap_or(n - 1);
-    ops.extend(ghz_prep(first_nontrivial, n - first_nontrivial));
+    // Prepare pivot qubits
+    for i in 0..(n - 1) {
+        ops.push(vec![(i, Measure(x1))]);
+    }
+    ops.push(vec![(n, Measure(y1))]);
 
     // Apply native measurements on nontrivial blocks
     for (block_i, (meas, _)) in rotation_impls
@@ -286,29 +284,35 @@ pub fn compile_rotation(
         }
     }
 
-    // Apply small-angle X⊗P rotation on block n
-    let mut small_rotation_basis = vec![Pauli::X];
-    small_rotation_basis.extend_from_slice(magic_basis);
-    ops.push(vec![(
-        n - 1,
-        Instruction::Rotation(RotationData {
-            basis: small_rotation_basis
-                .try_into()
-                .expect("The rotation basis should have 11 Paulis"),
-            angle,
-        }),
-    )]);
-    // TODO: Propagate Cliffords
+    // Find the range for which we need to prepare a GHZ state
+    let first_nontrivial = rotation_impls
+        .iter()
+        .position(|rot| !rot.is_none())
+        .unwrap_or(n - 1);
+    // Prepare GHZ up to and including the magic block
+    ops.extend(ghz_meas(first_nontrivial, n - first_nontrivial));
+
+    // Apply small-angle X(φ) rotation on block n
+    // TODO: Ignore compile-time Clifford corrections
+    let (rots, _cliffords) = small_angle::synthesize_angle_x(angle, 1e-18);
+    for rot in rots {
+        let tgate_data = match rot {
+            SingleRotation::Z { dagger } => TGateData::new(Pauli::Z, false, dagger),
+            SingleRotation::X { dagger } => TGateData::new(Pauli::X, false, dagger),
+        }
+        .unwrap();
+        ops.push(vec![(n - 1, TGate(tgate_data))]);
+    }
 
     // Uncompute GHZ state by local measurements on all data blocks (even if they had trivial rotations)
     for (block_i, opt) in rotation_impls.iter().enumerate() {
         match opt {
-            None => ops.push(vec![(block_i, Instruction::Measure(x1))]),
-            Some(_) => ops.push(vec![(block_i, Instruction::Measure(z1))]),
+            None => ops.push(vec![(block_i, Measure(x1))]),
+            Some(_) => ops.push(vec![(block_i, Measure(y1))]),
         }
     }
     // The last block also uncomputes by Z measurement
-    ops.push(vec![(n - 1, Instruction::Measure(z1))]);
+    ops.push(vec![(n - 1, Measure(z1))]);
 
     // Undo rotations on non-trivial blocks
     for (block_i, (_, rots)) in rotation_impls
@@ -348,10 +352,7 @@ mod tests {
     use bicycle_isa::Pauli::{I, X, Y, Z};
 
     /// Convert a native measurement to a list of Instructions
-    fn native_instructions(
-        block: usize,
-        native_measurement: &NativeMeasurement,
-    ) -> Vec<Vec<(usize, Instruction)>> {
+    fn native_instructions(block: usize, native_measurement: &NativeMeasurement) -> Vec<Operation> {
         native_measurement
             .implementation()
             .into_iter()
@@ -399,20 +400,17 @@ mod tests {
     }
 
     #[test]
-    fn test_ghz_prep() {
+    fn test_ghz_meas() {
         let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
         let arch = PathArchitecture { data_blocks: 2 };
 
-        let ops = ghz_prep(0, arch.data_blocks());
+        let ops = ghz_meas(0, arch.data_blocks());
 
         // One joint operation
         let joint_ops: Vec<_> = ops.iter().filter(|op| op.len() == 2).collect();
         assert_eq!(1, joint_ops.len());
 
-        let zz_meas = vec![
-            (0, Instruction::JointMeasure(z1)),
-            (1, Instruction::JointMeasure(z1)),
-        ];
+        let zz_meas = vec![(0, JointMeasure(z1)), (1, JointMeasure(z1))];
         assert_eq!(&zz_meas, joint_ops[0]);
     }
 
@@ -425,8 +423,8 @@ mod tests {
         basis.append(&mut basis1.to_vec());
         let expected_basis1 = [X, I, I, I, I, I, I, I, I, I, I];
 
-        let (meas0, rot0) = controlled_rotation(&basis0);
-        let (meas1, rot1) = controlled_rotation(&expected_basis1);
+        let (meas0, rot0) = general_measurement(&basis0);
+        let (meas1, rot1) = general_measurement(&expected_basis1);
         assert!(rot0.is_empty());
         assert!(rot1.is_empty());
 
@@ -437,14 +435,14 @@ mod tests {
         let joint_ops: Vec<_> = ops.0.iter().filter(|op| op.len() == 2).collect();
         assert_eq!(1, joint_ops.len());
 
-        let mut expected = ghz_prep(0, arch.data_blocks());
+        let mut expected = ghz_meas(0, arch.data_blocks());
 
         expected.append(&mut native_instructions(0, meas0));
         expected.append(&mut native_instructions(1, meas1));
 
         expected.append(&mut vec![
-            vec![(0, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
-            vec![(1, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
         ]);
         let expected = Operations(expected);
 
@@ -471,8 +469,8 @@ mod tests {
         let ops = Operations(compile_measurement(&arch, basis));
         println!("Compiled: {}", ops);
 
-        let (meas0, rots0) = controlled_rotation(&paulis0);
-        let (meas1, rots1) = controlled_rotation(&basis1);
+        let (meas0, rots0) = general_measurement(&paulis0);
+        let (meas1, rots1) = general_measurement(&basis1);
         assert!(rots0.len() == 1);
         assert!(rots1.is_empty());
         let rot = rots0[0];
@@ -483,13 +481,13 @@ mod tests {
             .map(|op| vec![(0_usize, op)])
             .collect();
 
-        expected.append(&mut ghz_prep(0, arch.data_blocks()));
+        expected.append(&mut ghz_meas(0, arch.data_blocks()));
         expected.append(&mut native_instructions(0, meas0));
         expected.append(&mut native_instructions(1, meas1));
         // Uncompute GHZ
         expected.append(&mut vec![
-            vec![(0, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
-            vec![(1, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
         ]);
         // Unrotate
         expected.extend(
@@ -520,20 +518,17 @@ mod tests {
         let ops = Operations(compile_rotation(&arch, basis, angle));
         println!("Compiled: {}", ops);
 
-        let mut expected = ghz_prep(0, arch.data_blocks());
+        let mut expected = ghz_meas(0, arch.data_blocks());
 
         expected.push(vec![(
             0,
-            Instruction::Rotation(RotationData {
+            Rotation(RotationData {
                 basis: expected_basis,
                 angle,
             }),
         )]);
 
-        expected.push(vec![(
-            0,
-            Instruction::Measure(TwoBases::new(Z, I).unwrap()),
-        )]);
+        expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
         let expected = Operations(expected);
         println!("Expected: {}", expected);
 
@@ -553,21 +548,18 @@ mod tests {
         let ops = Operations(compile_rotation(&arch, basis.to_vec(), angle));
         println!("Compiled: {}", ops);
 
-        let mut expected = ghz_prep(0, arch.data_blocks());
+        let mut expected = ghz_meas(0, arch.data_blocks());
         let mut expected_basis = vec![X];
         expected_basis.extend_from_slice(&basis);
         expected.push(vec![(
             0,
-            Instruction::Rotation(RotationData {
+            Rotation(RotationData {
                 basis: expected_basis.try_into().expect("Should have 11 elements"),
                 angle,
             }),
         )]);
 
-        expected.push(vec![(
-            0,
-            Instruction::Measure(TwoBases::new(Z, I).unwrap()),
-        )]);
+        expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
 
         let expected = Operations(expected);
         println!("Expected: {}", expected);
@@ -593,7 +585,7 @@ mod tests {
         basis.append(&mut basis1);
         dbg!(&basis);
 
-        let (meas0, rots0) = controlled_rotation(&block0_pauli);
+        let (meas0, rots0) = general_measurement(&block0_pauli);
         assert!(rots0.is_empty());
         let angle = -PI / 32.;
 
@@ -601,7 +593,7 @@ mod tests {
         println!("Compiled: {}", ops);
 
         // Prepare GHZ
-        let mut expected: Vec<Vec<(usize, Instruction)>> = ghz_prep(0, arch.data_blocks());
+        let mut expected: Vec<Operation> = ghz_meas(0, arch.data_blocks());
         // Native measure block 0
         let meas1_impl = meas0
             .implementation()
@@ -613,7 +605,7 @@ mod tests {
         expected_basis.extend_from_slice(&block1_pauli);
         expected.push(vec![(
             1,
-            Instruction::Rotation(RotationData {
+            :Rotation(RotationData {
                 basis: expected_basis.try_into().expect("Should have 11 elements"),
                 angle,
             }),
@@ -621,8 +613,8 @@ mod tests {
 
         // Uncompute GHZ
         expected.append(&mut vec![
-            vec![(0, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
-            vec![(1, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
         ]);
 
         let expected = Operations(expected);
@@ -649,17 +641,17 @@ mod tests {
         println!("{compiled_ops}");
 
         let basis0 = vec![X, X, I, I, I, I, I, I, I, I, I];
-        let (meas0, rot0) = controlled_rotation(&basis0);
+        let (meas0, rot0) = general_measurement(&basis0);
         assert!(rot0.is_empty());
 
-        let mut expected = ghz_prep(0, architecture.data_blocks());
+        let mut expected = ghz_meas(0, architecture.data_blocks());
         expected.append(&mut native_instructions(0, meas0));
 
         let mut expected_basis = [I; 11];
         expected_basis[0] = X;
         expected.push(vec![(
             1,
-            Instruction::Rotation(RotationData {
+            Rotation(RotationData {
                 basis: expected_basis,
                 angle,
             }),
@@ -667,8 +659,8 @@ mod tests {
 
         // Uncompute GHZ
         expected.append(&mut vec![
-            vec![(0, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
-            vec![(1, Instruction::Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
+            vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
         ]);
 
         let expected = Operations(expected);
