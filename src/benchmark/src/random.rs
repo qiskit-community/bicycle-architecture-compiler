@@ -3,7 +3,7 @@ use core::f64;
 use bicycle_isa::Pauli;
 use pbc_gross::language::PbcOperation;
 
-use rand::{distr::Uniform, prelude::*};
+use rand::distr::{Distribution, StandardUniform};
 
 /// Generate random circuit with non-trivial rotations, equivalent to a Clifford+T circuit
 pub fn random_rotations(qubits: usize, angle: f64) -> impl Iterator<Item = PbcOperation> {
@@ -38,17 +38,9 @@ pub fn random_pauli_strings(qubits: usize) -> impl Iterator<Item = Vec<Pauli>> {
         .flatten()
 }
 
-pub fn random_paulis() -> impl Iterator<Item = Pauli> {
-    let mut rng = rand::rng();
-    let range = Uniform::new_inclusive(0, 3).unwrap();
-
-    std::iter::repeat_with(move || match range.sample(&mut rng) {
-        0 => Pauli::I,
-        1 => Pauli::X,
-        2 => Pauli::Z,
-        3 => Pauli::Y,
-        _ => unreachable!("RNG number out of range"),
-    })
+fn random_paulis() -> impl Iterator<Item = Pauli> {
+    let rng = rand::rng();
+    StandardUniform.sample_iter(rng)
 }
 
 #[cfg(test)]

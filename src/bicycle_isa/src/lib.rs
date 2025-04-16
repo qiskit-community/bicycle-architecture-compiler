@@ -5,6 +5,7 @@ use std::{
 };
 
 use na::Matrix6;
+use rand::distr::{Distribution, StandardUniform};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
@@ -31,6 +32,19 @@ impl Pauli {
 impl Display for Pauli {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+impl Distribution<Pauli> for StandardUniform {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Pauli {
+        let i = rng.random_range(0..=3);
+        match i {
+            0 => Pauli::I,
+            1 => Pauli::Z,
+            2 => Pauli::X,
+            3 => Pauli::Y,
+            _ => unreachable!("RNG number out of range"),
+        }
     }
 }
 
