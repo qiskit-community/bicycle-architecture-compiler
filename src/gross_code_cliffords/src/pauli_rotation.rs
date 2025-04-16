@@ -4,6 +4,7 @@ use std::{
 };
 
 use bicycle_isa::Pauli;
+use rand::distr::{Distribution, StandardUniform};
 use serde::{Deserialize, Serialize};
 
 /// Represent a string of 12 Paulis
@@ -30,6 +31,13 @@ impl PauliString {
         } else {
             self.0 &= !(1 << index);
         }
+    }
+
+    /// Set the ith index of this PauliString to p
+    pub fn set_pauli(&mut self, i: usize, p: Pauli) {
+        assert!(i <= 11);
+        self.set_bit(i, p == Pauli::X || p == Pauli::Y);
+        self.set_bit(i + 12, p == Pauli::Z || p == Pauli::Y);
     }
 
     // Check if the logical operator has support on the pivot qubit (0)
@@ -216,6 +224,12 @@ impl fmt::Display for PauliString {
             write!(f, "{}", pauli)?;
         }
         Ok(())
+    }
+}
+
+impl Distribution<PauliString> for StandardUniform {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> PauliString {
+        PauliString(rng.random_range(0..4_u32.pow(12)))
     }
 }
 

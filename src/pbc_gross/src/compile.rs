@@ -15,7 +15,7 @@ use crate::{language, small_angle};
 
 use gross_code_cliffords::{CompleteMeasurementTable, MeasurementTableBuilder, PauliString};
 
-use BicycleISA::{Automorphism, JointMeasure, Measure, TGate};
+use BicycleISA::{JointMeasure, Measure, TGate};
 
 /// Statically store a database to look up measurement implementations on the gross code
 /// by sequences of native measurements.
@@ -155,6 +155,7 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
     }
 
     // Prepare initial state
+    // TODO: Prepare state only on qubits that are in the range of the measurement
     for block_i in 0..n {
         ops.push(vec![(block_i, Measure(x1))]);
     }
@@ -338,6 +339,12 @@ mod tests {
 
     use bicycle_isa::Pauli::{I, X, Y, Z};
 
+    use rand::{
+        distr::{Distribution, StandardUniform},
+        seq::IndexedRandom,
+        Rng,
+    };
+
     const CLIFF_ANGLE: f64 = std::f64::consts::PI / 4.0;
 
     /// Convert a native measurement to a list of Operations
@@ -349,9 +356,42 @@ mod tests {
             .collect()
     }
 
-    /// A helper function for setting up test cases by finding native gates
-    #[test]
+    fn find_random_native_measurement(pivot_basis: Pauli) -> &'static NativeMeasurement {
+        let mut native_measurements: Vec<&NativeMeasurement> = vec![];
+        for i in 1..4_usize.pow(11) {
+            let mut bits = i;
+            let mut ps: Vec<Pauli> = vec![];
+            for _ in 0..11 {
+                let p_bits = bits & 3;
+                bits >>= 2;
+                ps.push(
+                    p_bits
+                        .try_into()
+                        .expect("Should be able to convert 2 bits to Pauli"),
+                );
+            }
+            assert_eq!(11, ps.len());
+
+            let pauli_arr: [Pauli; 12] = std::iter::once(pivot_basis)
+                .chain(ps.into_iter())
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap();
+            let p: PauliString = (&pauli_arr).into();
+
+            let (meas, rots) = MEASUREMENT_IMPLS.implementation(p);
+            if rots.is_empty() {
+                native_measurements.push(meas);
+            }
+        }
+
+        native_measurements.choose(&mut rand::rng()).unwrap()
+    }
+
     fn find_native_gates() {
+        let arr = [I; 12];
+        let mut p: PauliString = (&arr).into();
+
         for i in 1..4_u32.pow(11) {
             let x = (i << 1) | 1; // Set X_0
             let p: PauliString = PauliString(x);
@@ -365,6 +405,14 @@ mod tests {
                 println!("{}", p);
             }
         }
+    }
+
+    /// Generate random non-trivial PauliStrings acting on 11 qubits
+    fn random_nontrivial_paulistrings() -> impl Iterator<Item = PauliString> {
+        StandardUniform
+            .sample_iter(rand::rng())
+            .map(|p: PauliString| p.zero_pivot())
+            .filter(|p| p.0 != 0)
     }
 
     #[test]
@@ -404,6 +452,8 @@ mod tests {
     }
 
     mod measurement {
+        use rand::distr::{Distribution, StandardUniform};
+
         use super::*;
 
         /// State prep for nontrivial measurement
@@ -415,7 +465,7 @@ mod tests {
 
         /// State prep for nontrivial measurement
         fn unprep() -> impl Iterator<Item = Operation> {
-            std::iter::repeat(Measure(TwoBases::new(Pauli::X, Pauli::I).unwrap()))
+            std::iter::repeat(Measure(TwoBases::new(Pauli::Y, Pauli::I).unwrap()))
                 .enumerate()
                 .map(|e| vec![e])
         }
@@ -423,16 +473,16 @@ mod tests {
         #[test]
         fn compile_native_joint_measurement() -> Result<(), Box<dyn Error>> {
             let arch = PathArchitecture { data_blocks: 2 };
-            let basis0 = [I, I, X, I, I, I, I, I, I, I, I];
-            let basis1 = [X];
-            let mut basis = basis0.to_vec();
-            basis.append(&mut basis1.to_vec());
-            let expected_basis1 = extend_basis(basis1);
-
-            let (meas0, rot0) = general_measurement(Pauli::X, &basis0);
-            let (meas1, rot1) = general_measurement(Pauli::X, &expected_basis1);
-            assert!(rot0.is_empty());
-            assert!(rot1.is_empty());
+            let meas0 = find_random_native_measurement(Y);
+            let basis0: [Pauli; 12] = (&meas0.measures()).into();
+            let meas1 = find_random_native_measurement(Y);
+            let basis1: [Pauli; 12] = (&meas1.measures()).into();
+            // Drop pivots
+            let basis: Vec<Pauli> = basis0[1..]
+                .iter()
+                .chain(basis1[1..].iter())
+                .copied()
+                .collect();
 
             let ops = Operations(compile_measurement(&arch, basis));
             println!("Compiled: {}", ops);
@@ -441,15 +491,12 @@ mod tests {
             let joint_ops: Vec<_> = ops.0.iter().filter(|op| op.len() == 2).collect();
             assert_eq!(1, joint_ops.len());
 
-            let mut expected = ghz_meas(0, arch.data_blocks());
-
+            let mut expected: Vec<Operation> = prep().take(2).collect();
             expected.append(&mut native_instructions(0, meas0));
             expected.append(&mut native_instructions(1, meas1));
+            expected.extend(ghz_meas(0, arch.data_blocks()));
+            expected.extend(unprep().take(2));
 
-            expected.append(&mut vec![
-                vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
-                vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
-            ]);
             let expected = Operations(expected);
 
             println!("Expected {}", expected);
@@ -467,40 +514,51 @@ mod tests {
         fn compile_joint_measurement() -> Result<(), Box<dyn Error>> {
             let arch = PathArchitecture { data_blocks: 2 };
             // Requires 1 rotation
-            let paulis0 = [I, I, I, I, X, I, I, I, I, I, I];
-            let mut basis = paulis0.to_vec();
-            basis.push(X);
-            let basis1 = [X, I, I, I, I, I, I, I, I, I, I];
+            let mut ps: Vec<_> = random_nontrivial_paulistrings().take(2).collect();
+            ps[0].set_pauli(0, Y);
+            ps[1].set_pauli(0, Y);
+            let implementations: Vec<_> = ps
+                .iter()
+                .map(|p| MEASUREMENT_IMPLS.implementation(*p))
+                .collect();
+            let basis: Vec<Pauli> = ps
+                .iter()
+                // Drop the pivot Pauli
+                .flat_map(|p| <[Pauli; 12]>::from(p).into_iter().skip(1))
+                .collect();
 
             let ops = Operations(compile_measurement(&arch, basis));
             println!("Compiled: {}", ops);
 
-            let (meas0, rots0) = general_measurement(Pauli::X, &paulis0);
-            let (meas1, rots1) = general_measurement(Pauli::X, &basis1);
-            assert!(rots0.len() == 1);
-            assert!(rots1.is_empty());
-            let rot = rots0[0];
+            let mut expected: Vec<Operation> = vec![];
 
-            // start with rotation on block 0
-            let mut expected: Vec<_> = rotation_instructions(rot)
-                .into_iter()
-                .map(|op| vec![(0_usize, op)])
-                .collect();
+            // pre-rotations
+            for (block_i, (_, rots)) in implementations.iter().enumerate() {
+                for rot in rots {
+                    let operations = rotation_instructions(rot)
+                        .into_iter()
+                        .map(|instr| vec![(block_i, instr)]);
+                    expected.extend(operations);
+                }
+            }
 
+            expected.extend(prep().take(2));
+
+            // measurements
+            for (block_i, (meas, _)) in implementations.iter().enumerate() {
+                expected.extend(native_instructions(block_i, meas).into_iter());
+            }
             expected.append(&mut ghz_meas(0, arch.data_blocks()));
-            expected.append(&mut native_instructions(0, meas0));
-            expected.append(&mut native_instructions(1, meas1));
-            // Uncompute GHZ
-            expected.append(&mut vec![
-                vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
-                vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
-            ]);
-            // Unrotate
-            expected.extend(
-                rotation_instructions(rot)
-                    .into_iter()
-                    .map(|op| vec![(0, op)]),
-            );
+            expected.extend(unprep().take(2));
+            // post-rotations
+            for (block_i, (_, rots)) in implementations.iter().enumerate() {
+                for rot in rots {
+                    let operations = rotation_instructions(rot)
+                        .into_iter()
+                        .map(|instr| vec![(block_i, instr)]);
+                    expected.extend(operations);
+                }
+            }
             let expected = Operations(expected);
             println!("Expected {}", expected);
 
@@ -520,20 +578,20 @@ mod tests {
 
         /// State prep for nontrivial rotation
         fn prep() -> impl Iterator<Item = Operation> {
-            std::iter::once(Measure(TwoBases::new(Pauli::Y, Pauli::I).unwrap()))
-                .chain(std::iter::repeat(Measure(
-                    TwoBases::new(Pauli::X, Pauli::I).unwrap(),
-                )))
+            let y1 = TwoBases::new(Pauli::Y, Pauli::I).unwrap();
+            let x1 = TwoBases::new(Pauli::X, Pauli::I).unwrap();
+            std::iter::once(Measure(y1))
+                .chain(std::iter::repeat(Measure(x1)))
                 .enumerate()
                 .map(|e| vec![e])
         }
 
         /// State measurement for nontrivial rotation
         fn unprep() -> impl Iterator<Item = Operation> {
-            std::iter::once(Measure(TwoBases::new(Pauli::Z, Pauli::I).unwrap()))
-                .chain(std::iter::repeat(Measure(
-                    TwoBases::new(Pauli::Y, Pauli::I).unwrap(),
-                )))
+            let y1 = TwoBases::new(Pauli::Y, Pauli::I).unwrap();
+            let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
+            std::iter::once(Measure(z1))
+                .chain(std::iter::repeat(Measure(y1)))
                 .enumerate()
                 .map(|e| vec![e])
         }

@@ -4,6 +4,7 @@ use crate::pauli_rotation::PauliString;
 use nalgebra::{stack, SMatrix, Vector6};
 
 use bicycle_isa::{AutomorphismData, BicycleISA, Pauli, TwoBases};
+use rand::distr::{Distribution, StandardUniform};
 use serde::{Deserialize, Serialize};
 
 /// A measurement that can be performed on the code by conjugating one base measurement with automorphisms.
@@ -112,6 +113,15 @@ impl Display for NativeMeasurement {
             BicycleISA::Measure(self.logical),
             BicycleISA::Automorphism(self.automorphism)
         )
+    }
+}
+
+impl Distribution<NativeMeasurement> for StandardUniform {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> NativeMeasurement {
+        NativeMeasurement {
+            logical: StandardUniform.sample(rng),
+            automorphism: StandardUniform.sample(rng),
+        }
     }
 }
 

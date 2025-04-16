@@ -62,6 +62,21 @@ impl TryFrom<&char> for Pauli {
     }
 }
 
+impl TryFrom<usize> for Pauli {
+    type Error = String;
+
+    /// Convert a integer in [0,3] to a Pauli
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Pauli::I),
+            1 => Ok(Pauli::X),
+            2 => Ok(Pauli::Z),
+            3 => Ok(Pauli::Y),
+            _ => Err(format!("Cannot  convert {} to Pauli", value)),
+        }
+    }
+}
+
 /// Specify what automorphism to perform.
 /// Since each automorphism has order 6, the x and y parameters wrapped to be in {0,1,...,5}.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
