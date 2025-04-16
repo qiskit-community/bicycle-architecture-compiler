@@ -338,6 +338,8 @@ mod tests {
 
     use bicycle_isa::Pauli::{I, X, Y, Z};
 
+    const CLIFF_ANGLE: f64 = std::f64::consts::PI / 4.0;
+
     /// Convert a native measurement to a list of Instructions
     fn native_instructions(block: usize, native_measurement: &NativeMeasurement) -> Vec<Operation> {
         native_measurement
@@ -410,8 +412,8 @@ mod tests {
         basis.append(&mut basis1.to_vec());
         let expected_basis1 = [X, I, I, I, I, I, I, I, I, I, I];
 
-        let (meas0, rot0) = general_measurement(&basis0);
-        let (meas1, rot1) = general_measurement(&expected_basis1);
+        let (meas0, rot0) = general_measurement(Pauli::X, &basis0);
+        let (meas1, rot1) = general_measurement(Pauli::X, &expected_basis1);
         assert!(rot0.is_empty());
         assert!(rot1.is_empty());
 
@@ -456,8 +458,8 @@ mod tests {
         let ops = Operations(compile_measurement(&arch, basis));
         println!("Compiled: {}", ops);
 
-        let (meas0, rots0) = general_measurement(&paulis0);
-        let (meas1, rots1) = general_measurement(&basis1);
+        let (meas0, rots0) = general_measurement(Pauli::X, &paulis0);
+        let (meas1, rots1) = general_measurement(Pauli::X, &basis1);
         assert!(rots0.len() == 1);
         assert!(rots1.is_empty());
         let rot = rots0[0];
@@ -500,19 +502,15 @@ mod tests {
         // XXI... is a native measurement so we don't need to apply rotations
         let basis = vec![X];
         let expected_basis = [X, X, I, I, I, I, I, I, I, I, I];
-        let angle = PI / 4.;
 
-        let ops = Operations(compile_rotation(&arch, basis, angle));
+        let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
         println!("Compiled: {}", ops);
 
         let mut expected = ghz_meas(0, arch.data_blocks());
 
         expected.push(vec![(
             0,
-            Rotation(RotationData {
-                basis: expected_basis,
-                angle,
-            }),
+            TGate(TGateData::new(Pauli::X, false, false).unwrap()),
         )]);
 
         expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
@@ -531,8 +529,7 @@ mod tests {
         // I also leave out the dual pivot (in I)
         let basis = [I, I, I, I, I, Y, I, I, I, I];
 
-        let angle = PI / 16.;
-        let ops = Operations(compile_rotation(&arch, basis.to_vec(), angle));
+        let ops = Operations(compile_rotation(&arch, basis.to_vec(), CLIFF_ANGLE));
         println!("Compiled: {}", ops);
 
         let mut expected = ghz_meas(0, arch.data_blocks());
@@ -540,10 +537,7 @@ mod tests {
         expected_basis.extend_from_slice(&basis);
         expected.push(vec![(
             0,
-            Rotation(RotationData {
-                basis: expected_basis.try_into().expect("Should have 11 elements"),
-                angle,
-            }),
+            TGate(TGateData::new(Pauli::X, false, false).unwrap()),
         )]);
 
         expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
@@ -572,11 +566,10 @@ mod tests {
         basis.append(&mut basis1);
         dbg!(&basis);
 
-        let (meas0, rots0) = general_measurement(&block0_pauli);
+        let (meas0, rots0) = general_measurement(Pauli::X, &block0_pauli);
         assert!(rots0.is_empty());
-        let angle = -PI / 32.;
 
-        let ops = Operations(compile_rotation(&arch, basis, angle));
+        let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
         println!("Compiled: {}", ops);
 
         // Prepare GHZ
@@ -592,10 +585,7 @@ mod tests {
         expected_basis.extend_from_slice(&block1_pauli);
         expected.push(vec![(
             1,
-            :Rotation(RotationData {
-                basis: expected_basis.try_into().expect("Should have 11 elements"),
-                angle,
-            }),
+            TGate(TGateData::new(Pauli::X, false, false).unwrap()),
         )]);
 
         // Uncompute GHZ
@@ -620,15 +610,15 @@ mod tests {
     #[test]
     fn test_compile_rotation_blocks() {
         let basis = vec![X, X, I, I, I, I, I, I, I, I, I, I];
-        let angle = -0.125;
+
         let architecture = &PathArchitecture { data_blocks: 2 };
 
-        let compiled = compile_rotation(architecture, basis, angle);
+        let compiled = compile_rotation(architecture, basis, CLIFF_ANGLE);
         let compiled_ops = Operations(compiled);
         println!("{compiled_ops}");
 
         let basis0 = vec![X, X, I, I, I, I, I, I, I, I, I];
-        let (meas0, rot0) = general_measurement(&basis0);
+        let (meas0, rot0) = general_measurement(Pauli::X, &basis0);
         assert!(rot0.is_empty());
 
         let mut expected = ghz_meas(0, architecture.data_blocks());
@@ -638,10 +628,7 @@ mod tests {
         expected_basis[0] = X;
         expected.push(vec![(
             1,
-            Rotation(RotationData {
-                basis: expected_basis,
-                angle,
-            }),
+            TGate(TGateData::new(Pauli::X, false, false).unwrap()),
         )]);
 
         // Uncompute GHZ
