@@ -1,4 +1,4 @@
-use bicycle_isa::{AutomorphismData, BicycleISA};
+use bicycle_isa::BicycleISA;
 
 use crate::operation::Operation;
 

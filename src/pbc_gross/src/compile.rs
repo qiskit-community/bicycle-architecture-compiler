@@ -103,26 +103,28 @@ fn rotation_instructions(native_measurement: &NativeMeasurement) -> Vec<BicycleI
 }
 
 /// Extend basis to a multiple of 11
-fn extend_basis(basis: &mut Vec<Pauli>) {
+fn extend_basis<T>(basis: T) -> Vec<Pauli>
+where
+    T: IntoIterator<Item = Pauli>,
+{
+    let mut basis: Vec<Pauli> = basis.into_iter().collect();
     while basis.len() % 11 != 0 {
         basis.push(Pauli::I);
     }
 
     assert!(basis.len() % 11 == 0);
+    basis
 }
 
 /// Compile a Pauli measurement to ISA instructions
-pub fn compile_measurement(
-    architecture: &PathArchitecture,
-    mut basis: Vec<Pauli>,
-) -> Vec<Operation> {
+pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -> Vec<Operation> {
     let mut ops: Vec<Operation> = vec![];
     let n = architecture.data_blocks();
 
     let x1 = TwoBases::new(Pauli::X, Pauli::I).unwrap();
     let y1 = TwoBases::new(Pauli::Y, Pauli::I).unwrap();
 
-    extend_basis(&mut basis);
+    let basis = extend_basis(basis);
 
     // Find implementation for each block
     let rotation_impls: Vec<_> = basis
@@ -211,13 +213,13 @@ pub fn compile_measurement(
 /// Compile a Pauli rotation of some rational angle to Operations
 pub fn compile_rotation(
     architecture: &PathArchitecture,
-    mut basis: Vec<Pauli>,
+    basis: Vec<Pauli>,
     angle: f64,
 ) -> Vec<Operation> {
     let mut ops: Vec<Operation> = vec![];
     let n = architecture.data_blocks();
     assert!(n > 0);
-    extend_basis(&mut basis);
+    let basis = extend_basis(basis);
 
     let z1 = TwoBases::new(Pauli::Z, Pauli::I).unwrap();
     let x1 = TwoBases::new(Pauli::X, Pauli::I).unwrap();
@@ -330,8 +332,6 @@ where
 #[cfg(test)]
 mod tests {
 
-    use std::f64::consts::PI;
-
     use crate::operation::Operations;
 
     use super::*;
@@ -340,7 +340,7 @@ mod tests {
 
     const CLIFF_ANGLE: f64 = std::f64::consts::PI / 4.0;
 
-    /// Convert a native measurement to a list of Instructions
+    /// Convert a native measurement to a list of Operations
     fn native_instructions(block: usize, native_measurement: &NativeMeasurement) -> Vec<Operation> {
         native_measurement
             .implementation()
@@ -361,7 +361,7 @@ mod tests {
             let z_bits = (p.0 & !((1 << 12) - 1)) >> 12;
             let any_bits = x_bits | z_bits;
 
-            if rots.len() == 0 && any_bits.count_ones() == 1 {
+            if rots.is_empty() && any_bits.count_ones() == 1 {
                 println!("{}", p);
             }
         }
@@ -378,13 +378,13 @@ mod tests {
     #[test]
     fn test_extend_basis() {
         let mut basis = vec![Y];
-        extend_basis(&mut basis);
-        let expected = vec![Y, I, I, I, I, I, I, I, I, I];
+        basis = extend_basis(basis);
+        let expected = vec![Y, I, I, I, I, I, I, I, I, I, I];
         assert_eq!(expected, basis);
 
         let mut basis = vec![I, I, I, I, I, Y];
-        extend_basis(&mut basis);
-        let expected = vec![I, I, I, I, I, Y, I, I, I, I];
+        basis = extend_basis(basis);
+        let expected = vec![I, I, I, I, I, Y, I, I, I, I, I];
         assert_eq!(expected, basis);
     }
 
@@ -403,242 +403,283 @@ mod tests {
         assert_eq!(&zz_meas, joint_ops[0]);
     }
 
-    #[test]
-    fn compile_native_joint_measurement() -> Result<(), Box<dyn Error>> {
-        let arch = PathArchitecture { data_blocks: 2 };
-        let basis0 = [I, I, X, I, I, I, I, I, I, I, I];
-        let basis1 = [X];
-        let mut basis = basis0.to_vec();
-        basis.append(&mut basis1.to_vec());
-        let expected_basis1 = [X, I, I, I, I, I, I, I, I, I, I];
+    mod measurement {
+        use super::*;
 
-        let (meas0, rot0) = general_measurement(Pauli::X, &basis0);
-        let (meas1, rot1) = general_measurement(Pauli::X, &expected_basis1);
-        assert!(rot0.is_empty());
-        assert!(rot1.is_empty());
-
-        let ops = Operations(compile_measurement(&arch, basis));
-        println!("Compiled: {}", ops);
-
-        // One joint operation
-        let joint_ops: Vec<_> = ops.0.iter().filter(|op| op.len() == 2).collect();
-        assert_eq!(1, joint_ops.len());
-
-        let mut expected = ghz_meas(0, arch.data_blocks());
-
-        expected.append(&mut native_instructions(0, meas0));
-        expected.append(&mut native_instructions(1, meas1));
-
-        expected.append(&mut vec![
-            vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
-            vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
-        ]);
-        let expected = Operations(expected);
-
-        println!("Expected {}", expected);
-
-        for (op0, op1) in expected.0.iter().zip(ops.0.iter()) {
-            assert_eq!(op0, op1);
+        /// State prep for nontrivial measurement
+        fn prep() -> impl Iterator<Item = Operation> {
+            std::iter::repeat(Measure(TwoBases::new(Pauli::X, Pauli::I).unwrap()))
+                .enumerate()
+                .map(|e| vec![e])
         }
 
-        assert_eq!(expected, ops);
+        /// State prep for nontrivial measurement
+        fn unprep() -> impl Iterator<Item = Operation> {
+            std::iter::repeat(Measure(TwoBases::new(Pauli::X, Pauli::I).unwrap()))
+                .enumerate()
+                .map(|e| vec![e])
+        }
 
-        Ok(())
-    }
+        #[test]
+        fn compile_native_joint_measurement() -> Result<(), Box<dyn Error>> {
+            let arch = PathArchitecture { data_blocks: 2 };
+            let basis0 = [I, I, X, I, I, I, I, I, I, I, I];
+            let basis1 = [X];
+            let mut basis = basis0.to_vec();
+            basis.append(&mut basis1.to_vec());
+            let expected_basis1 = extend_basis(basis1);
 
-    #[test]
-    fn compile_joint_measurement() -> Result<(), Box<dyn Error>> {
-        let arch = PathArchitecture { data_blocks: 2 };
-        // Requires 1 rotation
-        let paulis0 = [I, I, I, I, X, I, I, I, I, I, I];
-        let mut basis = paulis0.to_vec();
-        basis.push(X);
-        let basis1 = [X, I, I, I, I, I, I, I, I, I, I];
+            let (meas0, rot0) = general_measurement(Pauli::X, &basis0);
+            let (meas1, rot1) = general_measurement(Pauli::X, &expected_basis1);
+            assert!(rot0.is_empty());
+            assert!(rot1.is_empty());
 
-        let ops = Operations(compile_measurement(&arch, basis));
-        println!("Compiled: {}", ops);
+            let ops = Operations(compile_measurement(&arch, basis));
+            println!("Compiled: {}", ops);
 
-        let (meas0, rots0) = general_measurement(Pauli::X, &paulis0);
-        let (meas1, rots1) = general_measurement(Pauli::X, &basis1);
-        assert!(rots0.len() == 1);
-        assert!(rots1.is_empty());
-        let rot = rots0[0];
+            // One joint operation
+            let joint_ops: Vec<_> = ops.0.iter().filter(|op| op.len() == 2).collect();
+            assert_eq!(1, joint_ops.len());
 
-        // start with rotation on block 0
-        let mut expected: Vec<_> = rotation_instructions(rot)
-            .into_iter()
-            .map(|op| vec![(0_usize, op)])
-            .collect();
+            let mut expected = ghz_meas(0, arch.data_blocks());
 
-        expected.append(&mut ghz_meas(0, arch.data_blocks()));
-        expected.append(&mut native_instructions(0, meas0));
-        expected.append(&mut native_instructions(1, meas1));
-        // Uncompute GHZ
-        expected.append(&mut vec![
-            vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
-            vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
-        ]);
-        // Unrotate
-        expected.extend(
-            rotation_instructions(rot)
+            expected.append(&mut native_instructions(0, meas0));
+            expected.append(&mut native_instructions(1, meas1));
+
+            expected.append(&mut vec![
+                vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
+                vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
+            ]);
+            let expected = Operations(expected);
+
+            println!("Expected {}", expected);
+
+            for (op0, op1) in expected.0.iter().zip(ops.0.iter()) {
+                assert_eq!(op0, op1);
+            }
+
+            assert_eq!(expected, ops);
+
+            Ok(())
+        }
+
+        #[test]
+        fn compile_joint_measurement() -> Result<(), Box<dyn Error>> {
+            let arch = PathArchitecture { data_blocks: 2 };
+            // Requires 1 rotation
+            let paulis0 = [I, I, I, I, X, I, I, I, I, I, I];
+            let mut basis = paulis0.to_vec();
+            basis.push(X);
+            let basis1 = [X, I, I, I, I, I, I, I, I, I, I];
+
+            let ops = Operations(compile_measurement(&arch, basis));
+            println!("Compiled: {}", ops);
+
+            let (meas0, rots0) = general_measurement(Pauli::X, &paulis0);
+            let (meas1, rots1) = general_measurement(Pauli::X, &basis1);
+            assert!(rots0.len() == 1);
+            assert!(rots1.is_empty());
+            let rot = rots0[0];
+
+            // start with rotation on block 0
+            let mut expected: Vec<_> = rotation_instructions(rot)
                 .into_iter()
-                .map(|op| vec![(0, op)]),
-        );
-        let expected = Operations(expected);
-        println!("Expected {}", expected);
+                .map(|op| vec![(0_usize, op)])
+                .collect();
 
-        for (op0, op1) in expected.0.iter().zip(ops.0.iter()) {
-            assert_eq!(op0, op1);
+            expected.append(&mut ghz_meas(0, arch.data_blocks()));
+            expected.append(&mut native_instructions(0, meas0));
+            expected.append(&mut native_instructions(1, meas1));
+            // Uncompute GHZ
+            expected.append(&mut vec![
+                vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
+                vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
+            ]);
+            // Unrotate
+            expected.extend(
+                rotation_instructions(rot)
+                    .into_iter()
+                    .map(|op| vec![(0, op)]),
+            );
+            let expected = Operations(expected);
+            println!("Expected {}", expected);
+
+            for (op0, op1) in expected.0.iter().zip(ops.0.iter()) {
+                assert_eq!(op0, op1);
+            }
+
+            assert_eq!(expected, ops);
+
+            Ok(())
+        }
+    }
+
+    mod rotation {
+
+        use super::*;
+
+        /// State prep for nontrivial rotation
+        fn prep() -> impl Iterator<Item = Operation> {
+            std::iter::once(Measure(TwoBases::new(Pauli::Y, Pauli::I).unwrap()))
+                .chain(std::iter::repeat(Measure(
+                    TwoBases::new(Pauli::X, Pauli::I).unwrap(),
+                )))
+                .enumerate()
+                .map(|e| vec![e])
         }
 
-        assert_eq!(expected, ops);
-
-        Ok(())
-    }
-
-    #[test]
-    fn compile_native_x_rotation() -> Result<(), Box<dyn Error>> {
-        let arch = PathArchitecture { data_blocks: 1 };
-        // XXI... is a native measurement so we don't need to apply rotations
-        let basis = vec![X];
-        let expected_basis = [X, X, I, I, I, I, I, I, I, I, I];
-
-        let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
-        println!("Compiled: {}", ops);
-
-        let mut expected = ghz_meas(0, arch.data_blocks());
-
-        expected.push(vec![(
-            0,
-            TGate(TGateData::new(Pauli::X, false, false).unwrap()),
-        )]);
-
-        expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
-        let expected = Operations(expected);
-        println!("Expected: {}", expected);
-
-        assert_eq!(expected, ops);
-
-        Ok(())
-    }
-
-    #[test]
-    fn compile_x_rotation() -> Result<(), Box<dyn Error>> {
-        let arch = PathArchitecture { data_blocks: 1 };
-        // IIIIYIIIIIIX requires one rotation
-        // I also leave out the dual pivot (in I)
-        let basis = [I, I, I, I, I, Y, I, I, I, I];
-
-        let ops = Operations(compile_rotation(&arch, basis.to_vec(), CLIFF_ANGLE));
-        println!("Compiled: {}", ops);
-
-        let mut expected = ghz_meas(0, arch.data_blocks());
-        let mut expected_basis = vec![X];
-        expected_basis.extend_from_slice(&basis);
-        expected.push(vec![(
-            0,
-            TGate(TGateData::new(Pauli::X, false, false).unwrap()),
-        )]);
-
-        expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
-
-        let expected = Operations(expected);
-        println!("Expected: {}", expected);
-
-        for (op0, op1) in expected.0.iter().zip(&ops.0) {
-            assert_eq!(op0, op1);
+        /// State measurement for nontrivial rotation
+        fn unprep() -> impl Iterator<Item = Operation> {
+            std::iter::once(Measure(TwoBases::new(Pauli::Z, Pauli::I).unwrap()))
+                .chain(std::iter::repeat(Measure(
+                    TwoBases::new(Pauli::Y, Pauli::I).unwrap(),
+                )))
+                .enumerate()
+                .map(|e| vec![e])
         }
 
-        assert_eq!(expected, ops);
+        #[test]
+        fn compile_native_x_rotation() -> Result<(), Box<dyn Error>> {
+            let arch = PathArchitecture { data_blocks: 1 };
+            // XXI... is a native measurement so we don't need to apply rotations
+            let basis = vec![X];
+            let expected_basis = [X, X, I, I, I, I, I, I, I, I, I];
 
-        Ok(())
-    }
+            let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
+            println!("Compiled: {}", ops);
 
-    #[test]
-    fn compile_interblock_rotation() -> Result<(), Box<dyn Error>> {
-        let arch = PathArchitecture { data_blocks: 2 };
+            let mut expected = ghz_meas(0, arch.data_blocks());
 
-        // IIIIIXIIIIIX is native
-        let block0_pauli = [I, I, I, I, I, X, I, I, I, I, I];
-        let mut basis = block0_pauli.to_vec();
-        let block1_pauli = [X, I, I, I, I, I, I, I, I, I];
-        let mut basis1 = block1_pauli[0..1].to_vec();
-        basis.append(&mut basis1);
-        dbg!(&basis);
+            expected.push(vec![(
+                0,
+                TGate(TGateData::new(Pauli::X, false, false).unwrap()),
+            )]);
 
-        let (meas0, rots0) = general_measurement(Pauli::X, &block0_pauli);
-        assert!(rots0.is_empty());
+            expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
+            let expected = Operations(expected);
+            println!("Expected: {}", expected);
 
-        let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
-        println!("Compiled: {}", ops);
+            assert_eq!(expected, ops);
 
-        // Prepare GHZ
-        let mut expected: Vec<Operation> = ghz_meas(0, arch.data_blocks());
-        // Native measure block 0
-        let meas1_impl = meas0
-            .implementation()
-            .map(|isa| vec![(0, isa.try_into().unwrap())]);
-        expected.extend(meas1_impl);
-
-        // Insert rotation on block 1
-        let mut expected_basis = vec![X];
-        expected_basis.extend_from_slice(&block1_pauli);
-        expected.push(vec![(
-            1,
-            TGate(TGateData::new(Pauli::X, false, false).unwrap()),
-        )]);
-
-        // Uncompute GHZ
-        expected.append(&mut vec![
-            vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
-            vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
-        ]);
-
-        let expected = Operations(expected);
-
-        println!("Expected: {}", expected);
-
-        for (op1, op2) in expected.0.iter().zip(&ops.0) {
-            assert_eq!(op1, op2);
+            Ok(())
         }
 
-        assert_eq!(ops, expected);
+        #[test]
+        fn compile_x_rotation() -> Result<(), Box<dyn Error>> {
+            let arch = PathArchitecture { data_blocks: 1 };
+            // IIIIYIIIIIIX requires one rotation
+            // I also leave out the dual pivot (in I)
+            let basis = [I, I, I, I, I, Y, I, I, I, I];
 
-        Ok(())
-    }
+            let ops = Operations(compile_rotation(&arch, basis.to_vec(), CLIFF_ANGLE));
+            println!("Compiled: {}", ops);
 
-    #[test]
-    fn test_compile_rotation_blocks() {
-        let basis = vec![X, X, I, I, I, I, I, I, I, I, I, I];
+            let mut expected = ghz_meas(0, arch.data_blocks());
+            let mut expected_basis = vec![X];
+            expected_basis.extend_from_slice(&basis);
+            expected.push(vec![(
+                0,
+                TGate(TGateData::new(Pauli::X, false, false).unwrap()),
+            )]);
 
-        let architecture = &PathArchitecture { data_blocks: 2 };
+            expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
 
-        let compiled = compile_rotation(architecture, basis, CLIFF_ANGLE);
-        let compiled_ops = Operations(compiled);
-        println!("{compiled_ops}");
+            let expected = Operations(expected);
+            println!("Expected: {}", expected);
 
-        let basis0 = vec![X, X, I, I, I, I, I, I, I, I, I];
-        let (meas0, rot0) = general_measurement(Pauli::X, &basis0);
-        assert!(rot0.is_empty());
+            for (op0, op1) in expected.0.iter().zip(&ops.0) {
+                assert_eq!(op0, op1);
+            }
 
-        let mut expected = ghz_meas(0, architecture.data_blocks());
-        expected.append(&mut native_instructions(0, meas0));
+            assert_eq!(expected, ops);
 
-        let mut expected_basis = [I; 11];
-        expected_basis[0] = X;
-        expected.push(vec![(
-            1,
-            TGate(TGateData::new(Pauli::X, false, false).unwrap()),
-        )]);
+            Ok(())
+        }
 
-        // Uncompute GHZ
-        expected.append(&mut vec![
-            vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
-            vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
-        ]);
+        #[test]
+        fn compile_interblock_rotation() -> Result<(), Box<dyn Error>> {
+            let arch = PathArchitecture { data_blocks: 2 };
 
-        let expected = Operations(expected);
+            // IIIIIXIIIIIX is native
+            let block0_pauli = [I, I, I, I, I, X, I, I, I, I, I];
+            let mut basis = block0_pauli.to_vec();
+            let block1_pauli = [X, I, I, I, I, I, I, I, I, I];
+            let mut basis1 = block1_pauli[0..1].to_vec();
+            basis.append(&mut basis1);
+            dbg!(&basis);
 
-        assert_eq!(expected, compiled_ops);
+            let (meas0, rots0) = general_measurement(Pauli::X, &block0_pauli);
+            assert!(rots0.is_empty());
+
+            let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
+            println!("Compiled: {}", ops);
+
+            // Prepare GHZ
+            let mut expected: Vec<Operation> = ghz_meas(0, arch.data_blocks());
+            // Native measure block 0
+            let meas1_impl = meas0.implementation().map(|isa| vec![(0, isa)]);
+            expected.extend(meas1_impl);
+
+            // Insert rotation on block 1
+            let mut expected_basis = vec![X];
+            expected_basis.extend_from_slice(&block1_pauli);
+            expected.push(vec![(
+                1,
+                TGate(TGateData::new(Pauli::X, false, false).unwrap()),
+            )]);
+
+            // Uncompute GHZ
+            expected.append(&mut vec![
+                vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
+                vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
+            ]);
+
+            let expected = Operations(expected);
+
+            println!("Expected: {}", expected);
+
+            for (op1, op2) in expected.0.iter().zip(&ops.0) {
+                assert_eq!(op1, op2);
+            }
+
+            assert_eq!(ops, expected);
+
+            Ok(())
+        }
+
+        #[test]
+        fn test_compile_rotation_blocks() {
+            let basis = vec![X, X, I, I, I, I, I, I, I, I, I, I];
+
+            let architecture = &PathArchitecture { data_blocks: 2 };
+
+            let compiled = compile_rotation(architecture, basis, CLIFF_ANGLE);
+            let compiled_ops = Operations(compiled);
+            println!("{compiled_ops}");
+
+            let basis0 = vec![X, X, I, I, I, I, I, I, I, I, I];
+            let (meas0, rot0) = general_measurement(Pauli::X, &basis0);
+            assert!(rot0.is_empty());
+
+            let mut expected = ghz_meas(0, architecture.data_blocks());
+            expected.append(&mut native_instructions(0, meas0));
+
+            let mut expected_basis = [I; 11];
+            expected_basis[0] = X;
+            expected.push(vec![(
+                1,
+                TGate(TGateData::new(Pauli::X, false, false).unwrap()),
+            )]);
+
+            // Uncompute GHZ
+            expected.append(&mut vec![
+                vec![(0, Measure(TwoBases::new(Z, I).unwrap()))],
+                vec![(1, Measure(TwoBases::new(Z, I).unwrap()))],
+            ]);
+
+            let expected = Operations(expected);
+
+            assert_eq!(expected, compiled_ops);
+        }
     }
 }

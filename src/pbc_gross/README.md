@@ -53,8 +53,9 @@ The output looks like
 ```
 This output is similarly delineated by newlines.
 
-## NOT NEEDED: Gridsynth installation
-Please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
+## Gridsynth installation
+For synthesizing rotations by angles other than $\pm\pi/4$,
+please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
 The following command should succeed
 ```
 python -m pygridsynth 0.5 1e-3
