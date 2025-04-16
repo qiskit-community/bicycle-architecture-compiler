@@ -138,6 +138,7 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
             }
         })
         .collect();
+    assert!(rotation_impls.len() <= n);
 
     // Apply rotations to blocks that have nontrivial rotations (requires use of pivot)
     for (block_i, (_, rots)) in rotation_impls
@@ -235,11 +236,13 @@ pub fn compile_rotation(
             if paulis.iter().all(|p| *p == Pauli::I) {
                 None
             } else {
-                let pivot_basis = if block_i < n { Pauli::Y } else { Pauli::X };
+                let pivot_basis = if block_i < n - 1 { Pauli::Y } else { Pauli::X };
+                dbg!(&pivot_basis);
                 Some(general_measurement(pivot_basis, paulis))
             }
         })
         .collect();
+    assert!(rotation_impls.len() <= n);
 
     // Apply pre-rotations on all blocks if they are non-trivial
     for (block_i, (_, rots)) in rotation_impls
@@ -261,7 +264,7 @@ pub fn compile_rotation(
     for i in 0..(n - 1) {
         ops.push(vec![(i, Measure(x1))]);
     }
-    ops.push(vec![(n, Measure(y1))]);
+    ops.push(vec![(n - 1, Measure(y1))]);
 
     // Apply native measurements on nontrivial blocks
     for (block_i, (meas, _)) in rotation_impls
@@ -295,13 +298,13 @@ pub fn compile_rotation(
     }
 
     // Uncompute GHZ state by local measurements on all data blocks (even if they had trivial rotations)
-    for (block_i, opt) in rotation_impls.iter().enumerate() {
+    for (block_i, opt) in rotation_impls.iter().enumerate().take(n - 1) {
         match opt {
             None => ops.push(vec![(block_i, Measure(x1))]),
             Some(_) => ops.push(vec![(block_i, Measure(y1))]),
         }
     }
-    // The last block also uncomputes by Z measurement
+    // The last block uncomputes by Z measurement
     ops.push(vec![(n - 1, Measure(z1))]);
 
     // Undo rotations on non-trivial blocks
@@ -342,7 +345,6 @@ mod tests {
     use rand::{
         distr::{Distribution, StandardUniform},
         seq::IndexedRandom,
-        Rng,
     };
 
     const CLIFF_ANGLE: f64 = std::f64::consts::PI / 4.0;
@@ -378,6 +380,7 @@ mod tests {
                 .try_into()
                 .unwrap();
             let p: PauliString = (&pauli_arr).into();
+            assert_eq!(pauli_arr, <[Pauli; 12]>::from(&p));
 
             let (meas, rots) = MEASUREMENT_IMPLS.implementation(p);
             if rots.is_empty() {
@@ -452,7 +455,6 @@ mod tests {
     }
 
     mod measurement {
-        use rand::distr::{Distribution, StandardUniform};
 
         use super::*;
 
@@ -597,23 +599,24 @@ mod tests {
         }
 
         #[test]
-        fn compile_native_x_rotation() -> Result<(), Box<dyn Error>> {
+        fn compile_native_rotation() -> Result<(), Box<dyn Error>> {
             let arch = PathArchitecture { data_blocks: 1 };
-            // XXI... is a native measurement so we don't need to apply rotations
-            let basis = vec![X];
-            let expected_basis = [X, X, I, I, I, I, I, I, I, I, I];
+            let meas = find_random_native_measurement(Pauli::X);
+
+            let ps: [Pauli; 12] = (&meas.measures()).into();
+            let basis: Vec<Pauli> = ps[1..].to_vec();
+            dbg!(&basis);
 
             let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
             println!("Compiled: {}", ops);
 
-            let mut expected = ghz_meas(0, arch.data_blocks());
-
+            let mut expected: Vec<_> = prep().take(1).collect();
+            expected.extend(meas.implementation().map(|isa| vec![(0, isa)]));
             expected.push(vec![(
                 0,
                 TGate(TGateData::new(Pauli::X, false, false).unwrap()),
             )]);
-
-            expected.push(vec![(0, Measure(TwoBases::new(Z, I).unwrap()))]);
+            expected.extend(unprep().take(1));
             let expected = Operations(expected);
             println!("Expected: {}", expected);
 
