@@ -1,6 +1,6 @@
+use bicycle_isa::BicycleISA;
 use clap::ValueEnum;
 use fixed::types::U32F96;
-use pbc_gross::operation::Instruction;
 
 // Because we need to support precision up to 10^-20,
 // which is >2^-65
@@ -13,11 +13,11 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn timing(&self, instruction: &Instruction) -> u64 {
+    pub fn timing(&self, instruction: &BicycleISA) -> u64 {
         self.timing.timing(instruction)
     }
 
-    pub fn instruction_error(&self, instruction: &Instruction) -> ErrorPrecision {
+    pub fn instruction_error(&self, instruction: &BicycleISA) -> ErrorPrecision {
         self.error.instruction_error(instruction)
     }
 
@@ -37,12 +37,13 @@ struct TimingModel {
 
 impl TimingModel {
     /// Time it takes to perform an instruction
-    pub fn timing(&self, instruction: &Instruction) -> u64 {
+    pub fn timing(&self, instruction: &BicycleISA) -> u64 {
         match instruction {
-            Instruction::Rotation(_) => self.t_inj,
-            Instruction::Automorphism(_) => self.shift,
-            Instruction::Measure(_) => self.inmodule,
-            Instruction::JointMeasure(_) => self.intermodule,
+            BicycleISA::TGate(_) => self.t_inj,
+            BicycleISA::Automorphism(_) => self.shift,
+            BicycleISA::Measure(_) => self.inmodule,
+            BicycleISA::JointMeasure(_) => self.intermodule,
+            _ => unreachable!("Should not have instruction {}", instruction),
         }
     }
 }
@@ -72,12 +73,13 @@ struct ErrorModel {
 }
 
 impl ErrorModel {
-    pub fn instruction_error(&self, instruction: &Instruction) -> ErrorPrecision {
+    pub fn instruction_error(&self, instruction: &BicycleISA) -> ErrorPrecision {
         match instruction {
-            Instruction::Rotation(_) => self.t_inj,
-            Instruction::Measure(_) => self.inmodule,
-            Instruction::JointMeasure(_) => self.intermodule,
-            Instruction::Automorphism(_) => self.shift,
+            BicycleISA::TGate(_) => self.t_inj,
+            BicycleISA::Measure(_) => self.inmodule,
+            BicycleISA::JointMeasure(_) => self.intermodule,
+            BicycleISA::Automorphism(_) => self.shift,
+            _ => unreachable!("Should not have instruction {}", instruction),
         }
     }
 

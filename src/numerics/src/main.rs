@@ -1,36 +1,35 @@
 use std::error::Error;
 
+use bicycle_isa::BicycleISA;
 use clap::Parser;
 use log::trace;
 use model::{Model, ModelChoices};
-use pbc_gross::{
-    operation::{Instruction, Operation},
-    PathArchitecture,
-};
+use pbc_gross::{operation::Operation, PathArchitecture};
 
 pub mod model;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-struct InstructionCounter {
-    rotations: usize,
+struct IsaCounter {
+    t_injs: usize,
     automorphisms: usize,
     measurements: usize,
     joint_measurements: usize,
 }
 
-impl InstructionCounter {
-    fn add(&mut self, instr: &Instruction) {
+impl IsaCounter {
+    fn add(&mut self, instr: &BicycleISA) {
         match instr {
-            Instruction::Rotation(_) => self.rotations += 1,
-            Instruction::Automorphism(_) => self.automorphisms += 1,
-            Instruction::Measure(_) => self.measurements += 1,
-            Instruction::JointMeasure(_) => self.joint_measurements += 1,
+            BicycleISA::TGate(_) => self.t_injs += 1,
+            BicycleISA::Automorphism(_) => self.automorphisms += 1,
+            BicycleISA::Measure(_) => self.measurements += 1,
+            BicycleISA::JointMeasure(_) => self.joint_measurements += 1,
+            _ => unreachable!("There should not be any other instructions, {}", instr),
         }
     }
 
-    fn max(self, other: InstructionCounter) -> Self {
+    fn max(self, other: IsaCounter) -> Self {
         Self {
-            rotations: self.rotations.max(other.rotations),
+            t_injs: self.t_injs.max(other.t_injs),
             automorphisms: self.automorphisms.max(other.automorphisms),
             measurements: self.measurements.max(other.measurements),
             joint_measurements: self.joint_measurements.max(other.joint_measurements),
@@ -55,7 +54,7 @@ fn numerics(
     let mut i = 0;
     while total_error <= 0.5 {
         let meas_impl = operations.next().unwrap();
-        let mut counter: InstructionCounter = Default::default();
+        let mut counter: IsaCounter = Default::default();
         // Accumulate counts. Or use a fold.
         meas_impl.iter().for_each(|instr| counter.add(&instr[0].1));
 
@@ -72,7 +71,7 @@ fn numerics(
             for (block_i, instr) in op.iter() {
                 depths[*block_i] = max_depth;
                 match instr {
-                    Instruction::Measure(_) | Instruction::JointMeasure(_) => {
+                    BicycleISA::Measure(_) | BicycleISA::JointMeasure(_) => {
                         depths[*block_i] = max_depth + 1
                     }
                     _ => depths[*block_i] = max_depth,
@@ -99,7 +98,7 @@ fn numerics(
             i + 1,
             qubits,
             data_blocks,
-            counter.rotations,
+            counter.t_injs,
             counter.automorphisms,
             counter.measurements,
             counter.joint_measurements,
