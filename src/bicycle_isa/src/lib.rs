@@ -154,6 +154,14 @@ impl MulAssign for AutomorphismData {
     }
 }
 
+impl Distribution<AutomorphismData> for StandardUniform {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> AutomorphismData {
+        let x = rng.random_range(0..=5);
+        let y = rng.random_range(0..=5);
+        AutomorphismData::new(x, y)
+    }
+}
+
 /// Measure two qubits independently in the same basis, which must be X or Z
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct ParallelMeasureData {
@@ -197,6 +205,18 @@ impl TwoBases {
     }
 }
 
+impl Distribution<TwoBases> for StandardUniform {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> TwoBases {
+        let mut out = None;
+        while out.is_none() {
+            let p1 = StandardUniform.sample(rng);
+            let p7 = StandardUniform.sample(rng);
+            out = TwoBases::new(p1, p7);
+        }
+        out.unwrap()
+    }
+}
+
 /// Store what kind of T gate is being implemented.  Must be in X or Z basis.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct TGateData {
@@ -219,6 +239,13 @@ impl TGateData {
 
     pub fn get_basis(&self) -> Pauli {
         self.basis
+    }
+}
+
+impl Distribution<TGateData> for StandardUniform {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> TGateData {
+        let p = if rng.random() { Pauli::X } else { Pauli::Z };
+        TGateData::new(p, rng.random(), rng.random()).unwrap()
     }
 }
 
