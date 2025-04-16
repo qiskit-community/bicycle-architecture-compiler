@@ -26,8 +26,8 @@ pub struct Operations(pub Vec<Operation>);
 impl Display for Operations {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "[")?;
-        for op in &self.0 {
-            write!(f, "\t")?;
+        for (i, op) in self.0.iter().enumerate() {
+            write!(f, "\t{i}:")?;
             fmt_operation(op, f)?;
             writeln!(f)?;
         }
