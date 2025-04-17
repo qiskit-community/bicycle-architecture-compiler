@@ -1,7 +1,9 @@
-use std::{error, io};
+use std::{
+    error,
+    io::{self, Read},
+};
 
 use pbc_gross::language::PbcOperation;
-use serde_json::Deserializer;
 
 use io::Write;
 
@@ -11,16 +13,18 @@ use pbc_gross::{optimize, PathArchitecture};
 fn main() -> Result<(), Box<dyn error::Error>> {
     env_logger::init();
 
-    let read = io::stdin();
-    let reader = read.lock();
+    let mut reader = io::stdin().lock();
+    let mut buffer = String::new();
+    reader.read_to_string(&mut buffer)?;
 
-    let de = Deserializer::from_reader(reader);
-    let ops = de.into_iter::<PbcOperation>().map(|op| op.unwrap());
-
-    let mut peek_ops = ops.peekable();
+    let ops: Vec<PbcOperation> = serde_json::from_str(&buffer)?;
+    // TODO: Support some streaming input from Stdin
+    // The following works for (a weird version of) JSON:
+    // let de = Deserializer::from_reader(reader);
+    // let ops = de.into_iter::<PbcOperation>().map(|op| op.unwrap());
 
     // Set the architecture based on the first operation
-    let first_op = peek_ops.peek();
+    let first_op = ops.first();
     let architecture = if let Some(op) = first_op {
         PathArchitecture::for_qubits(op.basis().len())
     } else {
@@ -28,7 +32,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         return Ok(());
     };
 
-    let compiled = peek_ops.flat_map(|op| op.compile(&architecture));
+    let compiled = ops.into_iter().flat_map(|op| op.compile(&architecture));
 
     let optimized_ops = optimize::remove_duplicate_measurements(compiled);
     let mut handle = io::stdout();
