@@ -91,8 +91,8 @@ fn numerics(
         }
 
         // Calculate the max depth currently
-        let measurement_depth = depths.iter().reduce(|a, b| a.max(b)).unwrap();
-        let end_time = times.iter().reduce(|maxt, t| maxt.max(t)).unwrap();
+        let measurement_depth = depths.iter().max().unwrap();
+        let end_time = times.iter().max().unwrap();
 
         println!(
             "{},{},{},{},{},{},{},{},{},{}",
