@@ -92,15 +92,15 @@ fn ghz_meas(start: usize, blocks: usize) -> Vec<Operation> {
 }
 
 /// Compile a native measurement, including conjugating state preparation and measurement
-fn rotation_instructions(native_measurement: &NativeMeasurementImpl) -> Vec<BicycleISA> {
-    let mut ops = vec![];
-    let ps: [Pauli; 12] = (&native_measurement.measures()).into();
-    let (p0, p1) = ps[0]
+fn rotation_instructions(native_measurement: &NativeMeasurementImpl) -> [BicycleISA; 5] {
+    let mut ops = [BicycleISA::CSSInitPlus; 5];
+    let pivot_pauli = native_measurement.measures().get_pauli(0);
+    let (p0, p1) = pivot_pauli
         .anticommuting()
         .expect("Pivot measurement should not be identity.");
-    ops.push(Measure(TwoBases::new(p0, Pauli::I).unwrap()));
-    ops.extend(native_measurement.implementation());
-    ops.push(Measure(TwoBases::new(p1, Pauli::I).unwrap()));
+    ops[0] = Measure(TwoBases::new(p0, Pauli::I).unwrap());
+    ops[1..4].copy_from_slice(&native_measurement.implementation());
+    ops[4] = Measure(TwoBases::new(p1, Pauli::I).unwrap());
     ops
 }
 

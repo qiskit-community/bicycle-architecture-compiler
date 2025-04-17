@@ -33,6 +33,15 @@ impl PauliString {
         }
     }
 
+    pub fn get_pauli(&self, i: usize) -> Pauli {
+        match (self[i], self[i + 12]) {
+            (true, true) => Pauli::Y,
+            (true, false) => Pauli::X,
+            (false, true) => Pauli::Z,
+            (false, false) => Pauli::I,
+        }
+    }
+
     /// Set the ith index of this PauliString to p
     pub fn set_pauli(&mut self, i: usize, p: Pauli) {
         assert!(i <= 11);
