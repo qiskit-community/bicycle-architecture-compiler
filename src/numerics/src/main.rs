@@ -2,7 +2,7 @@ use std::{error::Error, f64::consts::PI};
 
 use bicycle_isa::BicycleISA;
 use clap::Parser;
-use log::trace;
+use log::{info, trace};
 use model::{Model, ModelChoices};
 use pbc_gross::{operation::Operation, PathArchitecture};
 
@@ -52,7 +52,8 @@ fn numerics(
     let mut times: Vec<u64> = vec![0; data_blocks];
     let mut total_error = model::ErrorPrecision::ZERO;
     let mut i = 0;
-    while total_error <= 0.5 && i <= 10_i64.pow(9) {
+    let max_loops = 10_i64.pow(6);
+    while total_error <= 0.5 && i <= max_loops {
         let meas_impl = operations.next().unwrap();
         let mut counter: IsaCounter = Default::default();
         // Accumulate counts. Or use a fold.
@@ -110,6 +111,9 @@ fn numerics(
         trace!("{total_error}");
 
         i += 1;
+    }
+    if i >= max_loops {
+        info!("Max iterations reached. Params: {:?}, {}", model, qubits);
     }
 }
 
