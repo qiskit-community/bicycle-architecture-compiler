@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     fn check_logical_bits() {
-        assert_eq!(I_STR, X1.logical_bits());
+        assert_eq!(ID, X1.logical_bits());
         assert_eq!(X1, X2.logical_bits());
         assert_eq!(PauliString(1 << 11), Z2.logical_bits());
     }

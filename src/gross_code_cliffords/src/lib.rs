@@ -5,7 +5,7 @@ mod tableau;
 
 pub use pauli_rotation::PauliString;
 
-pub use decomposition::{CompleteMeasurementTable, MeasurementTableBuilder};
+pub use decomposition::{CompleteMeasurementTable, MeasurementTableBuilder, NativeMeasurementImpl};
 
 #[cfg(test)]
 mod tests {

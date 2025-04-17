@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::pauli_rotation::PauliString;
 use crate::{native_measurement::NativeMeasurement, pauli_rotation};
 
+use bicycle_isa::{AutomorphismData, BicycleISA, TwoBases};
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 
@@ -31,6 +32,36 @@ impl MeasurementImpl {
     }
 }
 
+/// A wrapper for &NativeMeasurement that caches what it measures
+/// Basically a nice wrapper for (PauliString, &NativeMeasurement)
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct NativeMeasurementImpl<'a> {
+    native: &'a NativeMeasurement,
+    measures: PauliString,
+}
+
+impl<'a> NativeMeasurementImpl<'a> {
+    pub fn new(native: &'a NativeMeasurement, measures: PauliString) -> Self {
+        Self { native, measures }
+    }
+
+    pub fn logical(&self) -> TwoBases {
+        self.native.logical
+    }
+
+    pub fn automorphism(&self) -> AutomorphismData {
+        self.native.automorphism
+    }
+
+    pub fn measures(&self) -> PauliString {
+        self.measures
+    }
+
+    pub fn implementation(&self) -> [BicycleISA; 3] {
+        self.native.implementation()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompleteMeasurementTable {
     measurements: Vec<MeasurementImpl>,
@@ -46,7 +77,10 @@ impl CompleteMeasurementTable {
     /// Returns the a native measurement and its conjugating native measurements that implement rotations
     /// The ordering of rotations is such that the first element conjugates the measurement first.
     /// The given PauliString must be a valid measurement defined on 12 qubits.
-    pub fn implementation(&self, p: PauliString) -> (&NativeMeasurement, Vec<&NativeMeasurement>) {
+    pub fn implementation(
+        &self,
+        p: PauliString,
+    ) -> (NativeMeasurementImpl, Vec<NativeMeasurementImpl>) {
         assert!(p.0 <= 4_u32.pow(12), "{}", p);
         assert!(p.0 != 0); // Cannot measure identity
 
@@ -62,17 +96,23 @@ impl CompleteMeasurementTable {
             .native_measurements
             .get(&implementation.measurement)
             .unwrap();
+        let base_impl = NativeMeasurementImpl::new(base_meas, implementation.measurement);
 
         let native_rots = rots
-            .iter()
-            .map(|p| self.native_measurements.get(p).unwrap())
+            .into_iter()
+            .map(|p| {
+                self.native_measurements
+                    .get(&p)
+                    .map(|native| NativeMeasurementImpl::new(native, p))
+                    .unwrap()
+            })
             .rev()
             .collect();
-        (base_meas, native_rots)
+        (base_impl, native_rots)
     }
 
     /// Find an implementation for a rotation given by p such that the number of rotations is minimized.
-    pub fn rotation(&self, p: PauliString) -> (&NativeMeasurement, Vec<&NativeMeasurement>) {
+    pub fn rotation(&self, p: PauliString) -> (NativeMeasurementImpl, Vec<NativeMeasurementImpl>) {
         assert!(p.0 <= 4_u32.pow(12), "{}", p);
         assert!(
             p.pivot_bits() == pauli_rotation::ID,

@@ -13,7 +13,9 @@ use crate::{architecture::PathArchitecture, operation::Operation};
 
 use crate::{language, small_angle};
 
-use gross_code_cliffords::{CompleteMeasurementTable, MeasurementTableBuilder, PauliString};
+use gross_code_cliffords::{
+    CompleteMeasurementTable, MeasurementTableBuilder, NativeMeasurementImpl, PauliString,
+};
 
 use BicycleISA::{JointMeasure, Measure, TGate};
 
@@ -59,7 +61,7 @@ fn try_create_cache(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Err
 fn general_measurement(
     pivot_basis: Pauli,
     data_basis: &[Pauli],
-) -> (&NativeMeasurement, Vec<&NativeMeasurement>) {
+) -> (NativeMeasurementImpl, Vec<NativeMeasurementImpl>) {
     let mut local_basis = vec![pivot_basis];
     local_basis.extend_from_slice(data_basis);
     let local_basis: [Pauli; 12] = local_basis
@@ -90,7 +92,7 @@ fn ghz_meas(start: usize, blocks: usize) -> Vec<Operation> {
 }
 
 /// Compile a native measurement, including conjugating state preparation and measurement
-fn rotation_instructions(native_measurement: &NativeMeasurement) -> Vec<BicycleISA> {
+fn rotation_instructions(native_measurement: &NativeMeasurementImpl) -> Vec<BicycleISA> {
     let mut ops = vec![];
     let ps: [Pauli; 12] = (&native_measurement.measures()).into();
     let (p0, p1) = ps[0]
@@ -349,7 +351,10 @@ mod tests {
     const CLIFF_ANGLE: f64 = std::f64::consts::PI / 4.0;
 
     /// Convert a native measurement to a list of Operations
-    fn native_instructions(block: usize, native_measurement: &NativeMeasurement) -> Vec<Operation> {
+    fn native_instructions(
+        block: usize,
+        native_measurement: &NativeMeasurementImpl,
+    ) -> Vec<Operation> {
         native_measurement
             .implementation()
             .into_iter()
@@ -357,8 +362,8 @@ mod tests {
             .collect()
     }
 
-    fn find_random_native_measurement(pivot_basis: Pauli) -> &'static NativeMeasurement {
-        let mut native_measurements: Vec<&NativeMeasurement> = vec![];
+    fn find_random_native_measurement(pivot_basis: Pauli) -> NativeMeasurementImpl<'static> {
+        let mut native_measurements: Vec<NativeMeasurementImpl> = vec![];
         for i in 1..4_usize.pow(11) {
             let mut bits = i;
             let mut ps: Vec<Pauli> = vec![];
@@ -387,7 +392,7 @@ mod tests {
             }
         }
 
-        native_measurements.choose(&mut rand::rng()).unwrap()
+        *native_measurements.choose(&mut rand::rng()).unwrap()
     }
 
     fn find_native_gates() {
@@ -493,8 +498,8 @@ mod tests {
             assert_eq!(1, joint_ops.len());
 
             let mut expected: Vec<Operation> = prep().take(2).collect();
-            expected.append(&mut native_instructions(0, meas0));
-            expected.append(&mut native_instructions(1, meas1));
+            expected.append(&mut native_instructions(0, &meas0));
+            expected.append(&mut native_instructions(1, &meas1));
             expected.extend(ghz_meas(0, arch.data_blocks()));
             expected.extend(unprep().take(2));
 
