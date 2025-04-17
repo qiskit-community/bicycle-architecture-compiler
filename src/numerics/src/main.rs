@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, f64::consts::PI};
 
 use bicycle_isa::BicycleISA;
 use clap::Parser;
@@ -52,7 +52,7 @@ fn numerics(
     let mut times: Vec<u64> = vec![0; data_blocks];
     let mut total_error = model::ErrorPrecision::ZERO;
     let mut i = 0;
-    while total_error <= 0.5 {
+    while total_error <= 0.5 && i <= 10_i64.pow(9) {
         let meas_impl = operations.next().unwrap();
         let mut counter: IsaCounter = Default::default();
         // Accumulate counts. Or use a fold.
@@ -125,7 +125,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     trace!("Number of qubits: {}", cli.qubits);
     let model = cli.model.model();
-    let random_circuit = benchmark::random::random_rotations(cli.qubits, 0.123);
+    let random_circuit = benchmark::random::random_rotations(cli.qubits, PI / 4.);
 
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
 
