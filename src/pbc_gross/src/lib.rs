@@ -3,7 +3,6 @@ mod compile;
 pub mod language;
 pub mod operation;
 pub mod optimize;
-pub mod parser;
 mod small_angle;
 
 pub use architecture::PathArchitecture;
@@ -14,14 +13,35 @@ mod test {
 
     use std::error::Error;
 
+    use crate::language::PbcOperation;
+
     use super::*;
     use operation::Operations;
 
     #[test]
     fn integration_test_rotation() -> Result<(), Box<dyn Error>> {
-        let program = "r,xxiiiiiiiii,-0.125";
-        let mut parser = parser::PbcParser::new(program.as_bytes());
-        let parsed = parser.stream().collect::<Vec<_>>();
+        let program = r#"[
+                                    {
+                                        "Rotation": {
+                                        "basis": [
+                                            "X",
+                                            "X",
+                                            "I",
+                                            "I",
+                                            "I",
+                                            "I",
+                                            "I",
+                                            "I",
+                                            "I",
+                                            "I",
+                                            "I",
+                                            "Y"
+                                        ],
+                                        "angle": 0.125
+                                        }
+                                    }
+                                ]"#;
+        let parsed: Vec<PbcOperation> = serde_json::from_str(program)?;
         dbg!(&parsed);
         assert_eq!(1, parsed.len());
 
