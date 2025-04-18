@@ -9,22 +9,21 @@ use io::Write;
 
 use log::debug;
 use pbc_gross::{optimize, PathArchitecture};
+use serde_json::Deserializer;
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     env_logger::init();
 
-    let mut reader = io::stdin().lock();
-    let mut buffer = String::new();
-    reader.read_to_string(&mut buffer)?;
+    let reader = io::stdin().lock();
 
-    let ops: Vec<PbcOperation> = serde_json::from_str(&buffer)?;
-    // TODO: Support some streaming input from Stdin
+    // Support some streaming input from Stdin
     // The following works for (a weird version of) JSON:
-    // let de = Deserializer::from_reader(reader);
-    // let ops = de.into_iter::<PbcOperation>().map(|op| op.unwrap());
+    let de = Deserializer::from_reader(reader);
+    let ops = de.into_iter::<PbcOperation>().map(|op| op.unwrap());
+    let mut ops = ops.peekable();
 
     // Set the architecture based on the first operation
-    let first_op = ops.first();
+    let first_op = ops.peek();
     let architecture = if let Some(op) = first_op {
         PathArchitecture::for_qubits(op.basis().len())
     } else {
@@ -32,7 +31,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         return Ok(());
     };
 
-    let compiled = ops.into_iter().flat_map(|op| op.compile(&architecture));
+    let compiled = ops.flat_map(|op| op.compile(&architecture));
 
     let optimized_ops = optimize::remove_duplicate_measurements(compiled);
     let mut handle = io::stdout();
