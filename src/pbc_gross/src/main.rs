@@ -1,7 +1,4 @@
-use std::{
-    error,
-    io::{self, Read},
-};
+use std::{env, error, io};
 
 use pbc_gross::language::PbcOperation;
 
@@ -12,6 +9,10 @@ use pbc_gross::{optimize, PathArchitecture};
 use serde_json::Deserializer;
 
 fn main() -> Result<(), Box<dyn error::Error>> {
+    // By default log INFO.
+    if env::var("RUST_LOG").is_err() {
+        env::set_var("RUST_LOG", "info");
+    }
     env_logger::init();
 
     let reader = io::stdin().lock();
@@ -20,6 +21,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     // The following works for (a weird version of) JSON:
     let de = Deserializer::from_reader(reader);
     let ops = de.into_iter::<PbcOperation>().map(|op| op.unwrap());
+    let ops = ops.map(|e| dbg!(e));
     let mut ops = ops.peekable();
 
     // Set the architecture based on the first operation
