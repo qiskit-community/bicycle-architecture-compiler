@@ -219,6 +219,7 @@ pub fn compile_rotation(
     architecture: &PathArchitecture,
     basis: Vec<Pauli>,
     angle: f64,
+    accuracy: f64,
 ) -> Vec<Operation> {
     let mut ops: Vec<Operation> = vec![];
     let n = architecture.data_blocks();
@@ -288,7 +289,7 @@ pub fn compile_rotation(
 
     // Apply small-angle X(φ) rotation on block n
     // TODO: Ignore compile-time Clifford corrections
-    let (rots, _cliffords) = small_angle::synthesize_angle_x(angle, 1e-18);
+    let (rots, _cliffords) = small_angle::synthesize_angle_x(angle, accuracy);
     for rot in rots {
         let tgate_data = match rot {
             SingleRotation::Z { dagger } => TGateData::new(Pauli::Z, false, dagger),
@@ -327,11 +328,15 @@ pub fn compile_rotation(
 }
 
 /// Compile an iterator of PbcOperations to an iterator over Bicycle ISA instructions.
-pub fn compile<T>(architecture: PathArchitecture, ops: T) -> impl Iterator<Item = Operation>
+pub fn compile<T>(
+    architecture: PathArchitecture,
+    ops: T,
+    accuracy: f64,
+) -> impl Iterator<Item = Operation>
 where
     T: Iterator<Item = language::PbcOperation>,
 {
-    ops.flat_map(move |op| op.compile(&architecture))
+    ops.flat_map(move |op| op.compile(&architecture, accuracy))
 }
 
 #[cfg(test)]

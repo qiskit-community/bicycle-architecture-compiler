@@ -21,14 +21,14 @@ pub enum PbcOperation {
 }
 
 impl PbcOperation {
-    pub fn compile(&self, architecture: &PathArchitecture) -> Vec<Operation> {
+    pub fn compile(&self, architecture: &PathArchitecture, accuracy: f64) -> Vec<Operation> {
         match self {
             // TODO: use flip_result to flip the sign of measurements
             PbcOperation::Measurement { basis, .. } => {
                 compile::compile_measurement(architecture, basis.to_vec())
             }
             PbcOperation::Rotation { basis, angle } => {
-                compile::compile_rotation(architecture, basis.to_vec(), *angle)
+                compile::compile_rotation(architecture, basis.to_vec(), *angle, accuracy)
             }
         }
     }

@@ -31,19 +31,25 @@ cat example/simple.json | jq --compact-output '.[]' | cargo run --release
 
 The output looks like
 ```json
-[0,{"Measure":{"p1":"X","p7":"I"}}]
-[1,{"Measure":{"p1":"Z","p7":"I"}}]
-[0,{"JointMeasure":{"p1":"Z","p7":"I"}}]
-[1,{"JointMeasure":{"p1":"Z","p7":"I"}}]
-[0,{"Automorphism":{"x":3,"y":2}}]
-[0,{"Measure":{"p1":"X","p7":"I"}}]
-[0,{"Automorphism":{"x":3,"y":4}}]
-[1,{"Rotation":{"basis":["X","Y","I","I","I","I","I","I","I","I","I"],"angle":0.125}}]
-[0,{"Measure":{"p1":"Z","p7":"I"}}]
-[1,{"Measure":{"p1":"Z","p7":"I"}}]
+[
+    [[0,{"Measure":{"p1":"Z","p7":"I"}}]],
+    [[0,{"Automorphism":{"x":3,"y":2}}]],
+    ...,
+    [
+        [0,{"JointMeasure":{"p1":"Z","p7":"I"}}],
+        [1,{"JointMeasure":{"p1":"Z","p7":"I"}}]
+    ],
+    ...
+]
+[
+    ...
+]
 ...
 ```
-This output is similarly delineated by newlines.
+This output is similarly delineated by newlines so that each line corresponds to one input PBC operation.
+Within a line is a sequence of operations, that come either as single or paired instructions.
+Each instruction has an associated block and operation.
+In particular, joint operations between blocks are paired as two instructions.
 
 ## Gridsynth installation
 For synthesizing rotations by angles other than $\pm\pi/4$,

@@ -14,6 +14,7 @@ serde = { version = "1.0.218", features = ["derive"] }
 bicycle_isa = { path = "../bicycle_isa" }
 gross_code_cliffords = { path = "../gross_code_cliffords" }
 serde_json = { version = "1.0.140", features = ["float_roundtrip"] }
+clap = { version = "4.5.36", features = ["derive"] }
 
 [dev-dependencies]
 rand = "0.9.0"

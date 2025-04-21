@@ -1,10 +1,11 @@
-use std::{error::Error, f64::consts::PI};
+use std::{env, error::Error, f64::consts::PI, io};
 
 use bicycle_isa::BicycleISA;
 use clap::Parser;
 use log::{info, trace};
 use model::{Model, ModelChoices};
 use pbc_gross::{operation::Operation, PathArchitecture};
+use serde_json::Deserializer;
 
 pub mod model;
 
@@ -38,7 +39,7 @@ impl IsaCounter {
 }
 
 fn numerics(
-    mut operations: impl Iterator<Item = Vec<Operation>>,
+    mut chunked_ops: impl Iterator<Item = Vec<Operation>>,
     architecture: PathArchitecture,
     model: Model,
 ) {
@@ -54,13 +55,13 @@ fn numerics(
     let mut i = 0;
     let max_loops = 10_i64.pow(7);
     while total_error <= 1.0 / 3.0 && i <= max_loops {
-        let meas_impl = operations.next().unwrap();
+        let ops = chunked_ops.next().unwrap();
         let mut counter: IsaCounter = Default::default();
         // Accumulate counts. Or use a fold.
-        meas_impl.iter().for_each(|instr| counter.add(&instr[0].1));
+        ops.iter().for_each(|instr| counter.add(&instr[0].1));
 
         // Compute the new depths and timing for each block
-        for op in meas_impl {
+        for op in ops {
             // Find the max depth/time between blocks
             let mut max_depth = 0;
             let mut max_time = 0;
@@ -117,26 +118,32 @@ fn numerics(
     }
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 struct Cli {
     qubits: usize,
     model: ModelChoices,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // By default log INFO.
+    if env::var("RUST_LOG").is_err() {
+        env::set_var("RUST_LOG", "info");
+    }
     env_logger::init();
 
     let cli = Cli::parse();
     trace!("Number of qubits: {}", cli.qubits);
     let model = cli.model.model();
-    let random_circuit = benchmark::random::random_rotations(cli.qubits, PI / 4.);
+
+    let reader = io::stdin().lock();
+
+    // Support some streaming input from Stdin
+    // The following works for (a weird version of) JSON:
+    let de = Deserializer::from_reader(reader);
+    let ops = de.into_iter::<Operation>().map(|op| vec![op.unwrap()]);
 
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
 
-    let compiled_measurements = random_circuit.map(|meas| meas.compile(&architecture));
-    let optimized_measurements =
-        pbc_gross::optimize::remove_duplicate_measurements_chunked(compiled_measurements);
-
-    numerics(optimized_measurements, architecture, model);
+    numerics(ops, architecture, model);
     Ok(())
 }

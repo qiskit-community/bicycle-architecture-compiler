@@ -4,9 +4,17 @@ use pbc_gross::language::PbcOperation;
 
 use io::Write;
 
+use clap::Parser;
 use log::debug;
 use pbc_gross::{optimize, PathArchitecture};
 use serde_json::Deserializer;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about=None)]
+struct Cli {
+    #[arg(short, long, default_value_t = 1e-18)]
+    accuracy: f64,
+}
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     // By default log INFO.
@@ -15,13 +23,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     }
     env_logger::init();
 
+    let cli = Cli::parse();
+
     let reader = io::stdin().lock();
 
     // Support some streaming input from Stdin
     // The following works for (a weird version of) JSON:
     let de = Deserializer::from_reader(reader);
     let ops = de.into_iter::<PbcOperation>().map(|op| op.unwrap());
-    let ops = ops.map(|e| dbg!(e));
     let mut ops = ops.peekable();
 
     // Set the architecture based on the first operation
@@ -33,17 +42,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         return Ok(());
     };
 
-    let compiled = ops.flat_map(|op| op.compile(&architecture));
+    let compiled = ops.map(|op| op.compile(&architecture, cli.accuracy));
 
-    let optimized_ops = optimize::remove_duplicate_measurements(compiled);
-    let mut handle = io::stdout();
-    for op in optimized_ops {
-        for gate in op {
-            debug!("{gate:?}");
-            serde_json::to_writer(&mut handle, &gate)?;
-            writeln!(&mut handle)?;
-        }
-    }
+    let mut optimized_chunked_ops = optimize::remove_duplicate_measurements_chunked(compiled);
+    let mut stdout = io::stdout();
+    // Stop on first error
+    let err: Result<(), io::Error> = optimized_chunked_ops.try_for_each(|chunk| {
+        let out = serde_json::to_string(&chunk)?;
+        writeln!(stdout, "{}", out)
+    });
+    debug!("Encountered error while writing to stdout: {:?}", err);
 
     Ok(())
 }
