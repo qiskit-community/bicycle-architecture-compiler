@@ -1,20 +1,21 @@
-use std::{env, error::Error, f64::consts::PI, io};
+use std::{env, error::Error, io};
 
 use bicycle_isa::BicycleISA;
 use clap::Parser;
-use log::{info, trace};
+use log::{debug, info, trace};
 use model::{Model, ModelChoices};
 use pbc_gross::{operation::Operation, PathArchitecture};
+use serde::{Deserialize, Serialize};
 use serde_json::Deserializer;
 
 pub mod model;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct IsaCounter {
-    t_injs: usize,
-    automorphisms: usize,
-    measurements: usize,
-    joint_measurements: usize,
+    t_injs: u64,
+    automorphisms: u64,
+    measurements: u64,
+    joint_measurements: u64,
 }
 
 impl IsaCounter {
@@ -38,24 +39,31 @@ impl IsaCounter {
     }
 }
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+struct OutputData {
+    i: usize,
+    qubits: usize,
+    t_injs: u64,
+    automorphisms: u64,
+    measurements: u64,
+    joint_measurements: u64,
+    measurement_depth: u64,
+    end_time: u64,
+    total_error: f64,
+}
+
 fn numerics(
     mut chunked_ops: impl Iterator<Item = Vec<Operation>>,
     architecture: PathArchitecture,
     model: Model,
-) {
-    println!(
-        "i,qubits,blocks,rotations,automorphisms,measurements,joint measurements,cumulative measurement depth,syndrome time,error rate"
-    );
+) -> impl Iterator<Item = OutputData> {
     let data_blocks = architecture.data_blocks();
     let qubits = architecture.qubits();
 
     let mut depths: Vec<u64> = vec![0; data_blocks];
     let mut times: Vec<u64> = vec![0; data_blocks];
     let mut total_error = model::ErrorPrecision::ZERO;
-    let mut i = 0;
-    let max_loops = 10_i64.pow(7);
-    while total_error <= 1.0 / 3.0 && i <= max_loops {
-        let ops = chunked_ops.next().unwrap();
+    chunked_ops.enumerate().map(move |(i, ops)| {
         let mut counter: IsaCounter = Default::default();
         // Accumulate counts. Or use a fold.
         ops.iter().for_each(|instr| counter.add(&instr[0].1));
@@ -95,33 +103,64 @@ fn numerics(
         let measurement_depth = depths.iter().max().unwrap();
         let end_time = times.iter().max().unwrap();
 
-        println!(
-            "{},{},{},{},{},{},{},{},{},{}",
-            i + 1,
+        OutputData {
+            i,
             qubits,
-            data_blocks,
-            counter.t_injs,
-            counter.automorphisms,
-            counter.measurements,
-            counter.joint_measurements,
-            measurement_depth,
-            end_time,
-            total_error,
-        );
-
-        trace!("{total_error}");
-
-        i += 1;
-    }
-    if i >= max_loops {
-        info!("Max iterations reached. Params: {:?}, {}", model, qubits);
-    }
+            t_injs: counter.t_injs,
+            automorphisms: counter.automorphisms,
+            measurements: counter.measurements,
+            joint_measurements: counter.joint_measurements,
+            measurement_depth: *measurement_depth,
+            end_time: *end_time,
+            total_error: total_error.to_num(),
+        }
+    })
 }
 
 #[derive(Parser, Debug)]
 struct Cli {
     qubits: usize,
     model: ModelChoices,
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+struct Output {
+    code: &'static str,
+    p: f64,
+    i: usize,
+    qubits: usize,
+    t_injs: u64,
+    automorphisms: u64,
+    measurements: u64,
+    joint_measurements: u64,
+    measurement_depth: u64,
+    end_time: u64,
+    total_error: f64,
+}
+
+impl Output {
+    pub fn new(model: ModelChoices, data: OutputData) -> Self {
+        let (code, p) = match model {
+            ModelChoices::Gross1e3 => ("gross", 1e-3),
+            ModelChoices::Gross1e4 => ("gross", 1e-4),
+            ModelChoices::TwoGross1e3 => ("two-gross", 1e-3),
+            ModelChoices::TwoGross1e4 => ("two-gross", 1e-4),
+        };
+
+        Self {
+            code,
+            p,
+            i: data.i,
+            qubits: data.qubits,
+            t_injs: data.t_injs,
+            automorphisms: data.automorphisms,
+            measurements: data.measurements,
+            joint_measurements: data.joint_measurements,
+            measurement_depth: data.measurement_depth,
+            end_time: data.end_time,
+            total_error: data.total_error,
+        }
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -144,6 +183,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
 
-    numerics(ops, architecture, model);
+    let output_data = numerics(ops, architecture, model);
+    let mut outputs = output_data.map(|data| Output::new(cli.model, data));
+    let mut wtr = csv::Writer::from_writer(io::stdout());
+    let err = outputs.try_for_each(|output| wtr.serialize(output));
+    debug!("Exited with {:?}", err);
+
     Ok(())
 }
