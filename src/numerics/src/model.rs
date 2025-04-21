@@ -90,9 +90,13 @@ impl ErrorModel {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
 pub enum ModelChoices {
+    #[clap(name = "gross_1e-3")]
     Gross1e3,
+    #[clap(name = "gross_1e-4")]
     Gross1e4,
+    #[clap(name = "two-gross_1e-3")]
     TwoGross1e3,
+    #[clap(name = "two-gross_1e-4")]
     TwoGross1e4,
 }
 

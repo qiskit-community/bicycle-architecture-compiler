@@ -104,7 +104,7 @@ fn numerics(
         let end_time = times.iter().max().unwrap();
 
         OutputData {
-            i,
+            i: i + 1,
             qubits,
             t_injs: counter.t_injs,
             automorphisms: counter.automorphisms,
@@ -184,7 +184,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
 
     let output_data = numerics(ops, architecture, model);
-    let mut outputs = output_data.map(|data| Output::new(cli.model, data));
+
+    // Stop when error exceeds 1/3 or iterations gets too large
+    let max_error = 1. / 3.;
+    let max_iter = 10_usize.pow(6);
+    let short_data =
+        output_data.take_while(|data| data.total_error <= max_error && data.i <= max_iter);
+
+    let mut outputs = short_data.map(|data| Output::new(cli.model, data));
     let mut wtr = csv::Writer::from_writer(io::stdout());
     let err = outputs.try_for_each(|output| wtr.serialize(output));
     debug!("Exited with {:?}", err);
