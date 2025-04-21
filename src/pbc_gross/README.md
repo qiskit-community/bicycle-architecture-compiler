@@ -44,6 +44,8 @@ The output looks like
 [
     ...
 ]
+[ ... ]
+[ ... ]
 ...
 ```
 This output is similarly delineated by newlines so that each line corresponds to one input PBC operation.

@@ -140,7 +140,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Support some streaming input from Stdin
     // The following works for (a weird version of) JSON:
     let de = Deserializer::from_reader(reader);
-    let ops = de.into_iter::<Operation>().map(|op| vec![op.unwrap()]);
+    let ops = de.into_iter::<Vec<Operation>>().map(|op| op.unwrap());
 
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
 
