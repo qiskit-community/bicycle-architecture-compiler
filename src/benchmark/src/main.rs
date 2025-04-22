@@ -4,10 +4,6 @@ use std::{
 };
 
 use log::debug;
-use serde::{
-    ser::{SerializeSeq, Serializer},
-    Serialize,
-};
 
 use clap::Parser;
 

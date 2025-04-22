@@ -1,12 +1,13 @@
-use core::f64;
-
 use bicycle_isa::Pauli;
-use pbc_gross::language::PbcOperation;
+use pbc_gross::language::{AnglePrecision, PbcOperation};
 
 use rand::distr::{Distribution, StandardUniform};
 
 /// Generate random circuit with non-trivial rotations, equivalent to a Clifford+T circuit
-pub fn random_rotations(qubits: usize, angle: f64) -> impl Iterator<Item = PbcOperation> {
+pub fn random_rotations(
+    qubits: usize,
+    angle: AnglePrecision,
+) -> impl Iterator<Item = PbcOperation> {
     random_pauli_strings(qubits)
         .map(move |ps| PbcOperation::Rotation { basis: ps, angle })
         .filter(|rotation| !rotation.basis().iter().all(|p| *p == Pauli::I))

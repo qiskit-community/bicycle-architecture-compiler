@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use bicycle_isa::Pauli;
 use fixed::types::I32F96;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{architecture::PathArchitecture, compile, operation::Operation};
@@ -24,6 +25,12 @@ pub enum PbcOperation {
 }
 
 impl PbcOperation {
+    pub fn rotation(basis: Vec<Pauli>, angle: f64) -> Self {
+        Self::Rotation {
+            basis,
+            angle: AnglePrecision::from_num(angle),
+        }
+    }
     pub fn compile(
         &self,
         architecture: &PathArchitecture,
