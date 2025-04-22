@@ -2,7 +2,7 @@ use std::{env, error::Error, io};
 
 use bicycle_isa::BicycleISA;
 use clap::Parser;
-use log::{debug, info, trace};
+use log::{debug, trace};
 use model::{Model, ModelChoices};
 use pbc_gross::{operation::Operation, PathArchitecture};
 use serde::{Deserialize, Serialize};
@@ -21,20 +21,14 @@ struct IsaCounter {
 impl IsaCounter {
     fn add(&mut self, instr: &BicycleISA) {
         match instr {
-            BicycleISA::TGate(_) => self.t_injs += 1,
+            BicycleISA::TGate(_) => {
+                self.t_injs += 1;
+                self.measurements += 1;
+            }
             BicycleISA::Automorphism(_) => self.automorphisms += 1,
             BicycleISA::Measure(_) => self.measurements += 1,
             BicycleISA::JointMeasure(_) => self.joint_measurements += 1,
             _ => unreachable!("There should not be any other instructions, {}", instr),
-        }
-    }
-
-    fn max(self, other: IsaCounter) -> Self {
-        Self {
-            t_injs: self.t_injs.max(other.t_injs),
-            automorphisms: self.automorphisms.max(other.automorphisms),
-            measurements: self.measurements.max(other.measurements),
-            joint_measurements: self.joint_measurements.max(other.joint_measurements),
         }
     }
 }
@@ -53,7 +47,7 @@ struct OutputData {
 }
 
 fn numerics(
-    mut chunked_ops: impl Iterator<Item = Vec<Operation>>,
+    chunked_ops: impl Iterator<Item = Vec<Operation>>,
     architecture: PathArchitecture,
     model: Model,
 ) -> impl Iterator<Item = OutputData> {
@@ -120,9 +114,8 @@ fn numerics(
 #[derive(Parser, Debug)]
 struct Cli {
     qubits: usize,
-    #[arg(short, long)]
     model: ModelChoices,
-    #[arg(short,long,default_value_t = 1.0/3.0)]
+    #[arg(short = 'e',long,default_value_t = 1.0/3.0)]
     max_error: f64,
 }
 

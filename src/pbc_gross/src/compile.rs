@@ -283,7 +283,7 @@ pub fn compile_rotation(
     // Find the range for which we need to prepare a GHZ state
     let first_nontrivial = rotation_impls
         .iter()
-        .position(|rot| !rot.is_none())
+        .position(|support| !support.is_none())
         .unwrap_or(n - 1);
     // Prepare GHZ up to and including the magic block
     ops.extend(ghz_meas(first_nontrivial, n - first_nontrivial));
