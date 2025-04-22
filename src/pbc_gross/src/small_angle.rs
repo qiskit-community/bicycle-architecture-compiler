@@ -7,7 +7,7 @@ use std::{
 };
 
 use bicycle_isa::Pauli;
-use log::trace;
+use log::{debug, trace};
 use regex::Regex;
 
 use crate::language::AnglePrecision;
@@ -31,11 +31,12 @@ pub fn synthesize_angle(
         trace!("Close to T: {theta}");
         return (vec![SingleRotation::Z { dagger: sign }], vec![]);
     }
-    trace!("Not close to T: {theta}");
 
     if let Some(result) = CACHE.try_lock().unwrap().get(&(theta, accuracy)) {
+        trace!("Cached angle: {theta}");
         return result.clone();
     }
+    debug!("Synthesizing angle: {theta}");
 
     // Do I need scientific notation here? E.g. for the accuracy.
     let gates = run_pygridsynth(&theta.to_string(), &accuracy.to_string())
