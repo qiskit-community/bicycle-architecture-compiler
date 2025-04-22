@@ -1,6 +1,6 @@
 use std::{env, error, io};
 
-use pbc_gross::language::PbcOperation;
+use pbc_gross::language::{AnglePrecision, PbcOperation};
 
 use io::Write;
 
@@ -12,8 +12,8 @@ use serde_json::Deserializer;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
 struct Cli {
-    #[arg(short, long, default_value_t = 1e-18)]
-    accuracy: f64,
+    #[arg(short, long, default_value_t = AnglePrecision::lit("1e-9"))]
+    accuracy: AnglePrecision,
 }
 
 fn main() -> Result<(), Box<dyn error::Error>> {

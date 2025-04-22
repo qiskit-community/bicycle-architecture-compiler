@@ -1,9 +1,12 @@
 use std::fmt::Display;
 
 use bicycle_isa::Pauli;
+use fixed::types::I32F96;
 use serde::{Deserialize, Serialize};
 
 use crate::{architecture::PathArchitecture, compile, operation::Operation};
+
+pub type AnglePrecision = I32F96;
 
 /// A PBC program operation
 /// Consider replacing the angle with a rational to improve precision.
@@ -16,12 +19,16 @@ pub enum PbcOperation {
     },
     Rotation {
         basis: Vec<Pauli>,
-        angle: f64,
+        angle: AnglePrecision,
     },
 }
 
 impl PbcOperation {
-    pub fn compile(&self, architecture: &PathArchitecture, accuracy: f64) -> Vec<Operation> {
+    pub fn compile(
+        &self,
+        architecture: &PathArchitecture,
+        accuracy: AnglePrecision,
+    ) -> Vec<Operation> {
         match self {
             // TODO: use flip_result to flip the sign of measurements
             PbcOperation::Measurement { basis, .. } => {

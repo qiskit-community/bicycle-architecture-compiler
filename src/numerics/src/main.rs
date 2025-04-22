@@ -120,7 +120,10 @@ fn numerics(
 #[derive(Parser, Debug)]
 struct Cli {
     qubits: usize,
+    #[arg(short, long)]
     model: ModelChoices,
+    #[arg(short,long,default_value_t = 1.0/3.0)]
+    max_error: f64,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]

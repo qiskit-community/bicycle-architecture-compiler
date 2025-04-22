@@ -8,6 +8,7 @@ use bicycle_isa::{BicycleISA, Pauli, TGateData, TwoBases};
 use gross_code_cliffords::native_measurement::NativeMeasurement;
 use log::{debug, info};
 
+use crate::language::AnglePrecision;
 use crate::small_angle::SingleRotation;
 use crate::{architecture::PathArchitecture, operation::Operation};
 
@@ -218,8 +219,8 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
 pub fn compile_rotation(
     architecture: &PathArchitecture,
     basis: Vec<Pauli>,
-    angle: f64,
-    accuracy: f64,
+    angle: AnglePrecision,
+    accuracy: AnglePrecision,
 ) -> Vec<Operation> {
     let mut ops: Vec<Operation> = vec![];
     let n = architecture.data_blocks();
@@ -325,18 +326,6 @@ pub fn compile_rotation(
     }
 
     ops
-}
-
-/// Compile an iterator of PbcOperations to an iterator over Bicycle ISA instructions.
-pub fn compile<T>(
-    architecture: PathArchitecture,
-    ops: T,
-    accuracy: f64,
-) -> impl Iterator<Item = Operation>
-where
-    T: Iterator<Item = language::PbcOperation>,
-{
-    ops.flat_map(move |op| op.compile(&architecture, accuracy))
 }
 
 #[cfg(test)]

@@ -28,7 +28,7 @@
                                 "$ref": "#/definitions/basis"
                             },
                             "angle": {
-                                "type": "number"
+                                "type": "string"
                             }
                         },
                         "required": [

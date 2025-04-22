@@ -1,32 +1,60 @@
 use core::str;
 use std::{
-    f64,
+    collections::HashMap,
     io::{self, ErrorKind},
     process::Command,
+    sync::{LazyLock, Mutex},
 };
 
 use bicycle_isa::Pauli;
+use log::trace;
 use regex::Regex;
+
+use crate::language::AnglePrecision;
+
+type CacheHashMap =
+    HashMap<(AnglePrecision, AnglePrecision), (Vec<SingleRotation>, Vec<CliffordGate>)>;
+static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(Default::default);
 
 /// Synthesize a rotation e^{iθZ} in terms of e^{iπ/8Z} and e^{iπ/8X} rotations, followed by Cliffords.
 /// The required accuracy must be less than 0.1 and determines ‖e^{iθZ} - U‖ ≤ ε.
-pub fn synthesize_angle(theta: f64, accuracy: f64) -> (Vec<SingleRotation>, Vec<CliffordGate>) {
+pub fn synthesize_angle(
+    theta: AnglePrecision,
+    accuracy: AnglePrecision,
+) -> (Vec<SingleRotation>, Vec<CliffordGate>) {
     assert!(accuracy <= 1e-1);
 
     // Handle T gate special case
-    let sign = theta.is_sign_negative();
-    if (f64::consts::PI / 4.0 - theta.abs()).abs() <= accuracy {
+    let sign = theta.is_negative();
+
+    if (AnglePrecision::PI / AnglePrecision::lit("4.0") - theta.abs()).abs() <= accuracy {
+        trace!("Close to T: {theta}");
         return (vec![SingleRotation::Z { dagger: sign }], vec![]);
+    }
+    trace!("Not close to T: {theta}");
+
+    if let Some(result) = CACHE.try_lock().unwrap().get(&(theta, accuracy)) {
+        return result.clone();
     }
 
     // Do I need scientific notation here? E.g. for the accuracy.
     let gates = run_pygridsynth(&theta.to_string(), &accuracy.to_string())
         .expect("Pygridsynth should run successfully. Is it installed? See README.");
-    compile_rots(&gates).expect("Should be able to parse MA normal form provided by pygridsynth")
+    let res = compile_rots(&gates)
+        .expect("Should be able to parse MA normal form provided by pygridsynth");
+
+    CACHE
+        .try_lock()
+        .unwrap()
+        .insert((theta, accuracy), res.clone());
+    res
 }
 
 /// Synthesize a rotation e^{iθX}
-pub fn synthesize_angle_x(theta: f64, accuracy: f64) -> (Vec<SingleRotation>, Vec<CliffordGate>) {
+pub fn synthesize_angle_x(
+    theta: AnglePrecision,
+    accuracy: AnglePrecision,
+) -> (Vec<SingleRotation>, Vec<CliffordGate>) {
     let (mut rots, mut cliff) = synthesize_angle(theta, accuracy);
     for rot in rots.iter_mut() {
         rot.switch_basis();

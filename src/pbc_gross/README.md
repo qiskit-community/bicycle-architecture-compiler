@@ -8,9 +8,9 @@ It consist of a Rust library and a main binary.
 The input program must be in a PBC form.
 We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.11391890))
 ```json
-{"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","Y"],"angle":0.125}}
-{"Rotation":{"basis":["Z","Z","I","I","I","I","I","I","I","I","I","I"],"angle":0.5}}
-{"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","I"],"angle":-0.125}}
+{"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","Y"],"angle":"0.125"}}
+{"Rotation":{"basis":["Z","Z","I","I","I","I","I","I","I","I","I","I"],"angle":"0.5"}}
+{"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","I"],"angle":"-0.125"}}
 {"Measurement":{"basis":["Z","X","I","I","I","I","I","I","I","I","I","I"],"flip_result":true}}
 {"Measurement":{"basis":["X","I","I","I","I","Z","I","I","I","I","I","I"],"flip_result":false}}
 
