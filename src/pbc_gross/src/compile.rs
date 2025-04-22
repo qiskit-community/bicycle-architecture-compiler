@@ -342,7 +342,9 @@ mod tests {
         seq::IndexedRandom,
     };
 
-    const CLIFF_ANGLE: f64 = std::f64::consts::PI / 4.0;
+    static CLIFF_ANGLE: LazyLock<AnglePrecision> =
+        LazyLock::new(|| AnglePrecision::PI / AnglePrecision::lit("4.0"));
+    const ACCURACY: AnglePrecision = AnglePrecision::lit("1e-10");
 
     /// Convert a native measurement to a list of Operations
     fn native_instructions(
@@ -608,7 +610,7 @@ mod tests {
             let basis: Vec<Pauli> = ps[1..].to_vec();
             dbg!(&basis);
 
-            let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
+            let ops = Operations(compile_rotation(&arch, basis, *CLIFF_ANGLE, ACCURACY));
             println!("Compiled: {}", ops);
 
             let mut expected: Vec<_> = prep(1).collect();
@@ -648,7 +650,7 @@ mod tests {
                     .flat_map(|p| <[Pauli; 12]>::from(p).into_iter().skip(1))
                     .collect();
 
-                let ops = Operations(compile_rotation(&arch, basis, CLIFF_ANGLE));
+                let ops = Operations(compile_rotation(&arch, basis, *CLIFF_ANGLE, ACCURACY));
                 println!("Compiled: {}", ops);
 
                 let mut expected: Vec<Operation> = vec![];

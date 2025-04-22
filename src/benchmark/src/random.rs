@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn test_random_rotations() {
         for qubits in 1..100 {
-            let angle = 0.1 * (qubits as f64);
+            let angle = AnglePrecision::lit("0.1") * AnglePrecision::from_num(qubits);
             let rotations = random_rotations(qubits, angle).take(100);
             for instruction in rotations {
                 if let PbcOperation::Rotation {

@@ -270,14 +270,20 @@ mod test {
 
     #[test]
     fn synthesize_t() {
-        let (rots, cliffs) = synthesize_angle(PI / 4.0, 1e-6);
+        let (rots, cliffs) = synthesize_angle(
+            AnglePrecision::PI / AnglePrecision::lit("4.0"),
+            AnglePrecision::lit("1e-6"),
+        );
         assert_eq!(rots, vec![SingleRotation::Z { dagger: false }]);
         assert_eq!(cliffs, vec![]);
     }
 
     #[test]
     fn synthesize_tx() {
-        let (rots, _) = synthesize_angle_x(-PI / 4.0, 1e-6);
+        let (rots, _) = synthesize_angle_x(
+            -AnglePrecision::PI / AnglePrecision::lit("4.0"),
+            AnglePrecision::lit("1e-6"),
+        );
         assert_eq!(rots, vec![SingleRotation::X { dagger: true }]);
     }
 }
