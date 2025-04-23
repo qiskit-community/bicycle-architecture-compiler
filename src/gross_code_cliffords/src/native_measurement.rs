@@ -7,6 +7,10 @@ use bicycle_isa::{AutomorphismData, BicycleISA, Pauli, TwoBases};
 use rand::distr::{Distribution, StandardUniform};
 use serde::{Deserialize, Serialize};
 
+pub trait Measurement {
+    fn measures(&self) -> PauliString;
+}
+
 /// A measurement that can be performed on the code by conjugating one base measurement with automorphisms.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NativeMeasurement {
@@ -14,10 +18,10 @@ pub struct NativeMeasurement {
     pub automorphism: AutomorphismData,
 }
 
-impl NativeMeasurement {
+impl Measurement for NativeMeasurement {
     /// The PauliString this NativeMeasurement measures.
     #[allow(clippy::toplevel_ref_arg)]
-    pub fn measures(&self) -> PauliString {
+    fn measures(&self) -> PauliString {
         let one = Vector6::identity();
         let zero = Vector6::zeros();
 
@@ -49,7 +53,9 @@ impl NativeMeasurement {
         let arr: [u32; 24] = result.into();
         (&arr).into()
     }
+}
 
+impl NativeMeasurement {
     /// Construct all base measurements, i.e. measurements without automorphisms applied.
     pub fn base_measurements() -> impl Iterator<Item = NativeMeasurement> {
         NativeMeasurement::all_bases()

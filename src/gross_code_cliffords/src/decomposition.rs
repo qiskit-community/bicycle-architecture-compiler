@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::native_measurement::Measurement;
 use crate::pauli_rotation::PauliString;
 use crate::{native_measurement::NativeMeasurement, pauli_rotation};
 
@@ -11,13 +12,13 @@ use serde::{Deserialize, Serialize};
 // Need appropriate measurements conjugating the rotation on the pivot.
 // Assume that conjugated_with anti-commutes with rotation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-struct MeasurementImpl {
+struct MeasurementTableEntry {
     measurement: PauliString,
     conjugated_with: Option<PauliString>,
     cost: u32,
 }
 
-impl MeasurementImpl {
+impl MeasurementTableEntry {
     pub fn cost(&self) -> u32 {
         self.cost
     }
@@ -29,6 +30,28 @@ impl MeasurementImpl {
         } else {
             self.measurement
         }
+    }
+}
+
+pub struct MeasurementImpl<'a> {
+    base: NativeMeasurementImpl<'a>,
+    rotations: Vec<NativeMeasurementImpl<'a>>,
+    measures: PauliString,
+}
+
+impl MeasurementImpl<'_> {
+    pub fn base_measurement(&self) -> &NativeMeasurementImpl {
+        &self.base
+    }
+
+    pub fn rotations(&self) -> &Vec<NativeMeasurementImpl> {
+        &self.rotations
+    }
+}
+
+impl Measurement for MeasurementImpl<'_> {
+    fn measures(&self) -> PauliString {
+        self.measures
     }
 }
 
@@ -53,34 +76,33 @@ impl<'a> NativeMeasurementImpl<'a> {
         self.native.automorphism
     }
 
-    pub fn measures(&self) -> PauliString {
-        self.measures
-    }
-
     pub fn implementation(&self) -> [BicycleISA; 3] {
         self.native.implementation()
     }
 }
 
+impl Measurement for NativeMeasurementImpl<'_> {
+    fn measures(&self) -> PauliString {
+        self.measures
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompleteMeasurementTable {
-    measurements: Vec<MeasurementImpl>,
+    measurements: Vec<MeasurementTableEntry>,
     native_measurements: HashMap<PauliString, NativeMeasurement>,
 }
 
 impl CompleteMeasurementTable {
     /// Look up the implementation for measuring a PauliString
-    fn get(&self, p: PauliString) -> Option<&MeasurementImpl> {
+    fn get(&self, p: PauliString) -> Option<&MeasurementTableEntry> {
         self.measurements.get(MeasurementTableBuilder::index(p))
     }
 
     /// Returns the a native measurement and its conjugating native measurements that implement rotations
     /// The ordering of rotations is such that the first element conjugates the measurement first.
     /// The given PauliString must be a valid measurement defined on 12 qubits.
-    pub fn implementation(
-        &self,
-        p: PauliString,
-    ) -> (NativeMeasurementImpl, Vec<NativeMeasurementImpl>) {
+    pub fn implementation(&self, p: PauliString) -> MeasurementImpl {
         assert!(p.0 <= 4_u32.pow(12), "{}", p);
         assert!(p.0 != 0); // Cannot measure identity
 
@@ -108,13 +130,17 @@ impl CompleteMeasurementTable {
             })
             .rev()
             .collect();
-        (base_impl, native_rots)
+        MeasurementImpl {
+            measures: p,
+            base: base_impl,
+            rotations: native_rots,
+        }
     }
 
     /// Minimize over the Pauli on the pivot to measure 11 qubits in the basis p.
     /// This can be useful if you do not care about the basis of the pivot.
     /// TODO: If this becomes the only method needed, then we can shrink table by factor 4.
-    pub fn min_data(&self, p: PauliString) -> (NativeMeasurementImpl, Vec<NativeMeasurementImpl>) {
+    pub fn min_data(&self, p: PauliString) -> MeasurementImpl {
         assert!(p.0 <= 4_u32.pow(12), "{}", p);
         assert!(
             p.pivot_bits() == pauli_rotation::ID,
@@ -127,7 +153,7 @@ impl CompleteMeasurementTable {
             .into_iter()
             .map(|pivot_pauli| p * pivot_pauli) // insert pivot basis
             .map(|q| self.implementation(q)) // look up implementation
-            .min_by_key(|(_, rots)| rots.len())
+            .min_by_key(|meas_impl| meas_impl.rotations().len())
             .unwrap();
 
         res
@@ -148,7 +174,7 @@ impl TryFrom<MeasurementTableBuilder> for CompleteMeasurementTable {
 
 #[derive(Debug, Clone)]
 pub struct MeasurementTableBuilder {
-    measurements: Vec<Option<MeasurementImpl>>,
+    measurements: Vec<Option<MeasurementTableEntry>>,
     native_measurements: HashMap<PauliString, NativeMeasurement>,
     len: usize, // Count how many Some entries there are in measurements
 }
@@ -170,7 +196,7 @@ impl MeasurementTableBuilder {
         };
 
         for p in native_lookup.keys() {
-            table.insert(MeasurementImpl {
+            table.insert(MeasurementTableEntry {
                 measurement: *p,
                 conjugated_with: None,
                 cost: 1, // TODO: Adjust me depending on noise simulations!
@@ -179,7 +205,7 @@ impl MeasurementTableBuilder {
         table.native_measurements = native_lookup;
 
         // Insert identity
-        let identity = MeasurementImpl {
+        let identity = MeasurementTableEntry {
             measurement: PauliString(0),
             conjugated_with: None,
             cost: 0,
@@ -200,7 +226,7 @@ impl MeasurementTableBuilder {
 
         // Create a set of base rotations
         // We pick the cheapest rotation for each paulistring, if there is duplication
-        let mut base_rots: HashMap<PauliString, MeasurementImpl> = HashMap::new();
+        let mut base_rots: HashMap<PauliString, MeasurementTableEntry> = HashMap::new();
         for native_impl in self.native_impls() {
             let p = native_impl.implements();
             // Must have pivot support so we can prepare an ancilla there
@@ -242,7 +268,7 @@ impl MeasurementTableBuilder {
                 for (rot_pauli, rot_impl) in base_rots.iter() {
                     let prev_meas = self.get(prev_pauli)
                         .expect("MeasurementTable should contain a previously found Pauli measurement implementation.");
-                    let new_rotation_impl = MeasurementImpl {
+                    let new_rotation_impl = MeasurementTableEntry {
                         measurement: prev_pauli,
                         conjugated_with: Some(*rot_pauli),
                         cost: prev_meas.cost() + 2 * rot_impl.cost(),
@@ -301,12 +327,12 @@ impl MeasurementTableBuilder {
     }
 
     /// Look up the implementation for measuring a PauliString
-    fn get(&self, p: PauliString) -> Option<&MeasurementImpl> {
+    fn get(&self, p: PauliString) -> Option<&MeasurementTableEntry> {
         self.measurements[MeasurementTableBuilder::index(p)].as_ref()
     }
 
     /// Insert a MeasurementImpl into the table
-    fn insert(&mut self, meas_impl: MeasurementImpl) {
+    fn insert(&mut self, meas_impl: MeasurementTableEntry) {
         let i = MeasurementTableBuilder::index(meas_impl.implements());
         if self.measurements[i].is_none() {
             self.len += 1;
@@ -322,7 +348,7 @@ impl MeasurementTableBuilder {
         self.len > 0
     }
 
-    fn native_impls(&self) -> impl Iterator<Item = &MeasurementImpl> {
+    fn native_impls(&self) -> impl Iterator<Item = &MeasurementTableEntry> {
         self.native_measurements
             .keys()
             .map(|k| self.get(*k).unwrap())
@@ -348,7 +374,7 @@ mod tests {
         assert_eq!(2, table.len());
 
         let p: PauliString = (&[Y, Y, I, I, I, Y, I, I, I, I, I, Z]).into();
-        table.insert(MeasurementImpl {
+        table.insert(MeasurementTableEntry {
             measurement: p,
             conjugated_with: None,
             cost: 0,
@@ -368,7 +394,7 @@ mod tests {
         ];
         for nr in nrs {
             let p = PauliString(nr);
-            let p_impl = MeasurementImpl {
+            let p_impl = MeasurementTableEntry {
                 measurement: p,
                 conjugated_with: None,
                 cost: 0,
@@ -383,7 +409,7 @@ mod tests {
     fn table_get() {
         let mut table = MeasurementTableBuilder::new(vec![]);
         let p: PauliString = (&[Y, Y, I, I, I, Y, I, I, I, I, I, Z]).into();
-        let p_impl = MeasurementImpl {
+        let p_impl = MeasurementTableEntry {
             measurement: p,
             conjugated_with: None,
             cost: 1,
