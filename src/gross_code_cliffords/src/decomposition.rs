@@ -111,8 +111,10 @@ impl CompleteMeasurementTable {
         (base_impl, native_rots)
     }
 
-    /// Find an implementation for a rotation given by p such that the number of rotations is minimized.
-    pub fn rotation(&self, p: PauliString) -> (NativeMeasurementImpl, Vec<NativeMeasurementImpl>) {
+    /// Minimize over the Pauli on the pivot to measure 11 qubits in the basis p.
+    /// This can be useful if you do not care about the basis of the pivot.
+    /// TODO: If this becomes the only method needed, then we can shrink table by factor 4.
+    pub fn min_data(&self, p: PauliString) -> (NativeMeasurementImpl, Vec<NativeMeasurementImpl>) {
         assert!(p.0 <= 4_u32.pow(12), "{}", p);
         assert!(
             p.pivot_bits() == pauli_rotation::ID,
@@ -125,7 +127,7 @@ impl CompleteMeasurementTable {
             .into_iter()
             .map(|pivot_pauli| p * pivot_pauli) // insert pivot basis
             .map(|q| self.implementation(q)) // look up implementation
-            .min_by(|impl0, impl1| impl0.1.len().cmp(&impl1.1.len()))
+            .min_by_key(|(_, rots)| rots.len())
             .unwrap();
 
         res

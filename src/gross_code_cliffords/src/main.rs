@@ -17,12 +17,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Rotation,Base Meas,Rots len");
 
     // Map into one string before sending to stdout for speed
-    let output_lines = (1..4_u32.pow(12)).map(|i| {
-        // let x_bits = i & ((1 << 11) - 1);
-        // let z_bits = i >> 11;
-        // let p = PauliString((z_bits << 13) | (x_bits << 1));
-        let p = PauliString(i);
-        let (base_meas, rots) = complete.implementation(p);
+    let output_lines = (1..4_u32.pow(11)).map(|i| {
+        // Find cheapest implementation for rotation
+        let x_bits = i & ((1 << 11) - 1);
+        let z_bits = i >> 11;
+        let p = PauliString((z_bits << 13) | (x_bits << 1));
+        let (base_meas, rots) = complete.min_data(p);
         format!("{},{},{}", p, base_meas.measures(), rots.len(),)
     });
 
