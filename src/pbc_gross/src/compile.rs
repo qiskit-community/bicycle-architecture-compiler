@@ -5,6 +5,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 use bicycle_isa::{BicycleISA, Pauli, TGateData, TwoBases};
+use gross_code_cliffords::decomposition::{MeasurementImpl, NativeMeasurementImpl};
 use gross_code_cliffords::native_measurement::NativeMeasurement;
 use log::{debug, info};
 
@@ -12,11 +13,10 @@ use crate::language::AnglePrecision;
 use crate::small_angle::SingleRotation;
 use crate::{architecture::PathArchitecture, operation::Operation};
 
+use crate::basis_changer::{self, BasisChanger};
 use crate::{language, small_angle};
 
-use gross_code_cliffords::{
-    CompleteMeasurementTable, MeasurementTableBuilder, NativeMeasurementImpl, PauliString,
-};
+use gross_code_cliffords::{CompleteMeasurementTable, MeasurementTableBuilder, PauliString};
 
 use BicycleISA::{JointMeasure, Measure, TGate};
 
@@ -59,11 +59,8 @@ fn try_create_cache(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Err
 }
 
 /// Find implementation of a general Pauli measurement on a code module using the pivot
-fn general_measurement(
-    pivot_basis: Pauli,
-    data_basis: &[Pauli],
-) -> (NativeMeasurementImpl, Vec<NativeMeasurementImpl>) {
-    let mut local_basis = vec![pivot_basis];
+fn general_measurement(data_basis: &[Pauli]) -> MeasurementImpl {
+    let mut local_basis = vec![Pauli::I];
     local_basis.extend_from_slice(data_basis);
     let local_basis: [Pauli; 12] = local_basis
         .try_into()
@@ -137,19 +134,33 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
             if paulis.iter().all(|p| *p == Pauli::I) {
                 None
             } else {
-                Some(general_measurement(Pauli::Y, paulis))
+                let mut ps = vec![Pauli::I];
+                ps.extend_from_slice(paulis);
+                let p: PauliString = (&ps[..]).try_into().unwrap();
+                let meas_impl = MEASUREMENT_IMPLS.min_data(p);
+
+                // Y |-> p_pivot.
+                let p_pivot = meas_impl.measures().get_pauli(0);
+                let changer = match p_pivot {
+                    Pauli::Y => BasisChanger::new(Pauli::X, p_pivot, Pauli::Z).unwrap(),
+                    Pauli::X => BasisChanger::new(Pauli::Y, p_pivot, Pauli::Z).unwrap(),
+                    Pauli::Z => BasisChanger::new(Pauli::Y, p_pivot, Pauli::X).unwrap(),
+                    Pauli::I => unreachable!(),
+                };
+
+                Some((meas_impl, changer))
             }
         })
         .collect();
     assert!(rotation_impls.len() <= n);
 
     // Apply rotations to blocks that have nontrivial rotations (requires use of pivot)
-    for (block_i, (_, rots)) in rotation_impls
+    for (block_i, (meas_impl, _)) in rotation_impls
         .iter()
         .enumerate()
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for nat_measure in rots {
+        for nat_measure in meas_impl.rotations() {
             ops.extend(
                 rotation_instructions(nat_measure)
                     .into_iter()
@@ -158,20 +169,22 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
         }
     }
 
+    let mut middle_ops = vec![];
+
     // Prepare initial state
     // TODO: Prepare state only on qubits that are in the range of the measurement
     for block_i in 0..n {
-        ops.push(vec![(block_i, Measure(x1))]);
+        middle_ops.push(vec![(block_i, Measure(x1))]);
     }
 
     // Apply native measurements on nontrivial blocks
-    for (block_i, (meas, _)) in rotation_impls
+    for (block_i, (meas_impl, _)) in rotation_impls
         .iter()
         .enumerate()
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for isa in meas.implementation() {
-            ops.push(vec![(block_i, isa)]);
+        for isa in meas_impl.base_measurement().implementation() {
+            middle_ops.push(vec![(block_i, isa)]);
         }
     }
 
@@ -184,7 +197,7 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
         .iter()
         .rposition(|rot| !rot.is_none())
         .unwrap();
-    ops.extend(ghz_meas(
+    middle_ops.extend(ghz_meas(
         first_nontrivial,
         last_nontrivial - first_nontrivial + 1,
     ));
@@ -192,18 +205,32 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
     // Uncompute GHZ
     for (block_i, opt) in rotation_impls.iter().enumerate() {
         match opt {
-            None => ops.push(vec![(block_i, Measure(x1))]), // was trivial
-            Some(_) => ops.push(vec![(block_i, Measure(y1))]),
+            None => middle_ops.push(vec![(block_i, Measure(x1))]), // was trivial
+            Some(_) => middle_ops.push(vec![(block_i, Measure(y1))]),
         }
     }
 
+    // Change basis on middle ops
+    let changed_ops = middle_ops.into_iter().map(|v| {
+        v.into_iter()
+            .map(|(block_i, isa)| {
+                if let Some((_, changer)) = rotation_impls[block_i] {
+                    (block_i, changer.change_isa(isa))
+                } else {
+                    (block_i, isa)
+                }
+            })
+            .collect::<Vec<_>>()
+    });
+    ops.extend(changed_ops);
+
     // Undo rotations on non-trivial blocks
-    for (block_i, (_, rots)) in rotation_impls
+    for (block_i, (meas_impl, _)) in rotation_impls
         .iter()
         .enumerate()
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for nat_measure in rots {
+        for nat_measure in meas_impl.rotations() {
             ops.extend(
                 rotation_instructions(nat_measure)
                     .into_iter()
@@ -234,27 +261,28 @@ pub fn compile_rotation(
     // Find implementation for each block
     let rotation_impls: Vec<_> = basis
         .chunks_exact(11)
-        .enumerate()
-        .map(|(block_i, paulis)| {
+        .map(|paulis| {
             // Only apply a controlled-Pauli if its non-trivial
             if paulis.iter().all(|p| *p == Pauli::I) {
                 None
             } else {
-                let pivot_basis = if block_i < n - 1 { Pauli::Y } else { Pauli::X };
-                Some(general_measurement(pivot_basis, paulis))
+                let mut ps = vec![Pauli::I];
+                ps.extend_from_slice(paulis);
+                let p: PauliString = (&ps[..]).try_into().unwrap();
+                Some(MEASUREMENT_IMPLS.min_data(p))
             }
         })
         .collect();
     assert!(rotation_impls.len() <= n);
 
     // Apply pre-rotations on all blocks if they are non-trivial
-    for (block_i, (_, rots)) in rotation_impls
+    for (block_i, meas_impl) in rotation_impls
         .iter()
         .enumerate()
         // Skip None values
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for nat_measure in rots {
+        for nat_measure in meas_impl.rotations() {
             ops.extend(
                 rotation_instructions(nat_measure)
                     .into_iter()
@@ -270,12 +298,12 @@ pub fn compile_rotation(
     ops.push(vec![(n - 1, Measure(y1))]);
 
     // Apply native measurements on nontrivial blocks
-    for (block_i, (meas, _)) in rotation_impls
+    for (block_i, meas_impl) in rotation_impls
         .iter()
         .enumerate()
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for isa in meas.implementation() {
+        for isa in meas_impl.base_measurement().implementation() {
             ops.push(vec![(block_i, isa)]);
         }
     }
@@ -311,12 +339,12 @@ pub fn compile_rotation(
     ops.push(vec![(n - 1, Measure(z1))]);
 
     // Undo rotations on non-trivial blocks
-    for (block_i, (_, rots)) in rotation_impls
+    for (block_i, meas_impl) in rotation_impls
         .iter()
         .enumerate()
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for nat_measure in rots {
+        for nat_measure in meas_impl.rotations() {
             ops.extend(
                 rotation_instructions(nat_measure)
                     .into_iter()
@@ -656,7 +684,7 @@ mod tests {
                 let mut expected: Vec<Operation> = vec![];
 
                 // pre-rotations
-                for (block_i, (_, rots)) in implementations.iter().enumerate() {
+                for (block_i, meas_impl) in implementations.iter().enumerate() {
                     for rot in rots {
                         let operations = rotation_instructions(rot)
                             .into_iter()
