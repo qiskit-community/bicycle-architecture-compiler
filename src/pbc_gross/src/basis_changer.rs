@@ -18,9 +18,8 @@ impl BasisChanger {
 
     pub fn change_isa(&self, instr: BicycleISA) -> BicycleISA {
         match instr {
-            BicycleISA::Measure(bases) | BicycleISA::JointMeasure(bases) => {
-                BicycleISA::JointMeasure(self.two_bases(bases))
-            }
+            BicycleISA::Measure(bases) => BicycleISA::Measure(self.two_bases(bases)),
+            BicycleISA::JointMeasure(bases) => BicycleISA::JointMeasure(self.two_bases(bases)),
             BicycleISA::TGate(data) => BicycleISA::TGate(
                 TGateData::new(
                     self.change_pauli(data.get_basis()),
@@ -44,6 +43,16 @@ impl BasisChanger {
             Pauli::Z => self.z,
             Pauli::X => self.x,
             Pauli::Y => self.y,
+        }
+    }
+}
+
+impl Default for BasisChanger {
+    fn default() -> Self {
+        Self {
+            x: Pauli::X,
+            y: Pauli::Y,
+            z: Pauli::Z,
         }
     }
 }
