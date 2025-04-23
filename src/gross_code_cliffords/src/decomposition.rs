@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::native_measurement::Measurement;
 use crate::pauli_rotation::PauliString;
 use crate::{native_measurement::NativeMeasurement, pauli_rotation};
 
@@ -33,6 +32,7 @@ impl MeasurementTableEntry {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct MeasurementImpl<'a> {
     base: NativeMeasurementImpl<'a>,
     rotations: Vec<NativeMeasurementImpl<'a>>,
@@ -47,10 +47,8 @@ impl MeasurementImpl<'_> {
     pub fn rotations(&self) -> &Vec<NativeMeasurementImpl> {
         &self.rotations
     }
-}
 
-impl Measurement for MeasurementImpl<'_> {
-    fn measures(&self) -> PauliString {
+    pub fn measures(&self) -> PauliString {
         self.measures
     }
 }
@@ -79,10 +77,8 @@ impl<'a> NativeMeasurementImpl<'a> {
     pub fn implementation(&self) -> [BicycleISA; 3] {
         self.native.implementation()
     }
-}
 
-impl Measurement for NativeMeasurementImpl<'_> {
-    fn measures(&self) -> PauliString {
+    pub fn measures(&self) -> PauliString {
         self.measures
     }
 }
@@ -357,7 +353,6 @@ impl MeasurementTableBuilder {
 
 #[cfg(test)]
 mod tests {
-
     use bicycle_isa::Pauli::{I, X, Y, Z};
     use bicycle_isa::{AutomorphismData, TwoBases};
 
@@ -433,10 +428,10 @@ mod tests {
         // Check that the completed table gives correct implementations for each pauli string
         for i in 1..4_u32.pow(12) {
             let p = PauliString(i);
-            let (base_meas, rots) = complete.implementation(p);
-            let mut q = base_meas.measures();
+            let meas_impl = complete.implementation(p);
+            let mut q = meas_impl.base_measurement().measures();
 
-            for rot in rots {
+            for rot in meas_impl.rotations() {
                 q = q.conjugate_with(rot.measures().zero_pivot());
             }
 

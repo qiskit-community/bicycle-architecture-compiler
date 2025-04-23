@@ -22,8 +22,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         let x_bits = i & ((1 << 11) - 1);
         let z_bits = i >> 11;
         let p = PauliString((z_bits << 13) | (x_bits << 1));
-        let (base_meas, rots) = complete.min_data(p);
-        format!("{},{},{}", p, base_meas.measures(), rots.len(),)
+        let meas_impl = complete.min_data(p);
+        format!(
+            "{},{},{}",
+            p,
+            meas_impl.base_measurement().measures(),
+            meas_impl.rotations().len(),
+        )
     });
 
     let mut output = String::new();

@@ -1,11 +1,10 @@
-mod decomposition;
 pub mod native_measurement;
 mod pauli_rotation;
-mod tableau;
 
 pub use pauli_rotation::PauliString;
 
-pub use decomposition::{CompleteMeasurementTable, MeasurementTableBuilder, NativeMeasurementImpl};
+pub mod decomposition;
+pub use decomposition::{CompleteMeasurementTable, MeasurementTableBuilder};
 
 #[cfg(test)]
 mod tests {
@@ -26,8 +25,8 @@ mod tests {
     fn qubit_measurements_are_native() {
         for i in 0..24 {
             let p: PauliString = PauliString(1 << i);
-            let (_, rots) = MEASUREMENT_IMPLS.implementation(p);
-            assert_eq!(0, rots.len());
+            let meas_impl = MEASUREMENT_IMPLS.implementation(p);
+            assert_eq!(0, meas_impl.rotations().len());
         }
     }
 }
