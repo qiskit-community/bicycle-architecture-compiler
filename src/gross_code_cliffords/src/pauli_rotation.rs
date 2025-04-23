@@ -1,4 +1,5 @@
 use std::{
+    array::TryFromSliceError,
     fmt,
     ops::{Index, Mul},
 };
@@ -159,6 +160,14 @@ impl From<&[Pauli; 12]> for PauliString {
         }
 
         PauliString(sum)
+    }
+}
+
+impl TryFrom<&[Pauli]> for PauliString {
+    type Error = TryFromSliceError;
+    fn try_from(value: &[Pauli]) -> Result<Self, Self::Error> {
+        let ps: [Pauli; 12] = value.try_into()?;
+        Ok(Self::from(&ps))
     }
 }
 

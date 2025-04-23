@@ -102,9 +102,9 @@ impl SingleRotation {
     }
 
     pub fn basis(&self) -> Pauli {
-        match self {
-            &Self::Z { dagger: _ } => Pauli::Z,
-            &Self::X { dagger: _ } => Pauli::X,
+        match *self {
+            Self::Z { dagger: _ } => Pauli::Z,
+            Self::X { dagger: _ } => Pauli::X,
         }
     }
 }
@@ -204,7 +204,7 @@ fn compile_rots(gates: &str) -> Result<(Vec<SingleRotation>, Vec<CliffordGate>),
 
 #[cfg(test)]
 mod test {
-    use std::{error::Error, f64::consts::PI};
+    use std::error::Error;
 
     use super::*;
 
