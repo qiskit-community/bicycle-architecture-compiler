@@ -56,3 +56,47 @@ impl Default for BasisChanger {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use bicycle_isa::AutomorphismData;
+    use Pauli::{I, X, Y, Z};
+
+    #[test]
+    fn test_change_pauli() {
+        let changer = BasisChanger::new(Y, Z, X).unwrap();
+
+        assert_eq!(Z, changer.change_pauli(Y));
+        assert_eq!(Y, changer.change_pauli(X));
+    }
+
+    #[test]
+    fn test_change_instr() {
+        let changer = BasisChanger::new(Y, Z, X).unwrap();
+
+        assert_eq!(
+            BicycleISA::Measure(TwoBases::new(Y, Z).unwrap()),
+            changer.change_isa(BicycleISA::Measure(TwoBases::new(X, Z).unwrap()))
+        );
+
+        assert_eq!(
+            BicycleISA::JointMeasure(TwoBases::new(Z, X).unwrap()),
+            changer.change_isa(BicycleISA::JointMeasure(TwoBases::new(Y, X).unwrap()))
+        );
+    }
+
+    #[test]
+    fn test_invariant() {
+        let changer = BasisChanger::new(Z, X, Y).unwrap();
+
+        for x in 0..6 {
+            for y in 0..6 {
+                let aut = AutomorphismData::new(x, y);
+                let isa = BicycleISA::Automorphism(aut);
+                assert_eq!(isa, changer.change_isa(isa));
+            }
+        }
+    }
+}
