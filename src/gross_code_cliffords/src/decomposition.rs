@@ -33,13 +33,13 @@ impl MeasurementTableEntry {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct MeasurementImpl<'a> {
-    base: NativeMeasurementImpl<'a>,
-    rotations: Vec<NativeMeasurementImpl<'a>>,
+pub struct MeasurementImpl {
+    base: NativeMeasurementImpl,
+    rotations: Vec<NativeMeasurementImpl>,
     measures: PauliString,
 }
 
-impl MeasurementImpl<'_> {
+impl MeasurementImpl {
     pub fn base_measurement(&self) -> &NativeMeasurementImpl {
         &self.base
     }
@@ -56,13 +56,13 @@ impl MeasurementImpl<'_> {
 /// A wrapper for &NativeMeasurement that caches what it measures
 /// Basically a nice wrapper for (PauliString, &NativeMeasurement)
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct NativeMeasurementImpl<'a> {
-    native: &'a NativeMeasurement,
+pub struct NativeMeasurementImpl {
+    native: NativeMeasurement,
     measures: PauliString,
 }
 
-impl<'a> NativeMeasurementImpl<'a> {
-    pub fn new(native: &'a NativeMeasurement, measures: PauliString) -> Self {
+impl NativeMeasurementImpl {
+    pub fn new(native: NativeMeasurement, measures: PauliString) -> Self {
         Self { native, measures }
     }
 
@@ -114,14 +114,14 @@ impl CompleteMeasurementTable {
             .native_measurements
             .get(&implementation.measurement)
             .unwrap();
-        let base_impl = NativeMeasurementImpl::new(base_meas, implementation.measurement);
+        let base_impl = NativeMeasurementImpl::new(*base_meas, implementation.measurement);
 
         let native_rots = rots
             .into_iter()
             .map(|p| {
                 self.native_measurements
                     .get(&p)
-                    .map(|native| NativeMeasurementImpl::new(native, p))
+                    .map(|native| NativeMeasurementImpl::new(*native, p))
                     .unwrap()
             })
             .rev()
