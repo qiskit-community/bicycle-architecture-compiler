@@ -120,6 +120,17 @@ fn select_basis_change(p_expected: Pauli, p_pivot: Pauli) -> BasisChanger {
     }
 }
 
+/// Stores the basis change that is applied to each block
+struct BlockBases(pub Vec<BasisChanger>);
+
+impl BlockBases {
+    fn change_basis(&self, op: Operation) -> Operation {
+        op.into_iter()
+            .map(|(block_i, isa)| (block_i, self.0[block_i].change_isa(isa)))
+            .collect()
+    }
+}
+
 /// Compile a Pauli measurement to ISA instructions
 pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -> Vec<Operation> {
     let mut ops: Vec<Operation> = vec![];
@@ -149,6 +160,7 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
     });
 
     let (meas_impls, basis_changes): (Vec<_>, Vec<_>) = block_instrs.unzip();
+    let block_basis = BlockBases(basis_changes);
     assert!(meas_impls.len() <= n);
 
     // Apply rotations to blocks that have nontrivial rotations (requires use of pivot)
@@ -168,9 +180,11 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
 
     // Prepare initial state
     // TODO: Prepare state only on qubits that are in the range of the measurement
-    for (block_i, basis_change) in basis_changes.iter().enumerate() {
-        ops.push(vec![(block_i, Measure(basis_change.two_bases(x1)))]);
-    }
+    ops.extend(
+        (0..n)
+            .map(|block_i| vec![(block_i, Measure(x1))])
+            .map(|o| block_basis.change_basis(o)),
+    );
 
     // Apply native measurements on nontrivial blocks
     // Do _not_ change basis
@@ -196,14 +210,12 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
             Some(_) => middle_ops.push(vec![(block_i, Measure(y1))]),
         }
     }
-
     // Change basis on middle ops
-    let changed_ops = middle_ops.into_iter().map(|v| {
-        v.into_iter()
-            .map(|(block_i, isa)| (block_i, basis_changes[block_i].change_isa(isa)))
-            .collect::<Vec<_>>()
-    });
-    ops.extend(changed_ops);
+    ops.extend(
+        middle_ops
+            .into_iter()
+            .map(|op| block_basis.change_basis(op)),
+    );
 
     // Undo rotations on non-trivial blocks
     for (block_i, meas_impl) in meas_impls
@@ -265,6 +277,7 @@ pub fn compile_rotation(
         }
     });
     let (meas_impls, basis_changes): (Vec<_>, Vec<_>) = block_instrs.unzip();
+    let block_basis = BlockBases(basis_changes);
     assert!(meas_impls.len() <= n);
 
     // Apply pre-rotations on all blocks if they are non-trivial
@@ -284,10 +297,13 @@ pub fn compile_rotation(
     }
 
     // Prepare pivot qubits
-    for (i, changer) in basis_changes.iter().enumerate().take(n - 1) {
-        ops.push(vec![(i, Measure(changer.two_bases(x1)))]);
-    }
-    ops.push(vec![(n - 1, Measure(basis_changes[n - 1].two_bases(y1)))]);
+
+    ops.extend(
+        (0..(n - 1))
+            .map(|block_i| vec![(block_i, Measure(x1))])
+            .chain(std::iter::once(vec![(n - 1, Measure(y1))]))
+            .map(|op| block_basis.change_basis(op)),
+    );
 
     // Apply native measurements on nontrivial blocks
     // Do _not_ apply basis change
@@ -332,12 +348,11 @@ pub fn compile_rotation(
     middle_ops.push(vec![(n - 1, Measure(z1))]);
 
     // Change basis on middle_ops
-    let changed_ops = middle_ops.into_iter().map(|v| {
-        v.into_iter()
-            .map(|(block_i, isa)| (block_i, basis_changes[block_i].change_isa(isa)))
-            .collect::<Vec<_>>()
-    });
-    ops.extend(changed_ops);
+    ops.extend(
+        middle_ops
+            .into_iter()
+            .map(|op| block_basis.change_basis(op)),
+    );
 
     // Undo rotations on non-trivial blocks
     for (block_i, meas_impl) in meas_impls
@@ -560,14 +575,18 @@ mod tests {
                     data_blocks: blocks,
                 };
                 // Requires 1 rotation
-                let mut ps: Vec<_> = random_nontrivial_paulistrings().take(blocks).collect();
-                for p in ps.iter_mut() {
-                    p.set_pauli(0, Y);
-                }
-                let implementations: Vec<_> = ps
+                let ps: Vec<_> = random_nontrivial_paulistrings().take(blocks).collect();
+                let implementations: Vec<_> =
+                    ps.iter().map(|p| MEASUREMENT_IMPLS.min_data(*p)).collect();
+                let change_bases: Vec<_> = implementations
                     .iter()
-                    .map(|p| MEASUREMENT_IMPLS.implementation(*p))
+                    .map(|meas_impl| {
+                        let p_pivot = meas_impl.measures().get_pauli(0);
+                        // Expect Y ⊗ P
+                        select_basis_change(Pauli::Y, p_pivot)
+                    })
                     .collect();
+                let block_basis = BlockBases(change_bases);
                 let basis: Vec<Pauli> = ps
                     .iter()
                     // Drop the pivot Pauli
@@ -589,7 +608,7 @@ mod tests {
                     }
                 }
 
-                expected.extend(prep().take(blocks));
+                expected.extend(prep().take(blocks).map(|op| block_basis.change_basis(op)));
 
                 // measurements
                 for (block_i, meas_impl) in implementations.iter().enumerate() {
@@ -597,8 +616,12 @@ mod tests {
                         native_instructions(block_i, meas_impl.base_measurement()).into_iter(),
                     );
                 }
-                expected.append(&mut ghz_meas(0, arch.data_blocks()));
-                expected.extend(unprep().take(blocks));
+                expected.extend(
+                    ghz_meas(0, arch.data_blocks())
+                        .into_iter()
+                        .map(|op| block_basis.change_basis(op)),
+                );
+                expected.extend(unprep().take(blocks).map(|op| block_basis.change_basis(op)));
                 // post-rotations
                 for (block_i, meas_impl) in implementations.iter().enumerate() {
                     for rot in meas_impl.rotations() {
@@ -680,14 +703,19 @@ mod tests {
                 let ps: Vec<_> = random_nontrivial_paulistrings().take(blocks).collect();
                 let implementations: Vec<_> =
                     ps.iter().map(|p| MEASUREMENT_IMPLS.min_data(*p)).collect();
-                // let basis_changes = implementations.iter().enumerate().map(|(i, meas_impl)| {
-                //     let pivot_p = meas_impl.measures().get_pauli(0);
-
-                //     let mut changer = BasisChanger::default();
-                //     if i < blocks - 1 {
-                //         changer
-                //     }
-                // })
+                let block_bases: Vec<_> = implementations
+                    .iter()
+                    .enumerate()
+                    .map(|(block_i, meas_impl)| {
+                        let p_pivot = meas_impl.measures().get_pauli(0);
+                        if block_i < blocks - 1 {
+                            select_basis_change(Y, p_pivot)
+                        } else {
+                            select_basis_change(X, p_pivot)
+                        }
+                    })
+                    .collect();
+                let block_basis = BlockBases(block_bases);
 
                 let basis: Vec<Pauli> = ps
                     .iter()
@@ -710,7 +738,7 @@ mod tests {
                     }
                 }
 
-                expected.extend(prep(blocks));
+                expected.extend(prep(blocks).map(|op| block_basis.change_basis(op)));
 
                 // measurements
                 for (block_i, meas_impl) in implementations.iter().enumerate() {
@@ -718,12 +746,18 @@ mod tests {
                         native_instructions(block_i, meas_impl.base_measurement()).into_iter(),
                     );
                 }
-                expected.append(&mut ghz_meas(0, arch.data_blocks()));
-                expected.push(vec![(
+
+                let mut middle_ops = ghz_meas(0, arch.data_blocks());
+                middle_ops.push(vec![(
                     blocks - 1,
                     TGate(TGateData::new(Pauli::X, false, false).unwrap()),
                 )]);
-                expected.extend(unprep(blocks));
+                middle_ops.extend(unprep(blocks));
+                expected.extend(
+                    middle_ops
+                        .into_iter()
+                        .map(|op| block_basis.change_basis(op)),
+                );
 
                 // post-rotations
                 for (block_i, meas_impl) in implementations.iter().enumerate() {
