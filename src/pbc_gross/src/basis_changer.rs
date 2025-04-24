@@ -33,7 +33,7 @@ impl BasisChanger {
         }
     }
 
-    fn two_bases(&self, bases: TwoBases) -> TwoBases {
+    pub fn two_bases(&self, bases: TwoBases) -> TwoBases {
         TwoBases::new(self.change_pauli(bases.get_basis_1()), bases.get_basis_7()).unwrap()
     }
 
