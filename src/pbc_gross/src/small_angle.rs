@@ -101,6 +101,7 @@ impl SingleRotation {
         };
     }
 
+    #[allow(dead_code)]
     pub fn basis(&self) -> Pauli {
         match *self {
             Self::Z { dagger: _ } => Pauli::Z,

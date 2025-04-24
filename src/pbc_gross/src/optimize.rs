@@ -43,7 +43,7 @@ mod tests {
     use bicycle_isa::TwoBases;
 
     use super::*;
-    use bicycle_isa::Pauli::{I, X, Y, Z};
+    use bicycle_isa::Pauli::{X, Z};
 
     #[test]
     fn remove_duplicate_meas() {

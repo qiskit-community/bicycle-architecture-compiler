@@ -62,7 +62,7 @@ mod tests {
     use super::*;
 
     use bicycle_isa::AutomorphismData;
-    use Pauli::{I, X, Y, Z};
+    use Pauli::{X, Y, Z};
 
     #[test]
     fn test_change_pauli() {

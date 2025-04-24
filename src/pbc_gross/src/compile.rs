@@ -5,7 +5,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 use bicycle_isa::{BicycleISA, Pauli, TGateData, TwoBases};
-use gross_code_cliffords::decomposition::{MeasurementImpl, NativeMeasurementImpl};
+use gross_code_cliffords::decomposition::NativeMeasurementImpl;
 use gross_code_cliffords::native_measurement::NativeMeasurement;
 use log::{debug, info};
 
@@ -435,6 +435,7 @@ mod tests {
         *native_measurements.choose(&mut rand::rng()).unwrap()
     }
 
+    #[allow(dead_code)]
     fn find_native_gates() {
         for i in 1..4_u32.pow(11) {
             let x = (i << 1) | 1; // Set X_0
