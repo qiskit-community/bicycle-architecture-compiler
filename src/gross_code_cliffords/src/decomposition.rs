@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::measurement::Measurement;
-use crate::pauli_rotation::PauliString;
-use crate::{native_measurement::NativeMeasurement, pauli_rotation};
+use crate::measurement::CodeMeasurement;
+use crate::pauli_string::PauliString;
+use crate::{native_measurement::NativeMeasurement, pauli_string};
 
 use bicycle_isa::{AutomorphismData, BicycleISA, TwoBases};
 use log::{debug, error, info, trace, warn};
@@ -140,13 +140,13 @@ impl CompleteMeasurementTable {
     pub fn min_data(&self, p: PauliString) -> MeasurementImpl {
         assert!(p.0 <= 4_u32.pow(12), "{}", p);
         assert!(
-            p.pivot_bits() == pauli_rotation::ID,
+            p.pivot_bits() == pauli_string::ID,
             "Expected identity on pivot for {}",
             p
         );
 
         // Find minimum-length implementation out of three options for the pivot.
-        let res = [pauli_rotation::X1, pauli_rotation::Z1, pauli_rotation::Y1]
+        let res = [pauli_string::X1, pauli_string::Z1, pauli_string::Y1]
             .into_iter()
             .map(|pivot_pauli| p * pivot_pauli) // insert pivot basis
             .map(|q| self.implementation(q)) // look up implementation
@@ -174,11 +174,11 @@ pub struct MeasurementTableBuilder {
     measurements: Vec<Option<MeasurementTableEntry>>,
     native_measurements: HashMap<PauliString, NativeMeasurement>,
     len: usize, // Count how many Some entries there are in measurements
-    code: Box<dyn Measurement>,
+    code: CodeMeasurement,
 }
 
 impl MeasurementTableBuilder {
-    pub fn new(native_measurements: Vec<NativeMeasurement>, code: Box<dyn Measurement>) -> Self {
+    pub fn new(native_measurements: Vec<NativeMeasurement>, code: CodeMeasurement) -> Self {
         let len = 0;
         let measurements = vec![None; 4usize.pow(12)];
 
@@ -362,7 +362,7 @@ mod tests {
     use bicycle_isa::Pauli::{I, X, Y, Z};
     use bicycle_isa::{AutomorphismData, TwoBases};
 
-    use crate::measurement::GrossCode;
+    use crate::{GROSS_MEASUREMENT, TWOGROSS_MEASUREMENT};
 
     use super::*;
 
@@ -373,9 +373,7 @@ mod tests {
             logical: TwoBases::new(X, Y).unwrap(),
         }];
 
-        let code = GrossCode;
-
-        let mut table = MeasurementTableBuilder::new(native, Box::new(code));
+        let mut table = MeasurementTableBuilder::new(native, GROSS_MEASUREMENT);
         assert_eq!(2, table.len());
 
         let p: PauliString = (&[Y, Y, I, I, I, Y, I, I, I, I, I, Z]).into();
@@ -390,7 +388,7 @@ mod tests {
 
     #[test]
     fn table_insert() {
-        let mut table = MeasurementTableBuilder::new(vec![], Box::new(GrossCode));
+        let mut table = MeasurementTableBuilder::new(vec![], GROSS_MEASUREMENT);
 
         let nrs = [
             0b111111111111111111111111,
@@ -412,7 +410,7 @@ mod tests {
 
     #[test]
     fn table_get() {
-        let mut table = MeasurementTableBuilder::new(vec![], Box::new(GrossCode));
+        let mut table = MeasurementTableBuilder::new(vec![], GROSS_MEASUREMENT);
         let p: PauliString = (&[Y, Y, I, I, I, Y, I, I, I, I, I, Z]).into();
         let p_impl = MeasurementTableEntry {
             measurement: p,
@@ -425,8 +423,17 @@ mod tests {
     }
 
     #[test]
-    fn test_measurement_builder() -> Result<(), String> {
-        let mut table = MeasurementTableBuilder::new(NativeMeasurement::all(), Box::new(GrossCode));
+    fn test_gross_builder() -> Result<(), String> {
+        test_measurement_builder(GROSS_MEASUREMENT)
+    }
+
+    #[test]
+    fn test_twogross_builder() -> Result<(), String> {
+        test_measurement_builder(TWOGROSS_MEASUREMENT)
+    }
+
+    fn test_measurement_builder(m: CodeMeasurement) -> Result<(), String> {
+        let mut table = MeasurementTableBuilder::new(NativeMeasurement::all(), m);
         table.build();
 
         let measurements = table.measurements.clone();

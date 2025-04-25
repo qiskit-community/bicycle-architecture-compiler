@@ -3,30 +3,14 @@ use std::error::Error;
 use log::debug;
 
 use gross_code_cliffords::{
-    native_measurement::NativeMeasurement, GrossCode, Measurement, MeasurementTableBuilder,
-    PauliString, TwoGrossCode,
+    native_measurement::NativeMeasurement, MeasurementChoices, MeasurementTableBuilder, PauliString,
 };
 
-use clap::{Parser, ValueEnum};
-
-#[derive(ValueEnum, Debug, Clone, Copy)]
-enum CodeChoice {
-    Gross,
-    TwoGross,
-}
-
-impl CodeChoice {
-    fn measurement(&self) -> Box<dyn Measurement> {
-        match self {
-            Self::Gross => Box::new(GrossCode),
-            Self::TwoGross => Box::new(TwoGrossCode),
-        }
-    }
-}
+use clap::Parser;
 
 #[derive(Parser, Debug)]
 struct Cli {
-    code: CodeChoice,
+    code: MeasurementChoices,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {

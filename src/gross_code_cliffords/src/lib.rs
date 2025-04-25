@@ -1,10 +1,12 @@
 pub mod measurement;
-pub use measurement::{GrossCode, Measurement, TwoGrossCode};
+pub use measurement::{
+    CodeMeasurement, MeasurementChoices, GROSS_MEASUREMENT, TWOGROSS_MEASUREMENT,
+};
 
 pub mod native_measurement;
-mod pauli_rotation;
+mod pauli_string;
 
-pub use pauli_rotation::PauliString;
+pub use pauli_string::PauliString;
 
 pub mod decomposition;
 pub use decomposition::{CompleteMeasurementTable, MeasurementTableBuilder};
@@ -18,7 +20,7 @@ mod tests {
 
     static MEASUREMENT_IMPLS: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
         let mut builder =
-            MeasurementTableBuilder::new(NativeMeasurement::all(), Box::new(TwoGrossCode));
+            MeasurementTableBuilder::new(NativeMeasurement::all(), TWOGROSS_MEASUREMENT);
         builder.build();
         builder
             .complete()

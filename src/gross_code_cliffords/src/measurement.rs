@@ -1,14 +1,21 @@
 use std::fmt::Debug;
 
 use bicycle_isa::{AutomorphismData, Pauli};
-use nalgebra::{stack, Matrix6, SMatrix, Vector6};
+use nalgebra::{matrix, stack, SMatrix, Vector6};
 
 use crate::{native_measurement::NativeMeasurement, PauliString};
+use clap::ValueEnum;
 
-pub trait Measurement: Debug {
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct CodeMeasurement {
+    pub mx: SMatrix<u32, 6, 6>, // 6x6 matrix in F_2. Use u32 to avoid overflow.
+    pub my: SMatrix<u32, 6, 6>,
+}
+
+impl CodeMeasurement {
     /// The PauliString a NativeMeasurement measures
     #[allow(clippy::toplevel_ref_arg)]
-    fn measures(&self, native_measurement: &NativeMeasurement) -> PauliString {
+    pub fn measures(&self, native_measurement: &NativeMeasurement) -> PauliString {
         let one = Vector6::identity();
         let zero = Vector6::zeros();
 
@@ -29,80 +36,71 @@ pub trait Measurement: Debug {
         let vec = stack![x1; x7; z1; z7];
 
         // Compute action of automorphism on the Paulis
-        let (mx, my) = self.automorphism_generators();
         let action = |a: AutomorphismData| {
-            (mx.pow(a.get_x().into()) * my.pow(a.get_y().into())).map(|v| v % 2)
+            (self.mx.pow(a.get_x().into()) * self.my.pow(a.get_y().into())).map(|v| v % 2)
         };
         let aut = action(native_measurement.automorphism);
         let inv = action(native_measurement.automorphism.inv());
-        let mat: SMatrix<u32, 24, 24> =
+        let mat: SMatrix<_, 24, 24> =
             stack![aut, 0, 0, 0; 0, aut, 0, 0; 0, 0, inv, 0; 0, 0, 0, inv];
 
         let result = (mat * vec).map(|v| v % 2);
         // Convert to array and then to PauliString
-        let arr: [u32; 24] = result.into();
+        let arr: [_; 24] = result.into();
         (&arr).into()
     }
-
-    fn automorphism_generators(&self) -> (Matrix6<u32>, Matrix6<u32>);
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct GrossCode;
+pub const GROSS_MEASUREMENT: CodeMeasurement = CodeMeasurement {
+    mx: matrix![
+        0, 1, 0, 1, 0, 0; //
+        0, 1, 0, 0, 0, 1; //
+        0, 0, 1, 1, 0, 0; //
+        1, 1, 0, 1, 1, 0; //
+        0, 1, 0, 0, 1, 0; //
+        1, 1, 1, 1, 0, 1; //
+    ],
+    my: matrix![
+        1, 0, 0, 0, 0, 1; //
+        1, 1, 1, 0, 0, 1; //
+        0, 0, 0, 0, 1, 0; //
+        0, 1, 0, 0, 0, 0; //
+        0, 1, 1, 0, 0, 1; //
+        0, 0, 1, 1, 0, 1; //
+    ],
+};
 
-impl Measurement for GrossCode {
-    /// Generate the parity map associated with this automorphism on the Gross code
-    fn automorphism_generators(&self) -> (Matrix6<u32>, Matrix6<u32>) {
-        let mx_array: [u32; 36] = [
-            0, 1, 0, 1, 0, 0, //
-            0, 1, 0, 0, 0, 1, //
-            0, 0, 1, 1, 0, 0, //
-            1, 1, 0, 1, 1, 0, //
-            0, 1, 0, 0, 1, 0, //
-            1, 1, 1, 1, 0, 1, //
-        ];
-        let my_array: [u32; 36] = [
-            1, 0, 0, 0, 0, 1, //
-            1, 1, 1, 0, 0, 1, //
-            0, 0, 0, 0, 1, 0, //
-            0, 1, 0, 0, 0, 0, //
-            0, 1, 1, 0, 0, 1, //
-            0, 0, 1, 1, 0, 1, //
-        ];
+pub const TWOGROSS_MEASUREMENT: CodeMeasurement = CodeMeasurement {
+    mx: matrix![
+        0, 1, 1, 1, 0, 1; //
+        1, 0, 1, 0, 1, 1; //
+        1, 0, 1, 0, 1, 0; //
+        1, 0, 1, 1, 1, 1; //
+        0, 1, 1, 1, 1, 1; //
+        1, 0, 0, 1, 1, 0; //
+    ],
+    my: matrix![
+        1, 1, 1, 1, 1, 0; //
+        1, 1, 0, 1, 1, 1; //
+        0, 1, 1, 0, 0, 0; //
+        1, 0, 0, 0, 1, 0; //
+        1, 0, 0, 1, 1, 1; //
+        1, 0, 0, 0, 0, 1; //
+    ],
+};
 
-        let mx = Matrix6::from_row_slice(&mx_array);
-        let my = Matrix6::from_row_slice(&my_array);
-
-        (mx, my)
-    }
+#[derive(ValueEnum, Debug, Clone, Copy)]
+pub enum MeasurementChoices {
+    Gross,
+    TwoGross,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct TwoGrossCode;
-
-impl Measurement for TwoGrossCode {
-    fn automorphism_generators(&self) -> (Matrix6<u32>, Matrix6<u32>) {
-        let mx_array: [u32; 36] = [
-            0, 1, 1, 1, 0, 1, //
-            1, 0, 1, 0, 1, 1, //
-            1, 0, 1, 0, 1, 0, //
-            1, 0, 1, 1, 1, 1, //
-            0, 1, 1, 1, 1, 1, //
-            1, 0, 0, 1, 1, 0, //
-        ];
-
-        let my_array: [u32; 36] = [
-            1, 1, 1, 1, 1, 0, //
-            1, 1, 0, 1, 1, 1, //
-            0, 1, 1, 0, 0, 0, //
-            1, 0, 0, 0, 1, 0, //
-            1, 0, 0, 1, 1, 1, //
-            1, 0, 0, 0, 0, 1, //
-        ];
-        let mx = Matrix6::from_row_slice(&mx_array);
-        let my = Matrix6::from_row_slice(&my_array);
-
-        (mx, my)
+impl MeasurementChoices {
+    pub fn measurement(&self) -> CodeMeasurement {
+        match self {
+            Self::Gross => GROSS_MEASUREMENT,
+            Self::TwoGross => TWOGROSS_MEASUREMENT,
+        }
     }
 }
 
@@ -121,12 +119,12 @@ mod tests {
     /// does not "spill over" to the dual/primal block.
     #[test]
     fn pivot_duality_gross() {
-        test_duality(GrossCode);
+        test_duality(GROSS_MEASUREMENT);
     }
 
     #[test]
     fn pivot_duality_2gross() {
-        test_duality(TwoGrossCode);
+        test_duality(TWOGROSS_MEASUREMENT);
     }
 
     fn paulis_support(ps: &[Pauli; 12]) -> (bool, bool) {
@@ -136,7 +134,7 @@ mod tests {
         )
     }
 
-    fn test_duality(code: impl Measurement) {
+    fn test_duality(code: CodeMeasurement) {
         for pauli in [X, Y, Z] {
             let logicals = [
                 TwoBases::new(pauli, I).unwrap(),
@@ -163,14 +161,14 @@ mod tests {
 
     #[test]
     fn all_native_rotations_gross() {
-        all_native_rotations(GrossCode);
+        all_native_rotations(GROSS_MEASUREMENT);
     }
     #[test]
     fn all_native_rotations_two_gross() {
-        all_native_rotations(TwoGrossCode);
+        all_native_rotations(TWOGROSS_MEASUREMENT);
     }
 
-    fn all_native_rotations(code: impl Measurement) {
+    fn all_native_rotations(code: CodeMeasurement) {
         let base = NativeMeasurement::all();
         let rots: HashSet<_> = base
             .into_iter()
@@ -189,14 +187,14 @@ mod tests {
     }
     #[test]
     fn all_native_gross() {
-        all_native(GrossCode);
+        all_native(GROSS_MEASUREMENT);
     }
     #[test]
     fn all_native_two_gross() {
-        all_native(TwoGrossCode);
+        all_native(TWOGROSS_MEASUREMENT);
     }
 
-    fn all_native(code: impl Measurement) {
+    fn all_native(code: CodeMeasurement) {
         let all_native = NativeMeasurement::all();
         assert_eq!(15 * 36, all_native.len());
 
@@ -214,15 +212,15 @@ mod tests {
 
     #[test]
     fn valid_paulistrings_gross() {
-        valid_paulistrings(GrossCode);
+        valid_paulistrings(GROSS_MEASUREMENT);
     }
 
     #[test]
     fn valid_paulistring_two_gross() {
-        valid_paulistrings(TwoGrossCode);
+        valid_paulistrings(TWOGROSS_MEASUREMENT);
     }
 
-    fn valid_paulistrings(code: impl Measurement) {
+    fn valid_paulistrings(code: CodeMeasurement) {
         for native in NativeMeasurement::all() {
             let p = code.measures(&native);
             assert!(
@@ -236,12 +234,11 @@ mod tests {
     // Check that the order of the automorphism generators is 6
     #[test]
     fn automorphism_order() {
-        let (mx, my) = GrossCode.automorphism_generators();
-        assert_eq!(mx, mx.pow(7).map(|v| v % 2));
-        assert_eq!(my, my.pow(7).map(|v| v % 2));
-
-        let (mx, my) = TwoGrossCode.automorphism_generators();
-        assert_eq!(mx, mx.pow(7).map(|v| v % 2));
-        assert_eq!(my, my.pow(7).map(|v| v % 2));
+        for m in [GROSS_MEASUREMENT, TWOGROSS_MEASUREMENT] {
+            let mx = m.mx;
+            let my = m.my;
+            assert_eq!(mx, mx.pow(7).map(|v| v % 2));
+            assert_eq!(my, my.pow(7).map(|v| v % 2));
+        }
     }
 }
