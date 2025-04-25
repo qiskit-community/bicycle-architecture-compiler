@@ -2,10 +2,10 @@
 set -euo pipefail
 
 models=("gross 1e-3 275" "gross 1e-3 2750" \
-     "gross 1e-4 2750" "gross 1e-4 27500" \
-     "two-gross 1e-3 143" "two-gross 1e-3 1430"\
-     "two-gross 1e-4 1430" "two-gross 1e-4 14322"\
-    )
+     "gross 1e-4 2750" "gross 1e-4 27500")
+# models=("two-gross 1e-3 143" "two-gross 1e-3 1430"\
+#      "two-gross 1e-4 1430" "two-gross 1e-4 14322"\
+#     )
 
 for i in "${models[@]}"
 do
