@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::measurement::Measurement;
 use crate::pauli_rotation::PauliString;
 use crate::{native_measurement::NativeMeasurement, pauli_rotation};
 
@@ -168,27 +169,29 @@ impl TryFrom<MeasurementTableBuilder> for CompleteMeasurementTable {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MeasurementTableBuilder {
     measurements: Vec<Option<MeasurementTableEntry>>,
     native_measurements: HashMap<PauliString, NativeMeasurement>,
     len: usize, // Count how many Some entries there are in measurements
+    code: Box<dyn Measurement>,
 }
 
 impl MeasurementTableBuilder {
-    pub fn new(native_measurements: Vec<NativeMeasurement>) -> Self {
+    pub fn new(native_measurements: Vec<NativeMeasurement>, code: Box<dyn Measurement>) -> Self {
         let len = 0;
         let measurements = vec![None; 4usize.pow(12)];
 
         let native_lookup: HashMap<PauliString, NativeMeasurement> = native_measurements
             .into_iter()
-            .map(|meas| (meas.measures(), meas))
+            .map(|meas| (code.measures(&meas), meas))
             .collect();
 
         let mut table = MeasurementTableBuilder {
             measurements,
             native_measurements: HashMap::new(), // Placeholder; set later.
             len,
+            code,
         };
 
         for p in native_lookup.keys() {
@@ -218,7 +221,10 @@ impl MeasurementTableBuilder {
         // 4^12 possible Pauli measurements on 12 qubits
         let nr_paulis: usize = 4_usize.pow(12);
 
-        let mut next_paulis = base_measurements.iter().map(|m| m.measures()).collect();
+        let mut next_paulis = base_measurements
+            .iter()
+            .map(|m| self.code.measures(m))
+            .collect();
 
         // Create a set of base rotations
         // We pick the cheapest rotation for each paulistring, if there is duplication
@@ -356,6 +362,8 @@ mod tests {
     use bicycle_isa::Pauli::{I, X, Y, Z};
     use bicycle_isa::{AutomorphismData, TwoBases};
 
+    use crate::measurement::GrossCode;
+
     use super::*;
 
     #[test]
@@ -365,7 +373,9 @@ mod tests {
             logical: TwoBases::new(X, Y).unwrap(),
         }];
 
-        let mut table = MeasurementTableBuilder::new(native);
+        let code = GrossCode;
+
+        let mut table = MeasurementTableBuilder::new(native, Box::new(code));
         assert_eq!(2, table.len());
 
         let p: PauliString = (&[Y, Y, I, I, I, Y, I, I, I, I, I, Z]).into();
@@ -380,7 +390,7 @@ mod tests {
 
     #[test]
     fn table_insert() {
-        let mut table = MeasurementTableBuilder::new(vec![]);
+        let mut table = MeasurementTableBuilder::new(vec![], Box::new(GrossCode));
 
         let nrs = [
             0b111111111111111111111111,
@@ -402,7 +412,7 @@ mod tests {
 
     #[test]
     fn table_get() {
-        let mut table = MeasurementTableBuilder::new(vec![]);
+        let mut table = MeasurementTableBuilder::new(vec![], Box::new(GrossCode));
         let p: PauliString = (&[Y, Y, I, I, I, Y, I, I, I, I, I, Z]).into();
         let p_impl = MeasurementTableEntry {
             measurement: p,
@@ -416,7 +426,7 @@ mod tests {
 
     #[test]
     fn test_measurement_builder() -> Result<(), String> {
-        let mut table = MeasurementTableBuilder::new(NativeMeasurement::all());
+        let mut table = MeasurementTableBuilder::new(NativeMeasurement::all(), Box::new(GrossCode));
         table.build();
 
         let measurements = table.measurements.clone();

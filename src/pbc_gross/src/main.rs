@@ -1,5 +1,6 @@
 use std::{env, error, io};
 
+use gross_code_cliffords::{native_measurement::NativeMeasurement, MeasurementTableBuilder};
 use pbc_gross::language::{AnglePrecision, PbcOperation};
 
 use io::Write;
@@ -24,6 +25,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     env_logger::init();
 
     let cli = Cli::parse();
+
+    let measurement_table = MeasurementTableBuilder::new(NativeMeasurement::all());
 
     let reader = io::stdin().lock();
 

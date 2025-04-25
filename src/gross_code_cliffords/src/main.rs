@@ -3,13 +3,13 @@ use std::error::Error;
 use log::debug;
 
 use gross_code_cliffords::{
-    native_measurement::NativeMeasurement, MeasurementTableBuilder, PauliString,
+    native_measurement::NativeMeasurement, GrossCode, MeasurementTableBuilder, PauliString,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    let mut table = MeasurementTableBuilder::new(NativeMeasurement::all());
+    let mut table = MeasurementTableBuilder::new(NativeMeasurement::all(), Box::new(GrossCode));
     table.build();
     let complete = table.complete()?;
     debug!("Done with finding costs");

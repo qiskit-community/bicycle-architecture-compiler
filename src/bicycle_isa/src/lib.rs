@@ -103,56 +103,6 @@ impl AutomorphismData {
         AutomorphismData::new(6 - self.x, 6 - self.y)
     }
 
-    /// Generate the parity map associated with this automorphism on the Gross code
-    pub fn parity_map_gross(&self) -> Matrix6<u32> {
-        let mx_array: [u32; 36] = [
-            0, 1, 0, 1, 0, 0, //
-            0, 1, 0, 0, 0, 1, //
-            0, 0, 1, 1, 0, 0, //
-            1, 1, 0, 1, 1, 0, //
-            0, 1, 0, 0, 1, 0, //
-            1, 1, 1, 1, 0, 1, //
-        ];
-        let my_array: [u32; 36] = [
-            1, 0, 0, 0, 0, 1, //
-            1, 1, 1, 0, 0, 1, //
-            0, 0, 0, 0, 1, 0, //
-            0, 1, 0, 0, 0, 0, //
-            0, 1, 1, 0, 0, 1, //
-            0, 0, 1, 1, 0, 1, //
-        ];
-
-        let mx = Matrix6::from_row_slice(&mx_array);
-        let my = Matrix6::from_row_slice(&my_array);
-
-        Matrix6::pow(&mx, self.x.into()) * Matrix6::pow(&my, self.y.into()).map(|v| v % 2)
-    }
-
-    /// Generate the parity map associated with this automorphism on the Disgusting code
-    pub fn parity_map_disgusting(&self) -> Matrix6<u32> {
-        // Disgusting code
-        let mx_array: [u32; 36] = [
-            0, 1, 1, 1, 0, 1, //
-            1, 0, 1, 0, 1, 1, //
-            1, 0, 1, 0, 1, 0, //
-            1, 0, 1, 1, 1, 1, //
-            0, 1, 1, 1, 1, 1, //
-            1, 0, 0, 1, 1, 0, //
-        ];
-
-        let my_array: [u32; 36] = [
-            1, 1, 1, 1, 1, 0, //
-            1, 1, 0, 1, 1, 1, //
-            0, 1, 1, 0, 0, 0, //
-            1, 0, 0, 0, 1, 0, //
-            1, 0, 0, 1, 1, 1, //
-            1, 0, 0, 0, 0, 1, //
-        ];
-        let mx = Matrix6::from_row_slice(&mx_array);
-        let my = Matrix6::from_row_slice(&my_array);
-
-        Matrix6::pow(&mx, self.x.into()) * Matrix6::pow(&my, self.y.into()).map(|v| v % 2)
-    }
 }
 
 impl Mul for AutomorphismData {

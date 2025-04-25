@@ -177,8 +177,8 @@ impl From<&PauliString> for u32 {
     }
 }
 
-impl From<&PauliString> for [Pauli; 12] {
-    fn from(value: &PauliString) -> Self {
+impl From<PauliString> for [Pauli; 12] {
+    fn from(value: PauliString) -> Self {
         let mut paulis = vec![];
         for i in 0..12 {
             let x = value[i];
@@ -237,7 +237,7 @@ impl fmt::Debug for PauliString {
 
 impl fmt::Display for PauliString {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let paulis: [Pauli; 12] = self.into();
+        let paulis: [Pauli; 12] = (*self).into();
         for pauli in paulis.iter().rev() {
             write!(f, "{}", pauli)?;
         }

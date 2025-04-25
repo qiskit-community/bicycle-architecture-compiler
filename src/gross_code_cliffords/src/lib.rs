@@ -1,3 +1,6 @@
+pub mod measurement;
+pub use measurement::{GrossCode, Measurement, TwoGrossCode};
+
 pub mod native_measurement;
 mod pauli_rotation;
 
@@ -14,7 +17,8 @@ mod tests {
     use native_measurement::NativeMeasurement;
 
     static MEASUREMENT_IMPLS: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
-        let mut builder = MeasurementTableBuilder::new(NativeMeasurement::all());
+        let mut builder =
+            MeasurementTableBuilder::new(NativeMeasurement::all(), Box::new(TwoGrossCode));
         builder.build();
         builder
             .complete()
