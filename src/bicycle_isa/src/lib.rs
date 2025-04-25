@@ -1,10 +1,8 @@
-extern crate nalgebra as na;
 use std::{
     fmt::Display,
     ops::{Mul, MulAssign},
 };
 
-use na::Matrix6;
 use rand::distr::{Distribution, StandardUniform};
 use serde::{Deserialize, Serialize};
 
@@ -102,7 +100,6 @@ impl AutomorphismData {
     pub fn inv(&self) -> Self {
         AutomorphismData::new(6 - self.x, 6 - self.y)
     }
-
 }
 
 impl Mul for AutomorphismData {
@@ -287,19 +284,5 @@ mod tests {
             }),
             TwoBases::new(Pauli::X, Pauli::Z)
         );
-    }
-
-    // Check that the order of the automorphism generators is 6
-    #[test]
-    fn automorphism_order() {
-        let x1 = AutomorphismData { x: 1, y: 0 }.parity_map_gross();
-        assert_eq!(x1, x1.pow(7).map(|v| v % 2));
-        let y1 = AutomorphismData { x: 0, y: 1 }.parity_map_gross();
-        assert_eq!(y1, y1.pow(7).map(|v| v % 2));
-
-        let x1 = AutomorphismData { x: 1, y: 0 }.parity_map_disgusting();
-        assert_eq!(x1, x1.pow(7).map(|v| v % 2));
-        let y1 = AutomorphismData { x: 0, y: 1 }.parity_map_disgusting();
-        assert_eq!(y1, y1.pow(7).map(|v| v % 2));
     }
 }

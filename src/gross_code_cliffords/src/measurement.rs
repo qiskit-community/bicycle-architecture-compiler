@@ -232,4 +232,16 @@ mod tests {
             );
         }
     }
+
+    // Check that the order of the automorphism generators is 6
+    #[test]
+    fn automorphism_order() {
+        let (mx, my) = GrossCode.automorphism_generators();
+        assert_eq!(mx, mx.pow(7).map(|v| v % 2));
+        assert_eq!(my, my.pow(7).map(|v| v % 2));
+
+        let (mx, my) = TwoGrossCode.automorphism_generators();
+        assert_eq!(mx, mx.pow(7).map(|v| v % 2));
+        assert_eq!(my, my.pow(7).map(|v| v % 2));
+    }
 }

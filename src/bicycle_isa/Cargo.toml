@@ -6,6 +6,5 @@ authors.workspace = true
 description.workspace = true
 
 [dependencies]
-nalgebra = "0.33.2"
 rand = "0.9.0"
 serde = { version = "1.0.217", features = ["derive"] }

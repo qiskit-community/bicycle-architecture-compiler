@@ -3,13 +3,38 @@ use std::error::Error;
 use log::debug;
 
 use gross_code_cliffords::{
-    native_measurement::NativeMeasurement, GrossCode, MeasurementTableBuilder, PauliString,
+    native_measurement::NativeMeasurement, GrossCode, Measurement, MeasurementTableBuilder,
+    PauliString, TwoGrossCode,
 };
+
+use clap::{Parser, ValueEnum};
+
+#[derive(ValueEnum, Debug, Clone, Copy)]
+enum CodeChoice {
+    Gross,
+    TwoGross,
+}
+
+impl CodeChoice {
+    fn measurement(&self) -> Box<dyn Measurement> {
+        match self {
+            Self::Gross => Box::new(GrossCode),
+            Self::TwoGross => Box::new(TwoGrossCode),
+        }
+    }
+}
+
+#[derive(Parser, Debug)]
+struct Cli {
+    code: CodeChoice,
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    let mut table = MeasurementTableBuilder::new(NativeMeasurement::all(), Box::new(GrossCode));
+    let cli = Cli::parse();
+
+    let mut table = MeasurementTableBuilder::new(NativeMeasurement::all(), cli.code.measurement());
     table.build();
     let complete = table.complete()?;
     debug!("Done with finding costs");
