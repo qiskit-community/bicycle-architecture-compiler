@@ -12,44 +12,6 @@ use gross_code_cliffords::{CompleteMeasurementTable, PauliString};
 
 use BicycleISA::{JointMeasure, Measure, TGate};
 
-// Statically store a database to look up measurement implementations on the gross code
-// by sequences of native measurements.
-// Access is read-only and thread safe
-// static ABC: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
-//     caching_logic()
-//         .expect("(De)serializing and/or generating a new measurement table should succeed")
-// });
-
-// fn caching_logic() -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-//     let path = Path::new("tmp/measurement_table");
-//     try_deserialize(path).or_else(|_| try_create_cache(path))
-// }
-
-// fn try_deserialize(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-//     debug!("Attempting to deserialize measurement table");
-//     let read = std::fs::read(path)?;
-//     let table = bitcode::deserialize::<CompleteMeasurementTable>(&read)?;
-//     Ok(table)
-// }
-
-// fn try_create_cache(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-//     // Generate new cache file
-//     info!("Could not deserialize measurement table. Generating new table. This may take a while");
-//     let parent_path = path.parent().ok_or("Parent path does not exist")?;
-//     std::fs::create_dir_all(parent_path)?;
-//     let mut f = File::create(path).expect("Should be able to open the measurement_table file");
-//     let native_measurements = NativeMeasurement::all();
-//     let mut table = MeasurementTableBuilder::new(native_measurements, GROSS_MEASUREMENT);
-//     table.build();
-//     let table = table
-//         .complete()
-//         .expect("The measurement table should be complete");
-//     let serialized = bitcode::serialize(&table).expect("The table should be serializable");
-//     f.write_all(&serialized)
-//         .expect("The serialized table should be writable to the cache");
-//     Ok(table)
-// }
-
 /// Construct GHZ state on a path architecture from start to end
 fn ghz_meas(start: usize, blocks: usize) -> Vec<Operation> {
     assert!(blocks > 0);
