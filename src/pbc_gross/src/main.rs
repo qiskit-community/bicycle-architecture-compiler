@@ -1,6 +1,8 @@
 use std::{env, error, io};
 
-use gross_code_cliffords::{native_measurement::NativeMeasurement, MeasurementTableBuilder};
+use gross_code_cliffords::{
+    native_measurement::NativeMeasurement, MeasurementChoices, MeasurementTableBuilder,
+};
 use pbc_gross::language::{AnglePrecision, PbcOperation};
 
 use io::Write;
@@ -15,6 +17,8 @@ use serde_json::Deserializer;
 struct Cli {
     #[arg(short, long, default_value_t = AnglePrecision::lit("1e-9"))]
     accuracy: AnglePrecision,
+    #[arg(short, long)]
+    code: MeasurementChoices,
 }
 
 fn main() -> Result<(), Box<dyn error::Error>> {
@@ -26,7 +30,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let cli = Cli::parse();
 
-    let measurement_table = MeasurementTableBuilder::new(NativeMeasurement::all());
+    let mut builder =
+        MeasurementTableBuilder::new(NativeMeasurement::all(), cli.code.measurement());
+    builder.build();
+    let measurement_table = builder.complete()?;
 
     let reader = io::stdin().lock();
 
@@ -45,7 +52,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         return Ok(());
     };
 
-    let compiled = ops.map(|op| op.compile(&architecture, cli.accuracy));
+    let compiled = ops.map(|op| op.compile(&architecture, &measurement_table, cli.accuracy));
 
     let mut optimized_chunked_ops = optimize::remove_duplicate_measurements_chunked(compiled);
     let mut stdout = io::stdout();

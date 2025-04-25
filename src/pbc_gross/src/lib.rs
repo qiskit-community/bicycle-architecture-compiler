@@ -16,6 +16,9 @@ mod test {
     use crate::language::{AnglePrecision, PbcOperation};
 
     use super::*;
+    use gross_code_cliffords::{
+        native_measurement::NativeMeasurement, MeasurementTableBuilder, TWOGROSS_MEASUREMENT,
+    };
     use operation::Operations;
 
     #[test]
@@ -45,10 +48,21 @@ mod test {
         dbg!(&parsed);
         assert_eq!(1, parsed.len());
 
+        let mut builder =
+            MeasurementTableBuilder::new(NativeMeasurement::all(), TWOGROSS_MEASUREMENT);
+        builder.build();
+        let measurement_table = builder.complete()?;
+
         let architecture = PathArchitecture { data_blocks: 2 };
         let compiled: Vec<_> = parsed
             .into_iter()
-            .flat_map(|op| op.compile(&architecture, AnglePrecision::lit("1e-16")))
+            .flat_map(|op| {
+                op.compile(
+                    &architecture,
+                    &measurement_table,
+                    AnglePrecision::lit("1e-16"),
+                )
+            })
             .collect();
         let ops = Operations(compiled);
 

@@ -3,6 +3,7 @@ use std::fmt::Display;
 use bicycle_isa::Pauli;
 use fixed::types::I32F96;
 
+use gross_code_cliffords::CompleteMeasurementTable;
 use serde::{Deserialize, Serialize};
 
 use crate::{architecture::PathArchitecture, compile, operation::Operation};
@@ -34,16 +35,21 @@ impl PbcOperation {
     pub fn compile(
         &self,
         architecture: &PathArchitecture,
+        measurement_table: &CompleteMeasurementTable,
         accuracy: AnglePrecision,
     ) -> Vec<Operation> {
         match self {
             // TODO: use flip_result to flip the sign of measurements
             PbcOperation::Measurement { basis, .. } => {
-                compile::compile_measurement(architecture, basis.to_vec())
+                compile::compile_measurement(architecture, measurement_table, basis.to_vec())
             }
-            PbcOperation::Rotation { basis, angle } => {
-                compile::compile_rotation(architecture, basis.to_vec(), *angle, accuracy)
-            }
+            PbcOperation::Rotation { basis, angle } => compile::compile_rotation(
+                architecture,
+                measurement_table,
+                basis.to_vec(),
+                *angle,
+                accuracy,
+            ),
         }
     }
 

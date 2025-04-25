@@ -1,13 +1,5 @@
-use std::error::Error;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
-use std::sync::LazyLock;
-
 use bicycle_isa::{BicycleISA, Pauli, TGateData, TwoBases};
 use gross_code_cliffords::decomposition::NativeMeasurementImpl;
-use gross_code_cliffords::native_measurement::NativeMeasurement;
-use log::{debug, info};
 
 use crate::language::AnglePrecision;
 use crate::small_angle::SingleRotation;
@@ -16,47 +8,47 @@ use crate::{architecture::PathArchitecture, operation::Operation};
 use crate::basis_changer::BasisChanger;
 use crate::small_angle;
 
-use gross_code_cliffords::{CompleteMeasurementTable, MeasurementTableBuilder, PauliString};
+use gross_code_cliffords::{CompleteMeasurementTable, PauliString};
 
 use BicycleISA::{JointMeasure, Measure, TGate};
 
-/// Statically store a database to look up measurement implementations on the gross code
-/// by sequences of native measurements.
-/// Access is read-only and thread safe
-static MEASUREMENT_IMPLS: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
-    caching_logic()
-        .expect("(De)serializing and/or generating a new measurement table should succeed")
-});
+// Statically store a database to look up measurement implementations on the gross code
+// by sequences of native measurements.
+// Access is read-only and thread safe
+// static ABC: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
+//     caching_logic()
+//         .expect("(De)serializing and/or generating a new measurement table should succeed")
+// });
 
-fn caching_logic() -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-    let path = Path::new("tmp/measurement_table");
-    try_deserialize(path).or_else(|_| try_create_cache(path))
-}
+// fn caching_logic() -> Result<CompleteMeasurementTable, Box<dyn Error>> {
+//     let path = Path::new("tmp/measurement_table");
+//     try_deserialize(path).or_else(|_| try_create_cache(path))
+// }
 
-fn try_deserialize(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-    debug!("Attempting to deserialize measurement table");
-    let read = std::fs::read(path)?;
-    let table = bitcode::deserialize::<CompleteMeasurementTable>(&read)?;
-    Ok(table)
-}
+// fn try_deserialize(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
+//     debug!("Attempting to deserialize measurement table");
+//     let read = std::fs::read(path)?;
+//     let table = bitcode::deserialize::<CompleteMeasurementTable>(&read)?;
+//     Ok(table)
+// }
 
-fn try_create_cache(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-    // Generate new cache file
-    info!("Could not deserialize measurement table. Generating new table. This may take a while");
-    let parent_path = path.parent().ok_or("Parent path does not exist")?;
-    std::fs::create_dir_all(parent_path)?;
-    let mut f = File::create(path).expect("Should be able to open the measurement_table file");
-    let native_measurements = NativeMeasurement::all();
-    let mut table = MeasurementTableBuilder::new(native_measurements);
-    table.build();
-    let table = table
-        .complete()
-        .expect("The measurement table should be complete");
-    let serialized = bitcode::serialize(&table).expect("The table should be serializable");
-    f.write_all(&serialized)
-        .expect("The serialized table should be writable to the cache");
-    Ok(table)
-}
+// fn try_create_cache(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
+//     // Generate new cache file
+//     info!("Could not deserialize measurement table. Generating new table. This may take a while");
+//     let parent_path = path.parent().ok_or("Parent path does not exist")?;
+//     std::fs::create_dir_all(parent_path)?;
+//     let mut f = File::create(path).expect("Should be able to open the measurement_table file");
+//     let native_measurements = NativeMeasurement::all();
+//     let mut table = MeasurementTableBuilder::new(native_measurements, GROSS_MEASUREMENT);
+//     table.build();
+//     let table = table
+//         .complete()
+//         .expect("The measurement table should be complete");
+//     let serialized = bitcode::serialize(&table).expect("The table should be serializable");
+//     f.write_all(&serialized)
+//         .expect("The serialized table should be writable to the cache");
+//     Ok(table)
+// }
 
 /// Construct GHZ state on a path architecture from start to end
 fn ghz_meas(start: usize, blocks: usize) -> Vec<Operation> {
@@ -132,7 +124,11 @@ impl BlockBases {
 }
 
 /// Compile a Pauli measurement to ISA instructions
-pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -> Vec<Operation> {
+pub fn compile_measurement(
+    architecture: &PathArchitecture,
+    measurement_table: &CompleteMeasurementTable,
+    basis: Vec<Pauli>,
+) -> Vec<Operation> {
     let mut ops: Vec<Operation> = vec![];
     let n = architecture.data_blocks();
 
@@ -150,7 +146,7 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
             let mut ps = vec![Pauli::I];
             ps.extend_from_slice(paulis);
             let p: PauliString = (&ps[..]).try_into().unwrap();
-            let meas_impl = MEASUREMENT_IMPLS.min_data(p);
+            let meas_impl = measurement_table.min_data(p);
 
             // Y |-> p_pivot.
             let p_pivot = meas_impl.measures().get_pauli(0);
@@ -238,6 +234,7 @@ pub fn compile_measurement(architecture: &PathArchitecture, basis: Vec<Pauli>) -
 /// Compile a Pauli rotation of some rational angle to Operations
 pub fn compile_rotation(
     architecture: &PathArchitecture,
+    measurement_table: &CompleteMeasurementTable,
     basis: Vec<Pauli>,
     angle: AnglePrecision,
     accuracy: AnglePrecision,
@@ -260,7 +257,7 @@ pub fn compile_rotation(
             let mut ps = vec![Pauli::I];
             ps.extend_from_slice(paulis);
             let p: PauliString = (&ps[..]).try_into().unwrap();
-            let meas_impl = MEASUREMENT_IMPLS.min_data(p);
+            let meas_impl = measurement_table.min_data(p);
 
             let p_pivot = meas_impl.measures().get_pauli(0);
 
@@ -273,7 +270,7 @@ pub fn compile_rotation(
                 select_basis_change(Pauli::X, p_pivot)
             };
 
-            (Some(MEASUREMENT_IMPLS.min_data(p)), (changer))
+            (Some(measurement_table.min_data(p)), (changer))
         }
     });
     let (meas_impls, basis_changes): (Vec<_>, Vec<_>) = block_instrs.unzip();
@@ -390,6 +387,12 @@ mod tests {
         LazyLock::new(|| AnglePrecision::PI / AnglePrecision::lit("4.0"));
     const ACCURACY: AnglePrecision = AnglePrecision::lit("1e-10");
 
+    static GROSS_TABLE: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
+        let mut builder = MeasurementTableBuilder::new(NativeMeasurement::all(), GROSS_MEASUREMENT);
+        builder.build();
+        builder.complete().expect("Table building should succeed")
+    });
+
     /// Convert a native measurement to a list of Operations
     fn native_instructions(
         block: usize,
@@ -402,7 +405,10 @@ mod tests {
             .collect()
     }
 
-    fn find_random_native_measurement(pivot_basis: Pauli) -> NativeMeasurementImpl {
+    fn find_random_native_measurement(
+        measurement_table: &CompleteMeasurementTable,
+        pivot_basis: Pauli,
+    ) -> NativeMeasurementImpl {
         let mut native_measurements = vec![];
         for i in 1..4_usize.pow(11) {
             let mut bits = i;
@@ -424,9 +430,9 @@ mod tests {
                 .try_into()
                 .unwrap();
             let p: PauliString = (&pauli_arr).into();
-            assert_eq!(pauli_arr, <[Pauli; 12]>::from(&p));
+            assert_eq!(pauli_arr, <[Pauli; 12]>::from(p));
 
-            let meas_impl = MEASUREMENT_IMPLS.implementation(p);
+            let meas_impl = measurement_table.implementation(p);
             if meas_impl.rotations().is_empty() {
                 native_measurements.push(*meas_impl.base_measurement());
             }
@@ -435,22 +441,22 @@ mod tests {
         *native_measurements.choose(&mut rand::rng()).unwrap()
     }
 
-    #[allow(dead_code)]
-    fn find_native_gates() {
-        for i in 1..4_u32.pow(11) {
-            let x = (i << 1) | 1; // Set X_0
-            let p: PauliString = PauliString(x);
-            let meas_impl = MEASUREMENT_IMPLS.implementation(p);
+    // #[allow(dead_code)]
+    // fn find_native_gates() {
+    //     for i in 1..4_u32.pow(11) {
+    //         let x = (i << 1) | 1; // Set X_0
+    //         let p: PauliString = PauliString(x);
+    //         let meas_impl = MEASUREMENT_IMPLS.implementation(p);
 
-            let x_bits = p.0 & ((1 << 12) - 1);
-            let z_bits = (p.0 & !((1 << 12) - 1)) >> 12;
-            let any_bits = x_bits | z_bits;
+    //         let x_bits = p.0 & ((1 << 12) - 1);
+    //         let z_bits = (p.0 & !((1 << 12) - 1)) >> 12;
+    //         let any_bits = x_bits | z_bits;
 
-            if meas_impl.rotations().is_empty() && any_bits.count_ones() == 1 {
-                println!("{}", p);
-            }
-        }
-    }
+    //         if meas_impl.rotations().is_empty() && any_bits.count_ones() == 1 {
+    //             println!("{}", p);
+    //         }
+    //     }
+    // }
 
     /// Generate random non-trivial PauliStrings acting on 11 qubits
     fn random_nontrivial_paulistrings() -> impl Iterator<Item = PauliString> {
@@ -458,14 +464,6 @@ mod tests {
             .sample_iter(rand::rng())
             .map(|p: PauliString| p.zero_pivot())
             .filter(|p| p.0 != 0)
-    }
-
-    #[test]
-    fn measurement_impls_loading() {
-        let p = PauliString(0b11);
-        let impl1 = MEASUREMENT_IMPLS.implementation(p);
-        let impl2 = MEASUREMENT_IMPLS.implementation(p);
-        assert_eq!(impl1, impl2);
     }
 
     #[test]
@@ -532,10 +530,10 @@ mod tests {
         #[test]
         fn compile_native_joint_measurement() -> Result<(), Box<dyn Error>> {
             let arch = PathArchitecture { data_blocks: 2 };
-            let meas0 = find_random_native_measurement(Y);
-            let basis0: [Pauli; 12] = (&meas0.measures()).into();
-            let meas1 = find_random_native_measurement(Y);
-            let basis1: [Pauli; 12] = (&meas1.measures()).into();
+            let meas0 = find_random_native_measurement(&GROSS_TABLE, Y);
+            let basis0: [Pauli; 12] = meas0.measures().into();
+            let meas1 = find_random_native_measurement(&GROSS_TABLE, Y);
+            let basis1: [Pauli; 12] = meas1.measures().into();
             // Drop pivots
             let basis: Vec<Pauli> = basis0[1..]
                 .iter()
@@ -543,7 +541,7 @@ mod tests {
                 .copied()
                 .collect();
 
-            let ops = Operations(compile_measurement(&arch, basis));
+            let ops = Operations(compile_measurement(&arch, &GROSS_TABLE, basis));
             println!("Compiled: {}", ops);
 
             // One joint operation
@@ -577,8 +575,7 @@ mod tests {
                 };
                 // Requires 1 rotation
                 let ps: Vec<_> = random_nontrivial_paulistrings().take(blocks).collect();
-                let implementations: Vec<_> =
-                    ps.iter().map(|p| MEASUREMENT_IMPLS.min_data(*p)).collect();
+                let implementations: Vec<_> = ps.iter().map(|p| GROSS_TABLE.min_data(*p)).collect();
                 let change_bases: Vec<_> = implementations
                     .iter()
                     .map(|meas_impl| {
@@ -589,12 +586,12 @@ mod tests {
                     .collect();
                 let block_basis = BlockBases(change_bases);
                 let basis: Vec<Pauli> = ps
-                    .iter()
+                    .into_iter()
                     // Drop the pivot Pauli
                     .flat_map(|p| <[Pauli; 12]>::from(p).into_iter().skip(1))
                     .collect();
 
-                let ops = Operations(compile_measurement(&arch, basis));
+                let ops = Operations(compile_measurement(&arch, &GROSS_TABLE, basis));
                 println!("Compiled: {}", ops);
 
                 let mut expected: Vec<Operation> = vec![];
@@ -671,13 +668,19 @@ mod tests {
         #[test]
         fn compile_native_rotation() -> Result<(), Box<dyn Error>> {
             let arch = PathArchitecture { data_blocks: 1 };
-            let meas = find_random_native_measurement(Pauli::X);
+            let meas = find_random_native_measurement(&GROSS_TABLE, Pauli::X);
 
-            let ps: [Pauli; 12] = (&meas.measures()).into();
+            let ps: [Pauli; 12] = meas.measures().into();
             let basis: Vec<Pauli> = ps[1..].to_vec();
             dbg!(&basis);
 
-            let ops = Operations(compile_rotation(&arch, basis, *CLIFF_ANGLE, ACCURACY));
+            let ops = Operations(compile_rotation(
+                &arch,
+                &GROSS_TABLE,
+                basis,
+                *CLIFF_ANGLE,
+                ACCURACY,
+            ));
             println!("Compiled: {}", ops);
 
             let mut expected: Vec<_> = prep(1).collect();
@@ -702,8 +705,7 @@ mod tests {
                     data_blocks: blocks,
                 };
                 let ps: Vec<_> = random_nontrivial_paulistrings().take(blocks).collect();
-                let implementations: Vec<_> =
-                    ps.iter().map(|p| MEASUREMENT_IMPLS.min_data(*p)).collect();
+                let implementations: Vec<_> = ps.iter().map(|p| GROSS_TABLE.min_data(*p)).collect();
                 let block_bases: Vec<_> = implementations
                     .iter()
                     .enumerate()
@@ -719,12 +721,18 @@ mod tests {
                 let block_basis = BlockBases(block_bases);
 
                 let basis: Vec<Pauli> = ps
-                    .iter()
+                    .into_iter()
                     // Drop the pivot Pauli
                     .flat_map(|p| <[Pauli; 12]>::from(p).into_iter().skip(1))
                     .collect();
 
-                let ops = Operations(compile_rotation(&arch, basis, *CLIFF_ANGLE, ACCURACY));
+                let ops = Operations(compile_rotation(
+                    &arch,
+                    &GROSS_TABLE,
+                    basis,
+                    *CLIFF_ANGLE,
+                    ACCURACY,
+                ));
                 println!("Compiled: {}", ops);
 
                 let mut expected: Vec<Operation> = vec![];
