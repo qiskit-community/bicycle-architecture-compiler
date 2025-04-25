@@ -17,7 +17,6 @@ use serde_json::Deserializer;
 struct Cli {
     #[arg(short, long, default_value_t = AnglePrecision::lit("1e-9"))]
     accuracy: AnglePrecision,
-    #[arg(short, long)]
     code: MeasurementChoices,
 }
 

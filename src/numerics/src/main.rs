@@ -184,8 +184,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Stop when error exceeds 1/3 or iterations gets too large
     let max_error = 1. / 3.;
     let max_iter = 10_usize.pow(6);
-    let short_data =
-        output_data.take_while(|data| data.total_error <= max_error && data.i <= max_iter);
+    let short_data = output_data
+        // Output at least one line.
+        .take_while(|data| data.i == 1 || (data.total_error <= max_error && data.i <= max_iter));
 
     let mut outputs = short_data.map(|data| Output::new(cli.model, data));
     let mut wtr = csv::Writer::from_writer(io::stdout());
