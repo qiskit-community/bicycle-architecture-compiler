@@ -7,6 +7,7 @@ description.workspace = true
 
 [dependencies]
 fixed = "1.29.0"
+bicycle_isa = { path = "../bicycle_isa" }
 pbc_gross = { path = "../pbc_gross" }
 benchmark = { path = "../benchmark" }
 numerics = { path = "../numerics" }

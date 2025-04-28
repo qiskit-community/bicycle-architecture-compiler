@@ -9,9 +9,7 @@ models=("gross 1e-3 121" "gross 1e-3 1353" "gross 1e-3 13728" \
 for i in "${models[@]}"
 do
     set -- $i
-    cargo run --release --package benchmark $3 | \
-        cargo run --release --package pbc_gross $1 | \
-        cargo run --release --package numerics $3 "$1_$2" \
+    cargo run --release --package random_numerics -- --model $1 --noise $2 --qubits $3 \
         > "out_$1_$2_$3.csv" &
 done
 wait

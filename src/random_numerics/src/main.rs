@@ -1,11 +1,13 @@
 use std::{env, error::Error, io};
 
+use bicycle_isa::{BicycleISA, Pauli, TwoBases};
+use fixed::traits::LosslessTryInto;
 use gross_code_cliffords::{
     native_measurement::NativeMeasurement, MeasurementChoices, MeasurementTableBuilder,
 };
 use log::{debug, trace};
 use numerics::{
-    model::{GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
+    model::{ErrorPrecision, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
     OutputData,
 };
 
@@ -78,8 +80,8 @@ struct Cli {
     max_error: f64,
     #[arg(short = 'i', long, default_value_t = 10_usize.pow(6))]
     max_iter: usize,
-    #[arg(short, long, default_value_t = AnglePrecision::lit("1e-9"))]
-    accuracy: AnglePrecision,
+    #[arg(short, long)]
+    accuracy: Option<AnglePrecision>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -90,13 +92,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     let cli = Cli::parse();
-    trace!("Number of qubits: {}", cli.qubits);
+    trace!("Cli arguments: {:?}", cli);
     let model = match (cli.model, cli.noise) {
         (MeasurementChoices::Gross, ErrorRate::E3) => GROSS_1E3,
         (MeasurementChoices::Gross, ErrorRate::E4) => GROSS_1E4,
         (MeasurementChoices::TwoGross, ErrorRate::E3) => TWO_GROSS_1E3,
         (MeasurementChoices::TwoGross, ErrorRate::E4) => TWO_GROSS_1E4,
     };
+
+    // Set the small-angle synthesis accuracy to same order of magnitude as in-module measurement.
+    let measurement_error: ErrorPrecision = model.instruction_error(&BicycleISA::Measure(
+        TwoBases::new(Pauli::X, Pauli::Z).unwrap(),
+    ));
+    let unsigned_measurement_error: AnglePrecision = measurement_error.lossless_try_into().unwrap();
+    let angle_precision: AnglePrecision = cli.accuracy.unwrap_or(unsigned_measurement_error);
+    debug!("Set angle precision: {angle_precision:?}");
 
     let random_ops = benchmark::random::random_measurements(cli.qubits);
 
@@ -106,7 +116,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let measurement_table = builder.complete()?;
 
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
-    let compiled = random_ops.map(|op| op.compile(&architecture, &measurement_table, cli.accuracy));
+    let compiled =
+        random_ops.map(|op| op.compile(&architecture, &measurement_table, angle_precision));
     let optimized_chunked_ops =
         pbc_gross::optimize::remove_duplicate_measurements_chunked(compiled);
 
