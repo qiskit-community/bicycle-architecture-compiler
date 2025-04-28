@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use bicycle_isa::{AutomorphismData, Pauli};
 use nalgebra::{matrix, stack, SMatrix, Vector6};
@@ -100,6 +100,15 @@ impl MeasurementChoices {
         match self {
             Self::Gross => GROSS_MEASUREMENT,
             Self::TwoGross => TWOGROSS_MEASUREMENT,
+        }
+    }
+}
+
+impl Display for MeasurementChoices {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Gross => write!(f, "gross"),
+            Self::TwoGross => write!(f, "two-gross"),
         }
     }
 }

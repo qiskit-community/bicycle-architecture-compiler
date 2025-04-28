@@ -1,5 +1,4 @@
 use bicycle_isa::BicycleISA;
-use clap::ValueEnum;
 use fixed::types::U32F96;
 
 // Because we need to support precision up to 10^-20,
@@ -85,29 +84,6 @@ impl ErrorModel {
 
     pub fn idling_error(&self, cycles: u64, idle_cycles: u64) -> ErrorPrecision {
         (cycles.div_ceil(idle_cycles) as u128) * self.idle
-    }
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
-pub enum ModelChoices {
-    #[clap(name = "gross_1e-3")]
-    Gross1e3,
-    #[clap(name = "gross_1e-4")]
-    Gross1e4,
-    #[clap(name = "two-gross_1e-3")]
-    TwoGross1e3,
-    #[clap(name = "two-gross_1e-4")]
-    TwoGross1e4,
-}
-
-impl ModelChoices {
-    pub fn model(self) -> Model {
-        match self {
-            Self::Gross1e3 => GROSS_1E3,
-            Self::Gross1e4 => GROSS_1E4,
-            Self::TwoGross1e3 => TWO_GROSS_1E3,
-            Self::TwoGross1e4 => TWO_GROSS_1E4,
-        }
     }
 }
 

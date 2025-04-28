@@ -1,124 +1,37 @@
 use std::{env, error::Error, io};
 
-use bicycle_isa::BicycleISA;
-use clap::Parser;
 use log::{debug, trace};
-use model::{Model, ModelChoices};
-use pbc_gross::{operation::Operation, PathArchitecture};
+use numerics::{
+    model::{Model, ModelChoices, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
+    OutputData,
+};
+
+use clap::{Parser, ValueEnum};
+use pbc_gross::operation::Operation;
 use serde::{Deserialize, Serialize};
 use serde_json::Deserializer;
 
-pub mod model;
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-struct IsaCounter {
-    t_injs: u64,
-    automorphisms: u64,
-    measurements: u64,
-    joint_measurements: u64,
+#[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
+enum ModelChoices {
+    #[clap(name = "gross_1e-3")]
+    Gross1e3,
+    #[clap(name = "gross_1e-4")]
+    Gross1e4,
+    #[clap(name = "two-gross_1e-3")]
+    TwoGross1e3,
+    #[clap(name = "two-gross_1e-4")]
+    TwoGross1e4,
 }
 
-impl IsaCounter {
-    fn add(&mut self, instr: &BicycleISA) {
-        match instr {
-            BicycleISA::TGate(_) => {
-                self.t_injs += 1;
-                self.measurements += 1;
-            }
-            BicycleISA::Automorphism(_) => self.automorphisms += 1,
-            BicycleISA::Measure(_) => self.measurements += 1,
-            BicycleISA::JointMeasure(_) => self.joint_measurements += 1,
-            _ => unreachable!("There should not be any other instructions, {}", instr),
+impl ModelChoices {
+    fn model(self) -> Model {
+        match self {
+            Self::Gross1e3 => GROSS_1E3,
+            Self::Gross1e4 => GROSS_1E4,
+            Self::TwoGross1e3 => TWO_GROSS_1E3,
+            Self::TwoGross1e4 => TWO_GROSS_1E4,
         }
     }
-}
-
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-struct OutputData {
-    i: usize,
-    qubits: usize,
-    t_injs: u64,
-    automorphisms: u64,
-    measurements: u64,
-    joint_measurements: u64,
-    measurement_depth: u64,
-    end_time: u64,
-    total_error: f64,
-}
-
-fn numerics(
-    chunked_ops: impl Iterator<Item = Vec<Operation>>,
-    architecture: PathArchitecture,
-    model: Model,
-) -> impl Iterator<Item = OutputData> {
-    let data_blocks = architecture.data_blocks();
-    let qubits = architecture.qubits();
-
-    let mut depths: Vec<u64> = vec![0; data_blocks];
-    let mut times: Vec<u64> = vec![0; data_blocks];
-    let mut total_error = model::ErrorPrecision::ZERO;
-    chunked_ops.enumerate().map(move |(i, ops)| {
-        let mut counter: IsaCounter = Default::default();
-        // Accumulate counts. Or use a fold.
-        ops.iter().for_each(|instr| counter.add(&instr[0].1));
-
-        // Compute the new depths and timing for each block
-        for op in ops {
-            // Find the max depth/time between blocks
-            let mut max_depth = 0;
-            let mut max_time = 0;
-            for (block_i, _) in op.iter() {
-                max_depth = max_depth.max(depths[*block_i]);
-                max_time = max_time.max(times[*block_i]);
-            }
-
-            for (block_i, instr) in op.iter() {
-                depths[*block_i] = max_depth;
-                match instr {
-                    BicycleISA::Measure(_) | BicycleISA::JointMeasure(_) => {
-                        depths[*block_i] = max_depth + 1
-                    }
-                    _ => depths[*block_i] = max_depth,
-                }
-
-                // Insert idling noise
-                let time_diff = max_time - times[*block_i];
-                total_error += model.idling_error(time_diff);
-
-                times[*block_i] = max_time + model.timing(instr);
-            }
-
-            // Update error rate once per op
-            let (_, instr) = &op[0];
-            total_error += model.instruction_error(instr);
-        }
-
-        // Calculate the max depth currently
-        let measurement_depth = depths.iter().max().unwrap();
-        let end_time = times.iter().max().unwrap();
-
-        OutputData {
-            i: i + 1,
-            qubits,
-            t_injs: counter.t_injs,
-            automorphisms: counter.automorphisms,
-            measurements: counter.measurements,
-            joint_measurements: counter.joint_measurements,
-            measurement_depth: *measurement_depth,
-            end_time: *end_time,
-            total_error: total_error.to_num(),
-        }
-    })
-}
-
-#[derive(Parser, Debug)]
-struct Cli {
-    qubits: usize,
-    model: ModelChoices,
-    #[arg(short = 'e', long, default_value_t = 1.0/3.0)]
-    max_error: f64,
-    #[arg(short = 'i', long, default_value_t = 10_u64.pow(6))]
-    max_iter: u64,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -161,6 +74,16 @@ impl Output {
     }
 }
 
+#[derive(Parser, Debug)]
+struct Cli {
+    qubits: usize,
+    model: ModelChoices,
+    #[arg(short = 'e', long, default_value_t = 1.0/3.0)]
+    max_error: f64,
+    #[arg(short = 'i', long, default_value_t = 10_usize.pow(6))]
+    max_iter: usize,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // By default log INFO.
     if env::var("RUST_LOG").is_err() {
@@ -181,14 +104,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
 
-    let output_data = numerics(ops, architecture, model);
+    let output_data = numerics::run_numerics(ops, architecture, model);
 
     // Stop when error exceeds 1/3 or iterations gets too large
-    let max_iter = 10_usize.pow(6);
     let short_data = output_data
         // Output at least one line.
         .take_while(|data| {
-            data.i == 1 || (data.total_error <= cli.max_error && data.i <= max_iter)
+            data.i == 1 || (data.total_error <= cli.max_error && data.i <= cli.max_iter)
         });
 
     let mut outputs = short_data.map(|data| Output::new(cli.model, data));
