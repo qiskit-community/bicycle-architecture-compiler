@@ -115,8 +115,10 @@ fn numerics(
 struct Cli {
     qubits: usize,
     model: ModelChoices,
-    #[arg(short = 'e',long,default_value_t = 1.0/3.0)]
+    #[arg(short = 'e', long, default_value_t = 1.0/3.0)]
     max_error: f64,
+    #[arg(short = 'i', long, default_value_t = 10_u64.pow(6))]
+    max_iter: u64,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -182,11 +184,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let output_data = numerics(ops, architecture, model);
 
     // Stop when error exceeds 1/3 or iterations gets too large
-    let max_error = 1. / 3.;
     let max_iter = 10_usize.pow(6);
     let short_data = output_data
         // Output at least one line.
-        .take_while(|data| data.i == 1 || (data.total_error <= max_error && data.i <= max_iter));
+        .take_while(|data| {
+            data.i == 1 || (data.total_error <= cli.max_error && data.i <= max_iter)
+        });
 
     let mut outputs = short_data.map(|data| Output::new(cli.model, data));
     let mut wtr = csv::Writer::from_writer(io::stdout());
