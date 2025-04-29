@@ -1,9 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-models=("gross 1e-3 121" "gross 1e-3 1353" "gross 1e-3 13728" \
+models=("gross 1e-3 121" "gross 1e-3 1353" \
+# "gross 1e-3 13728" \
     "gross 1e-4 110" "gross 1e-4 1342" "gross 1e-4 13717" \
-    "two-gross 1e-3 55" "two-gross 1e-3 704" "two-gross 1e-3 7150" \
+    "two-gross 1e-3 55" "two-gross 1e-3 704" \
+# "two-gross 1e-3 7150" \
     "two-gross 1e-4 440" "two-gross 1e-4 6886"    )
 
 for i in "${models[@]}"

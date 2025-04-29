@@ -1,6 +1,5 @@
 use bicycle_isa::BicycleISA;
 
-use log::{debug, trace};
 use model::Model;
 use pbc_gross::{operation::Operation, PathArchitecture};
 use serde::{Deserialize, Serialize};
