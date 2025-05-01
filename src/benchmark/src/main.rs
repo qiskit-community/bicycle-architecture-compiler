@@ -6,6 +6,7 @@ use std::{
 use log::debug;
 
 use clap::Parser;
+use pbc_gross::language::AnglePrecision;
 
 #[derive(Parser)]
 struct Cli {
@@ -17,7 +18,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let cli = Cli::parse();
     assert!(cli.qubits > 0);
-    let mut measurements = benchmark::random::random_measurements(cli.qubits);
+    let cliff_angle = AnglePrecision::PI / AnglePrecision::lit("4.0");
+    let mut measurements = benchmark::random::random_rotations(cli.qubits, cliff_angle);
 
     let mut stdout = io::stdout();
     // Stop on first error

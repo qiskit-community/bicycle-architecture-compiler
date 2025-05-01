@@ -108,7 +108,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let angle_precision: AnglePrecision = cli.accuracy.unwrap_or(unsigned_measurement_error);
     debug!("Set angle precision: {angle_precision:?}");
 
-    let random_ops = benchmark::random::random_measurements(cli.qubits);
+    let cliff_angle = AnglePrecision::PI / AnglePrecision::lit("4.0");
+    let random_ops = benchmark::random::random_rotations(cli.qubits, cliff_angle);
 
     let mut builder =
         MeasurementTableBuilder::new(NativeMeasurement::all(), cli.model.measurement());

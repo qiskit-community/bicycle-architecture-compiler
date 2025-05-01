@@ -2,7 +2,7 @@ use std::{env, error::Error, io};
 
 use log::{debug, trace};
 use numerics::{
-    model::{Model, ModelChoices, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
+    model::{Model, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
     OutputData,
 };
 
