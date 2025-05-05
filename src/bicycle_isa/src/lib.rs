@@ -190,12 +190,12 @@ pub struct TGateData {
 impl TGateData {
     pub fn new(basis: Pauli, primed: bool, adjoint: bool) -> Option<Self> {
         match basis {
-            Pauli::X | Pauli::Z => Some(TGateData {
+            Pauli::I => None,
+            Pauli::X | Pauli::Z | Pauli::Y => Some(TGateData {
                 basis,
                 primed,
                 adjoint,
             }),
-            _ => None,
         }
     }
 
