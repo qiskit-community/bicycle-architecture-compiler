@@ -1,10 +1,8 @@
-use std::{env, error::Error, io};
+use std::{env, error::Error, io, path::Path};
 
 use bicycle_isa::{BicycleISA, Pauli, TwoBases};
 use fixed::traits::LosslessTryInto;
-use gross_code_cliffords::{
-    native_measurement::NativeMeasurement, MeasurementChoices, MeasurementTableBuilder,
-};
+use gross_code_cliffords::{CompleteMeasurementTable, MeasurementChoices};
 use log::{debug, trace};
 use numerics::{
     model::{ErrorPrecision, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
@@ -80,6 +78,8 @@ struct Cli {
     max_error: f64,
     #[arg(short = 'i', long, default_value_t = 10_usize.pow(6))]
     max_iter: usize,
+    #[arg(long)]
+    measurement_table: String,
     #[arg(short, long)]
     accuracy: Option<AnglePrecision>,
 }
@@ -111,10 +111,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cliff_angle = AnglePrecision::PI / AnglePrecision::lit("4.0");
     let random_ops = benchmark::random::random_rotations(cli.qubits, cliff_angle);
 
-    let mut builder =
-        MeasurementTableBuilder::new(NativeMeasurement::all(), cli.model.measurement());
-    builder.build();
-    let measurement_table = builder.complete()?;
+    let cache_path = Path::new(&cli.measurement_table);
+    let read = std::fs::read(cache_path).expect("The measurement table file should be readable");
+    let measurement_table = bitcode::deserialize::<CompleteMeasurementTable>(&read)?;
 
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
     let compiled =

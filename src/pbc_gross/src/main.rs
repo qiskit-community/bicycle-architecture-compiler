@@ -1,23 +1,34 @@
-use std::{env, error, io};
+use std::{env, error, fs::File, io, path::Path};
 
 use gross_code_cliffords::{
-    native_measurement::NativeMeasurement, MeasurementChoices, MeasurementTableBuilder,
+    native_measurement::NativeMeasurement, CompleteMeasurementTable, MeasurementChoices,
+    MeasurementTableBuilder,
 };
 use pbc_gross::language::{AnglePrecision, PbcOperation};
 
 use io::Write;
 
-use clap::Parser;
-use log::debug;
+use clap::{Parser, Subcommand};
+use log::{debug, info};
 use pbc_gross::{optimize, PathArchitecture};
 use serde_json::Deserializer;
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[command(version, about, long_about=None)]
 struct Cli {
+    code: MeasurementChoices,
+    #[command(subcommand)]
+    commands: Option<Commands>,
+    #[arg(long)]
+    measurement_table: Option<String>,
     #[arg(short, long, default_value_t = AnglePrecision::lit("1e-9"))]
     accuracy: AnglePrecision,
-    code: MeasurementChoices,
+}
+
+/// Caching commands
+#[derive(Subcommand, Clone, PartialEq, Eq)]
+enum Commands {
+    Generate { measurement_table: String },
 }
 
 fn main() -> Result<(), Box<dyn error::Error>> {
@@ -29,10 +40,38 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let cli = Cli::parse();
 
-    let mut builder =
-        MeasurementTableBuilder::new(NativeMeasurement::all(), cli.code.measurement());
-    builder.build();
-    let measurement_table = builder.complete()?;
+    if let Some(Commands::Generate {
+        measurement_table: cache_str,
+    }) = cli.commands
+    {
+        info!("Generating measurement table, then exiting.");
+        let cache_path = Path::new(&cache_str);
+        let mut f =
+            File::create(cache_path).expect("Should be able to open the measurement_table file");
+
+        let mut builder =
+            MeasurementTableBuilder::new(NativeMeasurement::all(), cli.code.measurement());
+        builder.build();
+        let measurement_table = builder.complete()?;
+        let serialized =
+            bitcode::serialize(&measurement_table).expect("The table should be serializable");
+        f.write_all(&serialized)
+            .expect("The serialized table should be writable to the cache");
+        std::process::exit(1);
+    }
+
+    // Generate measurement table, from cache if given or otherwise from scratch
+    let measurement_table = if let Some(cache_str) = cli.measurement_table {
+        let cache_path = Path::new(&cache_str);
+        let read =
+            std::fs::read(cache_path).expect("The measurement table file should be readable");
+        bitcode::deserialize::<CompleteMeasurementTable>(&read)?
+    } else {
+        let mut builder =
+            MeasurementTableBuilder::new(NativeMeasurement::all(), cli.code.measurement());
+        builder.build();
+        builder.complete()?
+    };
 
     let reader = io::stdin().lock();
 
@@ -64,43 +103,3 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     Ok(())
 }
-
-// Could use the following to implement some kind of caching of measurement table.
-
-// Statically store a database to look up measurement implementations on the gross code
-// by sequences of native measurements.
-// Access is read-only and thread safe
-// static ABC: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
-//     caching_logic()
-//         .expect("(De)serializing and/or generating a new measurement table should succeed")
-// });
-
-// fn caching_logic() -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-//     let path = Path::new("tmp/measurement_table");
-//     try_deserialize(path).or_else(|_| try_create_cache(path))
-// }
-
-// fn try_deserialize(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-//     debug!("Attempting to deserialize measurement table");
-//     let read = std::fs::read(path)?;
-//     let table = bitcode::deserialize::<CompleteMeasurementTable>(&read)?;
-//     Ok(table)
-// }
-
-// fn try_create_cache(path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
-//     // Generate new cache file
-//     info!("Could not deserialize measurement table. Generating new table. This may take a while");
-//     let parent_path = path.parent().ok_or("Parent path does not exist")?;
-//     std::fs::create_dir_all(parent_path)?;
-//     let mut f = File::create(path).expect("Should be able to open the measurement_table file");
-//     let native_measurements = NativeMeasurement::all();
-//     let mut table = MeasurementTableBuilder::new(native_measurements, GROSS_MEASUREMENT);
-//     table.build();
-//     let table = table
-//         .complete()
-//         .expect("The measurement table should be complete");
-//     let serialized = bitcode::serialize(&table).expect("The table should be serializable");
-//     f.write_all(&serialized)
-//         .expect("The serialized table should be writable to the cache");
-//     Ok(table)
-// }
