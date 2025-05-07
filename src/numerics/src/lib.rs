@@ -7,10 +7,11 @@ use serde::{Deserialize, Serialize};
 pub mod model;
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct IsaCounter {
-    t_injs: u64,
-    automorphisms: u64,
-    measurements: u64,
-    joint_measurements: u64,
+    pub idles: u64,
+    pub t_injs: u64,
+    pub automorphisms: u64,
+    pub measurements: u64,
+    pub joint_measurements: u64,
 }
 
 impl IsaCounter {
@@ -32,6 +33,7 @@ impl IsaCounter {
 pub struct OutputData {
     pub i: usize,
     pub qubits: usize,
+    pub idles: u64,
     pub t_injs: u64,
     pub automorphisms: u64,
     pub measurements: u64,
@@ -78,7 +80,9 @@ pub fn run_numerics(
 
                 // Insert idling noise
                 let time_diff = max_time - times[*block_i];
-                total_error += model.idling_error(time_diff);
+                let (idle_cycles, idle_error) = model.idling_error(time_diff);
+                counter.idles += idle_cycles;
+                total_error += idle_error;
 
                 times[*block_i] = max_time + model.timing(instr);
             }
@@ -95,6 +99,7 @@ pub fn run_numerics(
         OutputData {
             i: i + 1,
             qubits,
+            idles: counter.idles,
             t_injs: counter.t_injs,
             automorphisms: counter.automorphisms,
             measurements: counter.measurements,

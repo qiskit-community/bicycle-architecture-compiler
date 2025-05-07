@@ -20,8 +20,8 @@ impl Model {
         self.error.instruction_error(instruction)
     }
 
-    pub fn idling_error(&self, cycles: u64) -> ErrorPrecision {
-        self.error.idling_error(cycles, self.timing.idle)
+    pub fn idling_error(&self, time: u64) -> (u64, ErrorPrecision) {
+        self.error.idling_error(time, self.timing.idle)
     }
 }
 
@@ -82,8 +82,10 @@ impl ErrorModel {
         }
     }
 
-    pub fn idling_error(&self, cycles: u64, idle_cycles: u64) -> ErrorPrecision {
-        (cycles.div_ceil(idle_cycles) as u128) * self.idle
+    pub fn idling_error(&self, time: u64, idle_cycles: u64) -> (u64, ErrorPrecision) {
+        let idle_cycles = time.div_ceil(idle_cycles);
+        let idle_error = (idle_cycles as u128) * self.idle;
+        (idle_cycles, idle_error)
     }
 }
 
