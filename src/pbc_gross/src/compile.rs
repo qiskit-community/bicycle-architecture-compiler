@@ -334,12 +334,17 @@ pub fn compile_rotation(
 #[cfg(test)]
 mod tests {
 
+    use std::sync::LazyLock;
+
     use crate::operation::Operations;
 
     use super::*;
 
     use bicycle_isa::Pauli::{I, X, Y, Z};
 
+    use gross_code_cliffords::{
+        native_measurement::NativeMeasurement, MeasurementTableBuilder, GROSS_MEASUREMENT,
+    };
     use rand::{
         distr::{Distribution, StandardUniform},
         seq::IndexedRandom,
@@ -472,6 +477,8 @@ mod tests {
     }
 
     mod measurement {
+
+        use std::error::Error;
 
         use super::*;
 
@@ -606,6 +613,8 @@ mod tests {
     }
 
     mod rotation {
+
+        use std::error::Error;
 
         use super::*;
 
