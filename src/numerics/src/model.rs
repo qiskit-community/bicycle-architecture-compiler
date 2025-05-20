@@ -39,7 +39,7 @@ impl TimingModel {
     pub fn timing(&self, instruction: &BicycleISA) -> u64 {
         match instruction {
             BicycleISA::TGate(_) => self.t_inj,
-            BicycleISA::Automorphism(_) => self.shift,
+            BicycleISA::Automorphism(_) => 2 * self.shift,
             BicycleISA::Measure(_) => self.inmodule,
             BicycleISA::JointMeasure(_) => self.intermodule,
             _ => unreachable!("Should not have instruction {}", instruction),
@@ -77,7 +77,7 @@ impl ErrorModel {
             BicycleISA::TGate(_) => self.t_inj,
             BicycleISA::Measure(_) => self.inmodule,
             BicycleISA::JointMeasure(_) => self.intermodule,
-            BicycleISA::Automorphism(_) => self.shift,
+            BicycleISA::Automorphism(_) => 2 * self.shift,
             _ => unreachable!("Should not have instruction {}", instruction),
         }
     }
