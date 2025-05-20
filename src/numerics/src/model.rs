@@ -91,44 +91,44 @@ impl ErrorModel {
 
 pub const GROSS_1E3: Model = Model {
     error: ErrorModel {
-        idle: ErrorPrecision::lit("1e-6"),
-        shift: ErrorPrecision::lit("1e-5"),
-        inmodule: ErrorPrecision::lit("1e-5"),
-        intermodule: ErrorPrecision::lit("1e-5"),
-        t_inj: ErrorPrecision::lit("1e-4"),
+        idle: ErrorPrecision::lit("9.1e-10"),
+        shift: ErrorPrecision::lit("2.1e-7"),
+        inmodule: ErrorPrecision::lit("2.5e-6"),
+        intermodule: ErrorPrecision::lit("1.4e-3"),
+        t_inj: ErrorPrecision::lit("1.4e-3"),
     },
     timing: GROSS_TIMING,
 };
 
 pub const GROSS_1E4: Model = Model {
     error: ErrorModel {
-        idle: ErrorPrecision::lit("1e-11"),
-        shift: ErrorPrecision::lit("1e-10"),
-        inmodule: ErrorPrecision::lit("1e-9"),
-        intermodule: ErrorPrecision::lit("1e-9"),
-        t_inj: ErrorPrecision::lit("1e-9"),
+        idle: ErrorPrecision::lit("4.8e-16"),
+        shift: ErrorPrecision::lit("3.3e-14"),
+        inmodule: ErrorPrecision::lit("3.3e-12"),
+        intermodule: ErrorPrecision::lit("7.1e-8"),
+        t_inj: ErrorPrecision::lit("1.1e-7"),
     },
     timing: GROSS_TIMING,
 };
 
 pub const TWO_GROSS_1E3: Model = Model {
     error: ErrorModel {
-        idle: ErrorPrecision::lit("1e-11"),
-        shift: ErrorPrecision::lit("1e-10"),
-        inmodule: ErrorPrecision::lit("1e-9"),
-        intermodule: ErrorPrecision::lit("1e-9"),
-        t_inj: ErrorPrecision::lit("1e-10"),
+        idle: ErrorPrecision::lit("1.8e-23"),
+        shift: ErrorPrecision::lit("2.0e-16"),
+        inmodule: ErrorPrecision::lit("1e-10"),
+        intermodule: ErrorPrecision::lit("1e-10"),
+        t_inj: ErrorPrecision::lit("2e-8"),
     },
     timing: TWO_GROSS_TIMING,
 };
 
 pub const TWO_GROSS_1E4: Model = Model {
     error: ErrorModel {
-        idle: ErrorPrecision::lit("1e-20"),
-        shift: ErrorPrecision::lit("1e-19"),
-        inmodule: ErrorPrecision::lit("1e-18"),
-        intermodule: ErrorPrecision::lit("1e-18"),
-        t_inj: ErrorPrecision::lit("1e-18"),
+        idle: ErrorPrecision::lit("1.5e-43"),
+        shift: ErrorPrecision::lit("3.2e-38"),
+        inmodule: ErrorPrecision::lit("1e-20"),
+        intermodule: ErrorPrecision::lit("1e-20"),
+        t_inj: ErrorPrecision::lit("1e-20"),
     },
     timing: TWO_GROSS_TIMING,
 };
