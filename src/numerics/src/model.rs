@@ -115,9 +115,9 @@ pub const TWO_GROSS_1E3: Model = Model {
     error: ErrorModel {
         idle: ErrorPrecision::lit("1.8e-23"),
         shift: ErrorPrecision::lit("2.0e-16"),
-        inmodule: ErrorPrecision::lit("1e-10"),
-        intermodule: ErrorPrecision::lit("1e-10"),
-        t_inj: ErrorPrecision::lit("2e-8"),
+        inmodule: ErrorPrecision::lit("1e-11"),
+        intermodule: ErrorPrecision::lit("1e-9"),
+        t_inj: ErrorPrecision::lit("2.1e-8"),
     },
     timing: TWO_GROSS_TIMING,
 };
@@ -127,8 +127,8 @@ pub const TWO_GROSS_1E4: Model = Model {
         idle: ErrorPrecision::lit("1.5e-43"),
         shift: ErrorPrecision::lit("3.2e-38"),
         inmodule: ErrorPrecision::lit("1e-20"),
-        intermodule: ErrorPrecision::lit("1e-20"),
-        t_inj: ErrorPrecision::lit("1e-20"),
+        intermodule: ErrorPrecision::lit("1e-18"),
+        t_inj: ErrorPrecision::lit("1e-18"),
     },
     timing: TWO_GROSS_TIMING,
 };
