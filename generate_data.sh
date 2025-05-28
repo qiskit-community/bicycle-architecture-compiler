@@ -13,6 +13,6 @@ parallel --colsep "," "./target/release/random_numerics --model {1} --noise {2} 
      :::: parameters.csv \
      ::: $(seq 1 10)
 
-echo "Data generation complete. Concatenating output."
+echo "Data generation complete. Concatenating output to 'data.csv'."
 awk '(NR == 1) || (FNR > 1)' out_*.csv > data.csv
 rm out_*.csv
