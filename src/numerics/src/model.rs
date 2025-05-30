@@ -47,21 +47,6 @@ impl TimingModel {
     }
 }
 
-const GROSS_TIMING: TimingModel = TimingModel {
-    idle: 8,
-    shift: 16,
-    inmodule: 101,
-    intermodule: 101,
-    t_inj: 100 + 102,
-};
-const TWO_GROSS_TIMING: TimingModel = TimingModel {
-    idle: 8,
-    shift: 16,
-    inmodule: 173,
-    intermodule: 173,
-    t_inj: 100 + 174,
-};
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 struct ErrorModel {
     idle: ErrorPrecision,
@@ -97,7 +82,13 @@ pub const GROSS_1E3: Model = Model {
         intermodule: ErrorPrecision::lit("1.4e-3"),
         t_inj: ErrorPrecision::lit("1.4e-3"),
     },
-    timing: GROSS_TIMING,
+    timing: TimingModel {
+        idle: 8,
+        shift: 12,
+        inmodule: 120,
+        intermodule: 120,
+        t_inj: 351 + 120,
+    },
 };
 
 pub const GROSS_1E4: Model = Model {
@@ -108,7 +99,13 @@ pub const GROSS_1E4: Model = Model {
         intermodule: ErrorPrecision::lit("7.1e-8"),
         t_inj: ErrorPrecision::lit("1.1e-7"),
     },
-    timing: GROSS_TIMING,
+    timing: TimingModel {
+        idle: 8,
+        shift: 12,
+        inmodule: 120,
+        intermodule: 120,
+        t_inj: 73 + 120,
+    },
 };
 
 pub const TWO_GROSS_1E3: Model = Model {
@@ -119,7 +116,13 @@ pub const TWO_GROSS_1E3: Model = Model {
         intermodule: ErrorPrecision::lit("1e-9"),
         t_inj: ErrorPrecision::lit("2.1e-8"),
     },
-    timing: TWO_GROSS_TIMING,
+    timing: TimingModel {
+        idle: 8,
+        shift: 12,
+        inmodule: 216,
+        intermodule: 216,
+        t_inj: 2167 + 216,
+    },
 };
 
 pub const TWO_GROSS_1E4: Model = Model {
@@ -130,5 +133,11 @@ pub const TWO_GROSS_1E4: Model = Model {
         intermodule: ErrorPrecision::lit("1e-18"),
         t_inj: ErrorPrecision::lit("1e-18"),
     },
-    timing: TWO_GROSS_TIMING,
+    timing: TimingModel {
+        idle: 8,
+        shift: 12,
+        inmodule: 216,
+        intermodule: 216,
+        t_inj: 407 + 216,
+    },
 };
