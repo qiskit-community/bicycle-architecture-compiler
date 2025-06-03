@@ -141,3 +141,20 @@ pub const TWO_GROSS_1E4: Model = Model {
         t_inj: 407 + 216,
     },
 };
+
+pub const FAKE_SLOW: Model = Model {
+    error: ErrorModel {
+        idle: ErrorPrecision::lit("0"),
+        shift: ErrorPrecision::lit("0"),
+        inmodule: ErrorPrecision::lit("0"),
+        intermodule: ErrorPrecision::lit("0"),
+        t_inj: ErrorPrecision::lit("0"),
+    },
+    timing: TimingModel {
+        idle: 8,
+        shift: 12,
+        inmodule: 216,
+        intermodule: 216,
+        t_inj: 2167 + 216,
+    },
+};

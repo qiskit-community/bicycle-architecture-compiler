@@ -76,7 +76,7 @@ struct Cli {
     noise: ErrorRate,
     #[arg(short = 'e', long, default_value_t = 1.0/3.0)]
     max_error: f64,
-    #[arg(short = 'i', long, default_value_t = 10_usize.pow(6))]
+    #[arg(short = 'i', long, default_value_t = 10_usize.pow(5))]
     max_iter: usize,
     #[arg(long)]
     measurement_table: String,

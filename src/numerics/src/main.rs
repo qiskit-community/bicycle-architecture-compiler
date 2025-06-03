@@ -2,7 +2,7 @@ use std::{env, error::Error, io};
 
 use log::{debug, trace};
 use numerics::{
-    model::{Model, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
+    model::{Model, FAKE_SLOW, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
     OutputData,
 };
 
@@ -21,6 +21,8 @@ enum ModelChoices {
     TwoGross1e3,
     #[clap(name = "two-gross_1e-4")]
     TwoGross1e4,
+    #[clap(name = "fake_slow")]
+    FakeSlow,
 }
 
 impl ModelChoices {
@@ -30,6 +32,7 @@ impl ModelChoices {
             Self::Gross1e4 => GROSS_1E4,
             Self::TwoGross1e3 => TWO_GROSS_1E3,
             Self::TwoGross1e4 => TWO_GROSS_1E4,
+            Self::FakeSlow => FAKE_SLOW,
         }
     }
 }
@@ -57,6 +60,7 @@ impl Output {
             ModelChoices::Gross1e4 => ("gross", 1e-4),
             ModelChoices::TwoGross1e3 => ("two-gross", 1e-3),
             ModelChoices::TwoGross1e4 => ("two-gross", 1e-4),
+            ModelChoices::FakeSlow => ("fake", 0.0),
         };
 
         Self {
