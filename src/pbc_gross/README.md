@@ -4,7 +4,30 @@ This is a compiler targeting the Gross code architecture
 for programs given in Pauli-based compilation (PBC) form.
 It consist of a Rust library and a main binary.
 
-## Input Program
+## Installation
+
+### Gridsynth
+For synthesizing rotations by angles other than $\pm\pi/4$,
+please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
+The following command should succeed
+```
+python -m pygridsynth 0.5 1e-3
+```
+and something like (the exact output may differ)
+```
+THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWWWWWWW
+```
+
+This can be achieved by setting a local virtual environment as follows
+```
+pyenv virtualenv pbc-gross
+pyenv local pbc-gross
+pip install "pygridsynth~=1.1"
+```
+
+## Usage
+
+### Input Program
 The input program must be in a PBC form.
 We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.11391890))
 ```json
@@ -20,14 +43,14 @@ All operations should act on the same number of logical qubits.
 Rotations are specified objections with a Rotation field and includes the basis and the rotation angle.
 Measurements are specified by objects with a Measurement field, and includes the basis, then whether the resulting measurement result should be flipped (currently not used).
 
-## Running the program
+### Running the program
 You can pipe a program of the above format into the binary by running
 
 ```
 cat example/simple.json | jq --compact-output '.[]' | cargo run --release
 ```
 
-## Output
+### Output
 
 The output looks like
 ```json
@@ -53,21 +76,23 @@ Within a line is a sequence of operations, that come either as single or paired 
 Each instruction has an associated block and operation.
 In particular, joint operations between blocks are paired as two instructions.
 
-## Gridsynth installation
-For synthesizing rotations by angles other than $\pm\pi/4$,
-please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
-The following command should succeed
-```
-python -m pygridsynth 0.5 1e-3
-```
-and something like (the exact output may differ)
-```
-THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWWWWWWW
-```
 
-This can be achieved by setting a local virtual environment as follows
+### Speeding up Clifford synthesis
+
+The PBC Gross compiler requires a lookup table on how to synthesize Clifford rotations,
+$e^{i \frac{\pi}{4} P}$ for $P$ a Pauli string on 12 qubits,
+and the package `gross_code_cliffords` produces one.
+Because this takes some time (about a minute on my laptop),
+there is an option to save the lookup table on disk.
 ```
-pyenv virtualenv pbc-gross
-pyenv local pbc-gross
-pip install "pygridsynth~=1.1"
+Usage: pbc_gross <CODE> generate <MEASUREMENT_TABLE>
 ```
+We select `<CODE>` from `gross` or `two-gross` and `<MEASUREMENT_TABLE>` is an output file.
+We can then use the measurement table to speed up compilation.
+For example:
+```
+./pbc_gross gross generate table_gross
+cat program.json | ./pbc_gross gross --measurement-table table_gross
+```
+Once you have created a measurement table, it can be reused as many times as you want (it is read-only).
+Note that changes to the contents of the table (i.e., in `gross_code_cliffords`) require regenerating the table.
