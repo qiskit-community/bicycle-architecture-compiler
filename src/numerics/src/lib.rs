@@ -1,5 +1,6 @@
 use bicycle_isa::BicycleISA;
 
+use log::trace;
 use model::Model;
 use pbc_gross::{operation::Operation, PathArchitecture};
 use serde::{Deserialize, Serialize};
@@ -16,16 +17,15 @@ struct IsaCounter {
 
 impl IsaCounter {
     fn add(&mut self, instr: &BicycleISA) {
+        trace!("Adding: {}", instr);
         match instr {
-            BicycleISA::TGate(_) => {
-                self.t_injs += 1;
-                self.measurements += 1;
-            }
+            BicycleISA::TGate(_) => self.t_injs += 1,
             BicycleISA::Automorphism(_) => self.automorphisms += 1,
             BicycleISA::Measure(_) => self.measurements += 1,
             BicycleISA::JointMeasure(_) => self.joint_measurements += 1,
             _ => unreachable!("There should not be any other instructions, {}", instr),
         }
+        trace!("Now at: {:?}", &self);
     }
 }
 
@@ -55,6 +55,7 @@ pub fn run_numerics(
     let mut times: Vec<u64> = vec![0; data_blocks];
     let mut total_error = model::ErrorPrecision::ZERO;
     chunked_ops.enumerate().map(move |(i, ops)| {
+        trace!("Ops: {:?}", ops);
         let mut counter: IsaCounter = Default::default();
         // Accumulate counts. Or use a fold.
         ops.iter().for_each(|instr| counter.add(&instr[0].1));
