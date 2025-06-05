@@ -20,7 +20,7 @@ impl IsaCounter {
         trace!("Adding: {}", instr);
         match instr {
             BicycleISA::TGate(_) => self.t_injs += 1,
-            BicycleISA::Automorphism(_) => self.automorphisms += 1,
+            BicycleISA::Automorphism(autdata) => self.automorphisms += autdata.nr_generators(),
             BicycleISA::Measure(_) => self.measurements += 1,
             BicycleISA::JointMeasure(_) => self.joint_measurements += 1,
             _ => unreachable!("There should not be any other instructions, {}", instr),

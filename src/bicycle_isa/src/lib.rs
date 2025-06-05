@@ -77,7 +77,6 @@ impl TryFrom<usize> for Pauli {
 
 /// Specify what automorphism to perform.
 /// Since each automorphism has order 6, the x and y parameters wrapped to be in {0,1,...,5}.
-/// TODO: Restrict to generators and implement a decomposition given x,y into at most two generators.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct AutomorphismData {
     x: u8,
@@ -95,6 +94,17 @@ impl AutomorphismData {
 
     pub fn get_y(&self) -> u8 {
         self.y
+    }
+
+    /// Calculate the number of automorphism generators necessary
+    /// to implement this automorphism group element
+    pub fn nr_generators(&self) -> u64 {
+        match (self.x, self.y) {
+            (0, 0) => 0,
+            (3, 3) => 1,
+            (3, _) | (_, 3) => 2,
+            _ => 1,
+        }
     }
 
     /// Compute the inverse automorphism
@@ -285,5 +295,14 @@ mod tests {
             }),
             TwoBases::new(Pauli::X, Pauli::Z)
         );
+    }
+
+    #[test]
+    fn automorphism_generators() {
+        assert_eq!(0, AutomorphismData::new(0, 0).nr_generators());
+        assert_eq!(1, AutomorphismData::new(3, 3).nr_generators());
+        assert_eq!(1, AutomorphismData::new(1, 8).nr_generators());
+        assert_eq!(2, AutomorphismData::new(3, 5).nr_generators());
+        assert_eq!(2, AutomorphismData::new(8, 3).nr_generators());
     }
 }
