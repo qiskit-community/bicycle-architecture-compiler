@@ -118,8 +118,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let architecture = pbc_gross::PathArchitecture::for_qubits(cli.qubits);
     let compiled =
         random_ops.map(|op| op.compile(&architecture, &measurement_table, angle_precision));
+    let optimized_auts = compiled.map(pbc_gross::optimize::remove_trivial_automorphisms);
     let optimized_chunked_ops =
-        pbc_gross::optimize::remove_duplicate_measurements_chunked(compiled);
+        pbc_gross::optimize::remove_duplicate_measurements_chunked(optimized_auts);
 
     let output_data = numerics::run_numerics(optimized_chunked_ops, architecture, model);
 

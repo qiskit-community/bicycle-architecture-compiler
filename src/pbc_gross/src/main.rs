@@ -92,7 +92,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let compiled = ops.map(|op| op.compile(&architecture, &measurement_table, cli.accuracy));
 
-    let mut optimized_chunked_ops = optimize::remove_duplicate_measurements_chunked(compiled);
+    let optimized_auts = compiled.map(optimize::remove_trivial_automorphisms);
+    let mut optimized_chunked_ops = optimize::remove_duplicate_measurements_chunked(optimized_auts);
     let mut stdout = io::stdout();
     // Stop on first error
     let err: Result<(), io::Error> = optimized_chunked_ops.try_for_each(|chunk| {

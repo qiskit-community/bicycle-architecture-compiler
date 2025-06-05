@@ -1,4 +1,4 @@
-use bicycle_isa::BicycleISA;
+use bicycle_isa::{AutomorphismData, BicycleISA};
 
 use crate::operation::Operation;
 
@@ -38,6 +38,16 @@ pub fn remove_duplicate_measurements_chunked(
     })
 }
 
+/// Remove automorphisms that apply a zero shift
+pub fn remove_trivial_automorphisms(
+    ops: impl IntoIterator<Item = Operation>,
+) -> impl Iterator<Item = Operation> {
+    ops.into_iter().filter(|op| match op[..] {
+        [(_, BicycleISA::Automorphism(autdata))] => autdata != AutomorphismData::new(0, 0),
+        _ => false,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use bicycle_isa::TwoBases;
@@ -63,5 +73,24 @@ mod tests {
         let res: Vec<_> = remove_duplicate_measurements(ops).collect();
         let expected = vec![vec![(3, meas)], vec![(0, meas)]];
         assert_eq!(expected, res);
+    }
+
+    #[test]
+    fn remove_trivial_auts() {
+        let nontrivial_aut = BicycleISA::Automorphism(AutomorphismData::new(3, 4));
+        let trivial_aut = BicycleISA::Automorphism(AutomorphismData::new(0, 0));
+        let ops = vec![
+            vec![(5, nontrivial_aut)],
+            vec![(2, trivial_aut)],
+            vec![(0, nontrivial_aut)],
+            vec![(0, trivial_aut)],
+        ];
+
+        let res: Vec<_> = remove_trivial_automorphisms(ops).collect();
+
+        assert_eq!(
+            res,
+            vec![vec![(5, nontrivial_aut)], vec![(0, nontrivial_aut)]]
+        );
     }
 }
