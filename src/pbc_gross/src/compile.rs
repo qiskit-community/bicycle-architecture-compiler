@@ -372,14 +372,15 @@ mod tests {
             .collect()
     }
 
-    fn find_random_native_measurement(
+    /// Find a random minimal implementation (as given by the measurement table) of a native measurement.
+    fn random_min_native_measurement(
         measurement_table: &CompleteMeasurementTable,
-        pivot_basis: Pauli,
     ) -> NativeMeasurementImpl {
         let mut native_measurements = vec![];
+        // Generate 4^11 Paulis
         for i in 1..4_usize.pow(11) {
             let mut bits = i;
-            let mut ps: Vec<Pauli> = vec![];
+            let mut ps: Vec<Pauli> = vec![Pauli::I];
             for _ in 0..11 {
                 let p_bits = bits & 3;
                 bits >>= 2;
@@ -389,17 +390,11 @@ mod tests {
                         .expect("Should be able to convert 2 bits to Pauli"),
                 );
             }
-            assert_eq!(11, ps.len());
 
-            let pauli_arr: [Pauli; 12] = std::iter::once(pivot_basis)
-                .chain(ps.into_iter())
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap();
+            let pauli_arr: [Pauli; 12] = ps.try_into().unwrap();
             let p: PauliString = (&pauli_arr).into();
-            assert_eq!(pauli_arr, <[Pauli; 12]>::from(p));
 
-            let meas_impl = measurement_table.implementation(p);
+            let meas_impl = measurement_table.min_data(p);
             if meas_impl.rotations().is_empty() {
                 native_measurements.push(*meas_impl.base_measurement());
             }
@@ -499,17 +494,20 @@ mod tests {
         #[test]
         fn compile_native_joint_measurement() -> Result<(), Box<dyn Error>> {
             let arch = PathArchitecture { data_blocks: 2 };
-            let meas0 = find_random_native_measurement(&GROSS_TABLE, Y);
+            let meas0 = random_min_native_measurement(&GROSS_TABLE);
             let basis0: [Pauli; 12] = meas0.measures().into();
-            let meas1 = find_random_native_measurement(&GROSS_TABLE, Y);
+            let basis_change0 = select_basis_change(Y, basis0[0]);
+            let meas1 = random_min_native_measurement(&GROSS_TABLE);
             let basis1: [Pauli; 12] = meas1.measures().into();
+            let basis_change1 = select_basis_change(Y, basis1[0]);
+            let block_bases = BlockBases(vec![basis_change0, basis_change1]);
+
             // Drop pivots
             let basis: Vec<Pauli> = basis0[1..]
                 .iter()
                 .chain(basis1[1..].iter())
                 .copied()
                 .collect();
-
             let ops = Operations(compile_measurement(&arch, &GROSS_TABLE, basis));
             println!("Compiled: {}", ops);
 
@@ -517,11 +515,18 @@ mod tests {
             let joint_ops: Vec<_> = ops.0.iter().filter(|op| op.len() == 2).collect();
             assert_eq!(1, joint_ops.len());
 
-            let mut expected: Vec<Operation> = prep().take(2).collect();
+            let mut expected: Vec<Operation> = prep()
+                .take(2)
+                .map(|o| block_bases.change_basis(o))
+                .collect();
             expected.append(&mut native_instructions(0, &meas0));
             expected.append(&mut native_instructions(1, &meas1));
-            expected.extend(ghz_meas(0, arch.data_blocks()));
-            expected.extend(unprep().take(2));
+            expected.extend(
+                ghz_meas(0, arch.data_blocks())
+                    .into_iter()
+                    .map(|o| block_bases.change_basis(o)),
+            );
+            expected.extend(unprep().take(2).map(|o| block_bases.change_basis(o)));
 
             let expected = Operations(expected);
 
@@ -639,9 +644,11 @@ mod tests {
         #[test]
         fn compile_native_rotation() -> Result<(), Box<dyn Error>> {
             let arch = PathArchitecture { data_blocks: 1 };
-            let meas = find_random_native_measurement(&GROSS_TABLE, Pauli::X);
+            let meas = random_min_native_measurement(&GROSS_TABLE);
 
             let ps: [Pauli; 12] = meas.measures().into();
+            let basis_change0 = select_basis_change(X, ps[0]);
+            let block_basis = BlockBases(vec![basis_change0]);
             let basis: Vec<Pauli> = ps[1..].to_vec();
             dbg!(&basis);
 
@@ -654,13 +661,13 @@ mod tests {
             ));
             println!("Compiled: {}", ops);
 
-            let mut expected: Vec<_> = prep(1).collect();
+            let mut expected: Vec<_> = prep(1).map(|o| block_basis.change_basis(o)).collect();
             expected.extend(meas.implementation().map(|isa| vec![(0, isa)]));
-            expected.push(vec![(
+            expected.push(block_basis.change_basis(vec![(
                 0,
                 TGate(TGateData::new(Pauli::X, false, false).unwrap()),
-            )]);
-            expected.extend(unprep(1));
+            )]));
+            expected.extend(unprep(1).map(|o| block_basis.change_basis(o)));
             let expected = Operations(expected);
             println!("Expected: {}", expected);
 
