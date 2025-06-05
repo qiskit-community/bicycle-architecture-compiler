@@ -47,8 +47,11 @@ Measurements are specified by objects with a Measurement field, and includes the
 You can pipe a program of the above format into the binary by running
 
 ```
-cat example/simple.json | jq --compact-output '.[]' | cargo run --release
+cat example/simple.json | jq --compact-output '.[]' | cargo run --release -- gross
 ```
+
+This may take a while because a Clifford synthesis table will be built in-memory.
+See below on how to speed this up.
 
 ### Output
 
