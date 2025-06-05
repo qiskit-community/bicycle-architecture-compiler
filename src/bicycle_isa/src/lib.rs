@@ -77,6 +77,7 @@ impl TryFrom<usize> for Pauli {
 
 /// Specify what automorphism to perform.
 /// Since each automorphism has order 6, the x and y parameters wrapped to be in {0,1,...,5}.
+/// TODO: Restrict to generators and implement a decomposition given x,y into at most two generators.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct AutomorphismData {
     x: u8,
@@ -179,12 +180,12 @@ impl Distribution<TwoBases> for StandardUniform {
     }
 }
 
-/// Store what kind of T gate is being implemented.  Must be in X or Z basis.
+/// Store what kind of T gate is being implemented.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct TGateData {
     basis: Pauli,
-    pub primed: bool,
-    pub adjoint: bool,
+    pub primed: bool,  // Applied to the primed pivot (qubit 7)
+    pub adjoint: bool, // Take the dagger; Rotation by -π/4
 }
 
 impl TGateData {
