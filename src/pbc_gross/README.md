@@ -94,8 +94,8 @@ We select `<CODE>` from `gross` or `two-gross` and `<MEASUREMENT_TABLE>` is an o
 We can then use the measurement table to speed up compilation.
 For example:
 ```
-./pbc_gross gross generate table_gross
-cat program.json | ./pbc_gross gross --measurement-table table_gross
+./target/release/pbc_gross gross generate table_gross
+cat ./src/pbc_gross/example/simple.json |  jq --compact-output '.[]' | ./target/release/pbc_gross gross --measurement-table table_gross
 ```
 Once you have created a measurement table, it can be reused as many times as you want (it is read-only).
 Note that changes to the contents of the table (i.e., in `gross_code_cliffords`) require regenerating the table.
