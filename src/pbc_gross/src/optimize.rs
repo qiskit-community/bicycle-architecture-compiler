@@ -44,7 +44,7 @@ pub fn remove_trivial_automorphisms(
 ) -> impl Iterator<Item = Operation> {
     ops.into_iter().filter(|op| match op[..] {
         [(_, BicycleISA::Automorphism(autdata))] => autdata != AutomorphismData::new(0, 0),
-        _ => false,
+        _ => true,
     })
 }
 
@@ -53,7 +53,7 @@ mod tests {
     use bicycle_isa::TwoBases;
 
     use super::*;
-    use bicycle_isa::Pauli::{X, Z};
+    use bicycle_isa::Pauli::{X, Y, Z};
 
     #[test]
     fn remove_duplicate_meas() {
@@ -79,9 +79,11 @@ mod tests {
     fn remove_trivial_auts() {
         let nontrivial_aut = BicycleISA::Automorphism(AutomorphismData::new(3, 4));
         let trivial_aut = BicycleISA::Automorphism(AutomorphismData::new(0, 0));
+        let measurement = BicycleISA::Measure(TwoBases::new(X, Y).unwrap());
         let ops = vec![
             vec![(5, nontrivial_aut)],
             vec![(2, trivial_aut)],
+            vec![(10, measurement)],
             vec![(0, nontrivial_aut)],
             vec![(0, trivial_aut)],
         ];
@@ -90,7 +92,11 @@ mod tests {
 
         assert_eq!(
             res,
-            vec![vec![(5, nontrivial_aut)], vec![(0, nontrivial_aut)]]
+            vec![
+                vec![(5, nontrivial_aut)],
+                vec![(10, measurement)],
+                vec![(0, nontrivial_aut)]
+            ]
         );
     }
 }
