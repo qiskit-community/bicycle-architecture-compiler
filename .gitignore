@@ -1,3 +1,4 @@
+data/
 **/tmp/
 .python-version
 .DS_STORE
@@ -127,6 +128,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venvs
 env/
 venv/
 ENV/
