@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = [
+    "src/benchmark",
+    "src/bicycle_isa",
+    "src/gross_code_cliffords",
+    "src/numerics",
+    "src/pbc_gross",
+    "src/random_numerics",
+]
+
+[workspace.package]
+version = "0.0.1"
+authors = [
+    "Patrick Rall <patrickjrall@ibm.com>",
+    "Eddie Schoute <eddie.schoute@ibm.com>",
+]
+description = "IBM Pauli-based computation"
