@@ -75,8 +75,17 @@ impl TryFrom<usize> for Pauli {
     }
 }
 
-/// Specify what automorphism to perform.
-/// Since each automorphism has order 6, the x and y parameters wrapped to be in {0,1,...,5}.
+/// The group of shift automorphisms is defined in Yod+25 Sec. A.2 ("Tour de gross")
+///
+/// This group is isomorphic to Z6 x Z6, the direct product of the cyclic group of order six
+/// with itself. `AutomorphismData`, together with methods implemented for it, is an
+/// implementation of Z6 x Z6.  The exception is the method, `nr_generators`, which is
+/// particular to the BB architecture. This method returns the number of generators required
+/// to implement an element of the group. But we are interested in a particular generating
+/// set, rather than, say, a minimal generating set. The generating set defined in Yod+15 is
+/// chosen because its elements are the easiest to implement as circuits. Thus,
+/// `nr_generators` gives an indication of resources required to implement a particular
+/// shift automorphism as a product of elementary elements.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct AutomorphismData {
     x: u8,
@@ -96,8 +105,8 @@ impl AutomorphismData {
         self.y
     }
 
-    /// Calculate the number of automorphism generators necessary
-    /// to implement this automorphism group element
+    /// Calculate the number of automorphism generators (defined in Yod+25) necessary
+    /// to implement this automorphism group element.
     pub fn nr_generators(&self) -> u64 {
         match (self.x, self.y) {
             (0, 0) => 0,

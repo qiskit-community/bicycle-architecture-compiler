@@ -36,7 +36,7 @@ fn rotation_instructions(native_measurement: &NativeMeasurementImpl) -> [Bicycle
     let mut ops = [BicycleISA::CSSInitPlus; 5];
     let pivot_pauli = native_measurement.measures().get_pauli(0);
     let (p0, p1) = pivot_pauli
-        .anticommuting()
+        .anticommuting() // return 2-tuple of elements that anticommute with pivot_pauli, else `None`.
         .expect("Pivot measurement should not be identity.");
     ops[0] = Measure(TwoBases::new(p0, Pauli::I).unwrap());
     ops[1..4].copy_from_slice(&native_measurement.implementation());
