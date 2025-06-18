@@ -231,6 +231,9 @@ impl Distribution<TGateData> for StandardUniform {
     }
 }
 
+/// See Yod+25 Sec. 1.2 for a description of the bicycle architecture.
+/// A convention used here for variants carrying data is:
+/// `VariantName(VariantNameData)`.
 // See also docs/compiler_worshop_isa.pdf for an explanation of these instructions
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum BicycleISA {
