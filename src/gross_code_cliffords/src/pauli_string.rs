@@ -109,6 +109,7 @@ pub const X1: PauliString = PauliString(1);
 pub const Z1: PauliString = PauliString(1 << 12);
 pub const Y1: PauliString = PauliString(1 | (1 << 12));
 
+#[allow(clippy::suspicious_arithmetic_impl)]
 impl Mul for PauliString {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
