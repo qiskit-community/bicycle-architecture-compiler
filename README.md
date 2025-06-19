@@ -52,7 +52,6 @@ pbc-compiler/
     └── random_numerics/           # benchmark | pbc_gross | numerics integrated pipeline
 ```
 
-
 ### PBC Compiler
 The PBC compiler packages are located under `src/`.
 There's various packages:
@@ -102,6 +101,10 @@ random_numerics v0.0.1
 ├── gross_code_cliffords v0.0.1
 └── pbc_gross v0.0.1
 ```
+
+### Development
+
+The script [./scripts/local_QA.sh](./scripts/local_QA.sh) runs quality assurance tests locally.
 
 ### Milestones
 
