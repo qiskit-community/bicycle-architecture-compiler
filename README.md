@@ -10,7 +10,6 @@ cargo build --releasae
 
 Dependencies not availble via `pip` or `cargo`.
 
-* [GNU parallel](https://en.wikipedia.org/wiki/GNU_parallel) (used only by [generate_data.sh](./generate_data.sh))
 * jq - commandline JSON processor
 
 ### Gridsynth
