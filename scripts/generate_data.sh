@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -euo pipefail
 
 # Change to this script's directory
@@ -10,15 +10,15 @@ if ! cargo build --release > /dev/null 2>&1; then
     exit 1
 fi
 
-datadir="../data"
+input_data_dir="../data"
 
 tables_exist=true
-if [ ! -e "$datadir/table_gross" ]; then
-    echo "Error: $datadir/table_gross does not exist."
+if [ ! -e "$input_data_dir/table_gross" ]; then
+    echo "Error: $input_data_dir/table_gross does not exist."
     tables_exist=false
 fi
-if [ ! -e "$datadir/table_two-gross" ]; then
-    echo "Error: $datadir/table-two_gross does not exist."
+if [ ! -e "$input_data_dir/table_two-gross" ]; then
+    echo "Error: $input_data_dir/table-two_gross does not exist."
     tables_exist=false
 fi
 
@@ -31,12 +31,19 @@ fi
 
 # Read parameters from parameters.csv and run each parameter 8 times
 echo "Running random_numerics"
-parallel --no-notice --colsep "," \
-         "../target/release/random_numerics --model {1} --noise {2} --qubits {3} --measurement-table $datadir/table_{1} > ../tmp/out_{1}_{2}_{3}_{4}.csv" \
-         :::: parameters.csv \
-         ::: $(seq 1 8)
 
-echo "Data generation complete. Concatenating output to '$datadir/data.csv'."
+if command -v parallel >/dev/null 2>&1; then
+    echo "Using GNU parallel."
+    ./run_random_numerics.sh
+elif command -v python3 >/dev/null 2>&1 && python3 -c "import sys; sys.exit(0)" >/dev/null 2>&1; then
+    echo "Python3 is available and functional. Using python3"
+    ./run_random_numerics.py
+else
+    echo "You must install either GNU parallel or a functional Python 3." >&2
+    exit 1
+fi
+
+echo "Data generation complete. Concatenating output to '$input_data_dir/data.csv'."
 mkdir -p ../tmp/
-awk '(NR == 1) || (FNR > 1)' ../tmp/out_*.csv > "$datadir/data.csv"
+awk '(NR == 1) || (FNR > 1)' ../tmp/out_*.csv > "$input_data_dir/data.csv"
 rm ../tmp/out_*.csv

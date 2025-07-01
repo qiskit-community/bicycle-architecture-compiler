@@ -1,3 +1,13 @@
+// (C) Copyright IBM 2025
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
 use std::{
     fmt::Display,
     ops::{Mul, MulAssign},
@@ -231,6 +241,9 @@ impl Distribution<TGateData> for StandardUniform {
     }
 }
 
+/// See Yod+25 Sec. 1.2 for a description of the bicycle architecture.
+/// A convention used here for variants carrying data is:
+/// `VariantName(VariantNameData)`.
 // See also docs/compiler_worshop_isa.pdf for an explanation of these instructions
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum BicycleISA {
@@ -239,8 +252,9 @@ pub enum BicycleISA {
     CSSInitPlus,   // Initialize the block in |+>^12
     DestructiveZ,  // Measure all qubits in Z and infer logical Z measurements
     DestructiveX,  // Measure all qubits in X and infer logical X measurements
+
     // Automorphism generators with x in {0,...,5} and y in {0,1,2} and x+y>0
-    Automorphism(AutomorphismData),
+    Automorphism(AutomorphismData), // Shift automorphisms
 
     // Measurements
     // Measure qubits 1 and 7 with specified Paulis, one of which must not be identity

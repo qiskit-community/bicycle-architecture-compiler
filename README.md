@@ -10,8 +10,12 @@ cargo build --releasae
 
 Dependencies not availble via `pip` or `cargo`.
 
-* [GNU parallel](https://en.wikipedia.org/wiki/GNU_parallel) (used only by [generate_data.sh](./generate_data.sh))
-* jq - commandline JSON processor
+* `jq` - commandline JSON processor
+
+### Optional dependencies
+
+* You must have installed either `python3` or GNU `parallel` in order to
+  run [./scripts/generate_data.sh](./scripts/generate_data.sh).
 
 ### Gridsynth
 For synthesizing rotations by angles other than $\pm\pi/4$,
@@ -51,7 +55,6 @@ pbc-compiler/
     ├── numerics/                  # Simple noise simulation and stats collections
     └── random_numerics/           # benchmark | pbc_gross | numerics integrated pipeline
 ```
-
 
 ### PBC Compiler
 The PBC compiler packages are located under `src/`.
@@ -102,6 +105,10 @@ random_numerics v0.0.1
 ├── gross_code_cliffords v0.0.1
 └── pbc_gross v0.0.1
 ```
+
+### Development
+
+The script [./scripts/local_QA.sh](./scripts/local_QA.sh) runs quality assurance tests locally.
 
 ### Milestones
 

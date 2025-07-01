@@ -1,3 +1,13 @@
+// (C) Copyright IBM 2025
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
 use std::{
     array::TryFromSliceError,
     fmt,
@@ -109,6 +119,7 @@ pub const X1: PauliString = PauliString(1);
 pub const Z1: PauliString = PauliString(1 << 12);
 pub const Y1: PauliString = PauliString(1 | (1 << 12));
 
+#[allow(clippy::suspicious_arithmetic_impl)]
 impl Mul for PauliString {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
