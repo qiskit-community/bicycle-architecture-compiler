@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 ##
 ## This script runs: build, rustfmt, clippy, and test suite
