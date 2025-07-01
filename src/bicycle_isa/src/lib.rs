@@ -252,8 +252,9 @@ pub enum BicycleISA {
     CSSInitPlus,   // Initialize the block in |+>^12
     DestructiveZ,  // Measure all qubits in Z and infer logical Z measurements
     DestructiveX,  // Measure all qubits in X and infer logical X measurements
+
     // Automorphism generators with x in {0,...,5} and y in {0,1,2} and x+y>0
-    Automorphism(AutomorphismData),
+    Automorphism(AutomorphismData), // Shift automorphisms
 
     // Measurements
     // Measure qubits 1 and 7 with specified Paulis, one of which must not be identity
