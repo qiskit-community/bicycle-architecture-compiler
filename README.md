@@ -3,7 +3,7 @@
 ## Installation
 
 ```
-cargo build --releasae
+cargo build --release
 ```
 
 ### Dependencies
