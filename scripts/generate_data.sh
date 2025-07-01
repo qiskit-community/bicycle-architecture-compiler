@@ -32,13 +32,16 @@ fi
 # Read parameters from parameters.csv and run each parameter 8 times
 echo "Running random_numerics"
 
-# This python script should work correctly. If it does not, try the shell-script in the
-# next line.
-./run_random_numerics.py
-
-# Alternative shell implementation of run_random_numerics.py
-# If you use this script, you must first install the utility GNU paralell.
-# ./run_random_numerics.sh
+if command -v parallel >/dev/null 2>&1; then
+    echo "Using GNU parallel."
+    ./run_random_numerics.sh
+elif command -v python3 >/dev/null 2>&1 && python3 -c "import sys; sys.exit(0)" >/dev/null 2>&1; then
+    echo "Python3 is available and functional. Using python3"
+    ./run_random_numerics.py
+else
+    echo "You must install either GNU parallel or a functional Python 3." >&2
+    exit 1
+fi
 
 echo "Data generation complete. Concatenating output to '$input_data_dir/data.csv'."
 mkdir -p ../tmp/
