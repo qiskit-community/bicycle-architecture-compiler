@@ -142,13 +142,6 @@ impl AutomorphismData {
             _ => 2
         }
     }
-    // function nr_generators_lookup(g::Z6xZ6Group)
-    // (x, y) = xy = (get_x(g), get_y(g))
-    // xy == (0, 0) && return 2 # In "production" this should be zero
-    // xy in ((1, 0), (0, 1), (5, 0), (0, 5)) && return 1
-    // xy in ((3, 3), (0, 3), (3, 0)) && return 2
-    // (x == 3 || y == 3) && return 1
-    // return 2
 
     /// Compute the inverse automorphism
     pub fn inv(&self) -> Self {
@@ -359,9 +352,9 @@ mod tests {
 
     #[test]
     fn number_required_generators() {
+
         // Exponents for the six elelments of the generating set
         let generator_exponents = [
-
             (1, 0),  // x
             (0, 1),  // y
             (3, -1), // x^3 y^{−1}
@@ -369,7 +362,9 @@ mod tests {
             (3, -2), // x^3 y^{−2}
             (2, 3)   // x^2 y^3
         ];
-        // Convert to AutomorphismData, and include inverses
+
+        // Convert tuples of exponents to `AutomorphismData`.
+        // Include inverses explicitly.
         let generators: Vec<_> = generator_exponents.map(|exps| {
             let el = AutomorphismData::fromi32(exps.0, exps.1);
             [el, el.inv()]
@@ -377,10 +372,10 @@ mod tests {
         ).into_iter().flatten().collect();
 
         // Loop over all 36 elements of shift automorphism group.
-        // Treat (0, 0) specially.
-        // If element is a generator, or inverse, then it requires one generator.
-        // Otherwise, expect that two generators are required.
-        // Compare this with nr_generators (or nr_generators_new)
+        // - Treat (0, 0) specially.
+        // - If element is a generator, or inverse, then it requires one generator.
+        // - Otherwise, expect that two generators are required.
+        // - Compare this with nr_generators (or nr_generators_new).
         for j in 0..5 {
             for k in 0..5 {
                 let el = AutomorphismData::new(j, k);
