@@ -142,7 +142,7 @@ impl AutomorphismData {
             (1, 0) | (0, 1) | (5, 0) | (0, 5) => 1,
             (3, 3) | (0, 3) | (3, 0) => 2,
             (3, _) | (_, 3) => 1,
-            _ => 2
+            _ => 2,
         }
     }
 
@@ -355,7 +355,6 @@ mod tests {
 
     #[test]
     fn number_required_generators() {
-
         // Exponents for the six elements of the generating set of the shift automorphisms.
         // These are half of the "basic shift automorphisms" (or "basic shifts").
         // The inverses of the generators form the other six basic shifts.
@@ -367,17 +366,20 @@ mod tests {
             (3, -1), // x^3 y^{−1}
             (1, 3),  // x y^3
             (3, -2), // x^3 y^{−2}
-            (2, 3)   // x^2 y^3
+            (2, 3),  // x^2 y^3
         ];
 
         // Convert tuples of exponents to `AutomorphismData`.
         // Include inverses explicitly.
-        let generators: Vec<_> = generator_exponents.into_iter().flat_map(|(x_exp, y_exp)| {
-            let el = AutomorphismData::fromi32(x_exp, y_exp);
-            [el, el.inv()]
-        }).collect();
+        let generators: Vec<_> = generator_exponents
+            .into_iter()
+            .flat_map(|(x_exp, y_exp)| {
+                let el = AutomorphismData::fromi32(x_exp, y_exp);
+                [el, el.inv()]
+            })
+            .collect();
 
-        // Loop over all 36 elements of shift automorphism group.
+        // Loop over all 36 elements of the group of shift automorphisms.
         // - Treat (0, 0) specially.
         // - If element is a generator, or inverse, then it requires one generator.
         // - Otherwise, expect that two generators are required.
@@ -406,5 +408,5 @@ mod tests {
                 assert!(n == 2)
             }
         });
-     }
+    }
 }
