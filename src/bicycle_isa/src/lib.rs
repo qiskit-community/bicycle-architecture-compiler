@@ -107,10 +107,14 @@ impl AutomorphismData {
         Self { x: x % 6, y: y % 6 }
     }
 
-    pub fn fromi32(x: i32, y: i32) -> Self {
+    // Allow instantiating from signed integers, for example.
+    pub fn from_any<T>(x: T, y: T) -> Self
+    where
+        T: Into<i32> + Copy,
+    {
         let b = 6;
-        let x1 = ((x % b) + b) % b;
-        let y1 = ((y % b) + b) % b;
+        let x1 = ((x.into() % b) + b) % b;
+        let y1 = ((y.into() % b) + b) % b;
         AutomorphismData::new(x1.try_into().expect("uhoh"), y1.try_into().expect("uhoh"))
     }
 
@@ -374,7 +378,7 @@ mod tests {
         let generators: Vec<_> = generator_exponents
             .into_iter()
             .flat_map(|(x_exp, y_exp)| {
-                let el = AutomorphismData::fromi32(x_exp, y_exp);
+                let el = AutomorphismData::from_any(x_exp, y_exp);
                 [el, el.inv()]
             })
             .collect();
