@@ -124,7 +124,7 @@ impl AutomorphismData {
 
     /// Calculate the number of automorphism generators (defined in Yod+25) necessary
     /// to implement this automorphism group element.
-    pub fn nr_generators(&self) -> u64 {
+    pub fn nr_generators_old(&self) -> u64 {
         match (self.x, self.y) {
             (0, 0) => 0,
             (3, 3) => 1,
@@ -136,7 +136,7 @@ impl AutomorphismData {
     /// Calculate the number of automorphism generators  necessary to implement this
     /// automorphism group element.
     /// See Yod+25, Sec. A.2, pg 47, paragraph 2.
-    pub fn nr_generators_new(&self) -> u64 {
+    pub fn nr_generators(&self) -> u64 {
         match (self.x, self.y) {
             (0, 0) => 0,
             (1, 0) | (0, 1) | (5, 0) | (0, 5) => 1,
@@ -346,11 +346,11 @@ mod tests {
 
     #[test]
     fn automorphism_generators() {
-        assert_eq!(0, AutomorphismData::new(0, 0).nr_generators());
-        assert_eq!(1, AutomorphismData::new(3, 3).nr_generators());
-        assert_eq!(1, AutomorphismData::new(1, 8).nr_generators());
-        assert_eq!(2, AutomorphismData::new(3, 5).nr_generators());
-        assert_eq!(2, AutomorphismData::new(8, 3).nr_generators());
+        assert_eq!(0, AutomorphismData::new(0, 0).nr_generators_old());
+        assert_eq!(1, AutomorphismData::new(3, 3).nr_generators_old());
+        assert_eq!(1, AutomorphismData::new(1, 8).nr_generators_old());
+        assert_eq!(2, AutomorphismData::new(3, 5).nr_generators_old());
+        assert_eq!(2, AutomorphismData::new(8, 3).nr_generators_old());
     }
 
     #[test]
@@ -372,37 +372,39 @@ mod tests {
 
         // Convert tuples of exponents to `AutomorphismData`.
         // Include inverses explicitly.
-        let generators: Vec<_> = generator_exponents.map(|exps| {
-            let el = AutomorphismData::fromi32(exps.0, exps.1);
+        let generators: Vec<_> = generator_exponents.into_iter().flat_map(|(x_exp, y_exp)| {
+            let el = AutomorphismData::fromi32(x_exp, y_exp);
             [el, el.inv()]
-        }
-        ).into_iter().flatten().collect();
+        }).collect();
 
         // Loop over all 36 elements of shift automorphism group.
         // - Treat (0, 0) specially.
         // - If element is a generator, or inverse, then it requires one generator.
         // - Otherwise, expect that two generators are required.
-        // - Compare this with nr_generators (or nr_generators_new).
-        for j in 0..5 {
-            for k in 0..5 {
-                let el = AutomorphismData::new(j, k);
-                let n = el.nr_generators_new();
-                if el.is_id() {
-                    assert!(n == 0);
-                    continue;
-                }
-                if generators.contains(&el) {
-                    if n != 1 {
-                        println!("Fail 1: {:?}", &el);
-                    }
-                    assert!(n == 1)
-                } else {
-                    if n != 2 {
-                        println!("Fail 2: {:?}", &el);
-                    }
-                    assert!(n == 2)
-                }
+        // - Compare this with nr_generators (or nr_generators_old).
+        itertools::iproduct!(0..5, 0..5).for_each(|(x_exponent, y_exponent)| {
+            let el = AutomorphismData::new(x_exponent, y_exponent);
+            let n = el.nr_generators();
+            // According to the rules the identity actually requires two "basic shifts".
+            // But in fact, it requires zero basic shifts.
+            if el.is_id() {
+                assert!(n == 0);
             }
-        }
+            // If `el` is a generator or its inverse, then it is already a basic shift.
+            // Therefore it can be implemented with one basic shift.
+            else if generators.contains(&el) {
+                if n != 1 {
+                    println!("Fail 1: {:?}", &el);
+                }
+                assert!(n == 1)
+            } else {
+                // Yod+25 asserts that the only other possibility is n == 2.
+                // We believe this. We only check that our matching rules believe it too.
+                if n != 2 {
+                    println!("Fail 2: {:?}", &el);
+                }
+                assert!(n == 2)
+            }
+        });
      }
 }
