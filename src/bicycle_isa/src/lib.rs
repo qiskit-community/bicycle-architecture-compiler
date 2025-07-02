@@ -387,7 +387,7 @@ mod tests {
         itertools::iproduct!(0..5, 0..5).for_each(|(x_exponent, y_exponent)| {
             let el = AutomorphismData::new(x_exponent, y_exponent);
             let n = el.nr_generators();
-            // According to the rules the identity actually requires two "basic shifts".
+            // According to the rules the identity should require two "basic shifts".
             // But in fact, it requires zero basic shifts.
             if el.is_id() {
                 assert!(n == 0);
