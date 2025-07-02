@@ -107,6 +107,13 @@ impl AutomorphismData {
         Self { x: x % 6, y: y % 6 }
     }
 
+    pub fn fromi32(x: i32, y: i32) -> Self {
+        let b = 6;
+        let x1 = ((x % b) + b) % b;
+        let y1 = ((y % b) + b) % b;
+        AutomorphismData::new(x1.try_into().expect("uhoh"), y1.try_into().expect("uhoh"))
+    }
+
     pub fn get_x(&self) -> u8 {
         self.x
     }
@@ -126,9 +133,30 @@ impl AutomorphismData {
         }
     }
 
+    pub fn nr_generators_new(&self) -> u64 {
+        match (self.x, self.y) {
+            (0, 0) => 0,
+            (1, 0) | (0, 1) | (5, 0) | (0, 5) => 1,
+            (3, 3) | (0, 3) | (3, 0) => 2,
+            (3, _) | (_, 3) => 1,
+            _ => 2
+        }
+    }
+    // function nr_generators_lookup(g::Z6xZ6Group)
+    // (x, y) = xy = (get_x(g), get_y(g))
+    // xy == (0, 0) && return 2 # In "production" this should be zero
+    // xy in ((1, 0), (0, 1), (5, 0), (0, 5)) && return 1
+    // xy in ((3, 3), (0, 3), (3, 0)) && return 2
+    // (x == 3 || y == 3) && return 1
+    // return 2
+
     /// Compute the inverse automorphism
     pub fn inv(&self) -> Self {
         AutomorphismData::new(6 - self.x, 6 - self.y)
+    }
+
+    pub fn is_id(&self) -> bool {
+        self.x == 0 && self.y == 0
     }
 }
 
@@ -328,4 +356,51 @@ mod tests {
         assert_eq!(2, AutomorphismData::new(3, 5).nr_generators());
         assert_eq!(2, AutomorphismData::new(8, 3).nr_generators());
     }
+
+    #[test]
+    fn number_required_generators() {
+        // Exponents for the six elelments of the generating set
+        let generator_exponents = [
+
+            (1, 0),  // x
+            (0, 1),  // y
+            (3, -1), // x^3 y^{−1}
+            (1, 3),  // x y^3
+            (3, -2), // x^3 y^{−2}
+            (2, 3)   // x^2 y^3
+        ];
+        // Convert to AutomorphismData, and include inverses
+        let generators: Vec<_> = generator_exponents.map(|exps| {
+            let el = AutomorphismData::fromi32(exps.0, exps.1);
+            [el, el.inv()]
+        }
+        ).into_iter().flatten().collect();
+
+        // Loop over all 36 elements of shift automorphism group.
+        // Treat (0, 0) specially.
+        // If element is a generator, or inverse, then it requires one generator.
+        // Otherwise, expect that two generators are required.
+        // Compare this with nr_generators (or nr_generators_new)
+        for j in 0..5 {
+            for k in 0..5 {
+                let el = AutomorphismData::new(j, k);
+                let n = el.nr_generators_new();
+                if el.is_id() {
+                    assert!(n == 0);
+                    continue;
+                }
+                if generators.contains(&el) {
+                    if n != 1 {
+                        println!("Fail 1: {:?}", &el);
+                    }
+                    assert!(n == 1)
+                } else {
+                    if n != 2 {
+                        println!("Fail 2: {:?}", &el);
+                    }
+                    assert!(n == 2)
+                }
+            }
+        }
+     }
 }
