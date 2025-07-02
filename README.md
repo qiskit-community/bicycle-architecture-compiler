@@ -109,7 +109,3 @@ random_numerics v0.0.1
 ### Development
 
 The script [./scripts/local_QA.sh](./scripts/local_QA.sh) runs quality assurance tests locally.
-
-### Milestones
-
-### Node list and implementation status
