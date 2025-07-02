@@ -133,6 +133,9 @@ impl AutomorphismData {
         }
     }
 
+    /// Calculate the number of automorphism generators  necessary to implement this
+    /// automorphism group element.
+    /// See Yod+25, Sec. A.2, pg 47, paragraph 2.
     pub fn nr_generators_new(&self) -> u64 {
         match (self.x, self.y) {
             (0, 0) => 0,
@@ -353,7 +356,11 @@ mod tests {
     #[test]
     fn number_required_generators() {
 
-        // Exponents for the six elelments of the generating set
+        // Exponents for the six elements of the generating set of the shift automorphisms.
+        // These are half of the "basic shift automorphisms" (or "basic shifts").
+        // The inverses of the generators form the other six basic shifts.
+        // The exponents in `generator_exponents` may be found in
+        // Yod+25, Sec. A.2, pg 47, paragraph 2.
         let generator_exponents = [
             (1, 0),  // x
             (0, 1),  // y
