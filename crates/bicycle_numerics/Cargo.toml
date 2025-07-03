@@ -1,0 +1,18 @@
+[package]
+name = "bicycle_numerics"
+edition = "2021"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+
+[dependencies]
+fixed = "1.29.0"
+bicycle_compiler = { path = "../bicycle_compiler" }
+bicycle_benchmark = { path = "../bicycle_benchmark" }
+env_logger = "0.11.7"
+log = "0.4.27"
+clap = { version = "4.5.36", features = ["derive"] }
+bicycle_common = { path = "../bicycle_common" }
+serde = { version = "1.0.218", features = ["derive"] }
+serde_json = { version = "1.0.140", features = ["float_roundtrip"] }
+csv = "1.3.1"

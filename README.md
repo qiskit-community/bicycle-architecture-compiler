@@ -2,8 +2,8 @@
 
 ## Installation
 
-```
-cargo build --release
+```sh
+shell> cargo build --release
 ```
 
 ### Dependencies
@@ -21,8 +21,8 @@ Dependencies not availble via `pip` or `cargo`.
 For synthesizing rotations by angles other than $\pm\pi/4$,
 please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
 The following command should succeed
-```
-python -m pygridsynth 0.5 1e-3
+```sh
+shell> python -m pygridsynth 0.5 1e-3
 ```
 and something like (the exact output may differ)
 ```
@@ -30,10 +30,10 @@ THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWW
 ```
 
 This can be achieved by setting a local virtual environment as follows
-```
-pyenv virtualenv pbc-gross
-pyenv local pbc-gross
-pip install "pygridsynth~=1.1"
+```sh
+shell> pyenv virtualenv pbc-gross
+shell> pyenv local pbc-gross
+shell> pip install "pygridsynth~=1.1"
 ```
 
 ## Usage
@@ -71,12 +71,12 @@ Each package has more info in their respective READMEs.
 
 ### Installation
 
-```
-cargo build
+```sh
+shell> cargo build
 
-python -m venv venv
-source venv/bin/activate
-pip install -e .
+shell> python -m venv venv
+shell> source venv/bin/activate
+shell> pip install -e .
 ```
 
 ### Crate Dependencies
@@ -108,4 +108,22 @@ random_numerics v0.0.1
 
 ### Development
 
+#### Testing
+
+To test in release mode try this
+```sh
+shell> cargo test -r
+```
+
 The script [./scripts/local_QA.sh](./scripts/local_QA.sh) runs quality assurance tests locally.
+This includes test, rustfmt, and clippy.
+
+The tests run almost twice as fast if you use `nextest`.
+You can installl nextest like this
+```sh
+shell> cargo install cargo-binstall
+shell> cargo binstall cargo-nextest --secure
+```
+
+The script [./scripts/local_QA.sh](./scripts/local_QA.sh) will use `nextest` if it is
+installed.

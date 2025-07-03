@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-    "src/benchmark",
-    "src/bicycle_isa",
-    "src/gross_code_cliffords",
-    "src/numerics",
-    "src/pbc_gross",
-    "src/random_numerics",
+    "crates/bicycle_common",
+    "crates/bicycle_cliffords",
+    "crates/bicycle_compiler",
+    "crates/bicycle_benchmark",
+    "crates/bicycle_numerics",
+    "crates/bicycle_random_numerics",
 ]
 
 [workspace.package]
@@ -14,5 +14,6 @@ version = "0.0.1"
 authors = [
     "Patrick Rall <patrickjrall@ibm.com>",
     "Eddie Schoute <eddie.schoute@ibm.com>",
+    "John Lapeyre <john.lapeyre@ibm.com>",
 ]
-description = "IBM Pauli-based computation"
+description = "Bicycle architecture tools"
