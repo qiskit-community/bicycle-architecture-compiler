@@ -40,3 +40,12 @@ Options:
 
 1. The `max-error` is the circuit failure probability to halt at. (TODO: Optionally enable max)
 2. The `max-iter` is a maximum number of iterations to process and halt. (TODO: Optionally enable max)
+
+## Counting the total number of instructions
+The output of the numerics includes the number of gates in each row of input circuit.
+If you would like totals, then the `cumulative_instructions.awk` can compute those for you.
+To use it, you need a recent `awk` with `--csv` support, such as GNU `gawk`.
+Then run
+```
+shell> cat results.csv | gawk --csv -f cumulative_instruction.awk
+```
