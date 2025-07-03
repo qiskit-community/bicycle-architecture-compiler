@@ -1,0 +1,10 @@
+[package]
+name = "bicycle_common"
+edition = "2021"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+
+[dependencies]
+rand = "0.9.0"
+serde = { version = "1.0.217", features = ["derive"] }

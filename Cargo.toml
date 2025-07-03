@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/benchmark",
-    "crates/bicycle_isa",
-    "crates/gross_code_cliffords",
-    "crates/numerics",
-    "crates/pbc_gross",
-    "crates/random_numerics",
+    "crates/bicycle_common",
+    "crates/bicycle_cliffords",
+    "crates/bicycle_compiler",
+    "crates/bicycle_benchmark",
+    "crates/bicycle_numerics",
+    "crates/bicycle_random_numerics",
 ]
 
 [workspace.package]
