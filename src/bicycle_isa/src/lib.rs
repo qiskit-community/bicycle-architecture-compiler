@@ -107,34 +107,12 @@ impl AutomorphismData {
         Self { x: x % 6, y: y % 6 }
     }
 
-    // Allow instantiating from signed integers, for example.
-    pub fn from_any<T>(x: T, y: T) -> Self
-    where
-        T: Into<i32> + Copy,
-    {
-        let b = 6;
-        let x1 = ((x.into() % b) + b) % b;
-        let y1 = ((y.into() % b) + b) % b;
-        AutomorphismData::new(x1.try_into().expect("uhoh"), y1.try_into().expect("uhoh"))
-    }
-
     pub fn get_x(&self) -> u8 {
         self.x
     }
 
     pub fn get_y(&self) -> u8 {
         self.y
-    }
-
-    /// Calculate the number of automorphism generators (defined in Yod+25) necessary
-    /// to implement this automorphism group element.
-    pub fn nr_generators_old(&self) -> u64 {
-        match (self.x, self.y) {
-            (0, 0) => 0,
-            (3, 3) => 1,
-            (3, _) | (_, 3) => 2,
-            _ => 1,
-        }
     }
 
     /// Calculate the number of automorphism generators  necessary to implement this
@@ -349,15 +327,6 @@ mod tests {
     }
 
     #[test]
-    fn automorphism_generators() {
-        assert_eq!(0, AutomorphismData::new(0, 0).nr_generators_old());
-        assert_eq!(1, AutomorphismData::new(3, 3).nr_generators_old());
-        assert_eq!(1, AutomorphismData::new(1, 8).nr_generators_old());
-        assert_eq!(2, AutomorphismData::new(3, 5).nr_generators_old());
-        assert_eq!(2, AutomorphismData::new(8, 3).nr_generators_old());
-    }
-
-    #[test]
     fn number_required_generators() {
         // Exponents for the six elements of the generating set of the shift automorphisms.
         // These are half of the "basic shift automorphisms" (or "basic shifts").
@@ -365,12 +334,12 @@ mod tests {
         // The exponents in `generator_exponents` may be found in
         // Yod+25, Sec. A.2, pg 47, paragraph 2.
         let generator_exponents = [
-            (1, 0),  // x
-            (0, 1),  // y
-            (3, -1), // x^3 y^{−1}
-            (1, 3),  // x y^3
-            (3, -2), // x^3 y^{−2}
-            (2, 3),  // x^2 y^3
+            (1, 0), // x
+            (0, 1), // y
+            (3, 5), // x^3 y^{−1}
+            (1, 3), // x y^3
+            (3, 4), // x^3 y^{−2}
+            (2, 3), // x^2 y^3
         ];
 
         // Convert tuples of exponents to `AutomorphismData`.
@@ -378,7 +347,7 @@ mod tests {
         let generators: Vec<_> = generator_exponents
             .into_iter()
             .flat_map(|(x_exp, y_exp)| {
-                let el = AutomorphismData::from_any(x_exp, y_exp);
+                let el = AutomorphismData::new(x_exp, y_exp);
                 [el, el.inv()]
             })
             .collect();
@@ -388,29 +357,31 @@ mod tests {
         // - If element is a generator, or inverse, then it requires one generator.
         // - Otherwise, expect that two generators are required.
         // - Compare this with nr_generators (or nr_generators_old).
-        itertools::iproduct!(0..5, 0..5).for_each(|(x_exponent, y_exponent)| {
-            let el = AutomorphismData::new(x_exponent, y_exponent);
-            let n = el.nr_generators();
-            // According to the rules the identity should require two "basic shifts".
-            // But in fact, it requires zero basic shifts.
-            if el.is_id() {
-                assert!(n == 0);
-            }
-            // If `el` is a generator or its inverse, then it is already a basic shift.
-            // Therefore it can be implemented with one basic shift.
-            else if generators.contains(&el) {
-                if n != 1 {
-                    println!("Fail 1: {:?}", &el);
+        for x_exponent in 0..6 {
+            for y_exponent in 0..6 {
+                let el = AutomorphismData::new(x_exponent, y_exponent);
+                let n = el.nr_generators();
+                // According to the rules the identity should require two "basic shifts".
+                // But in fact, it requires zero basic shifts.
+                if el.is_id() {
+                    assert!(n == 0);
                 }
-                assert!(n == 1)
-            } else {
-                // Yod+25 asserts that the only other possibility is n == 2.
-                // We believe this. We only check that our matching rules believe it too.
-                if n != 2 {
-                    println!("Fail 2: {:?}", &el);
+                // If `el` is a generator or its inverse, then it is already a basic shift.
+                // Therefore it can be implemented with one basic shift.
+                else if generators.contains(&el) {
+                    if n != 1 {
+                        println!("Fail 1: {:?}", &el);
+                    }
+                    assert!(n == 1)
+                } else {
+                    // Yod+25 asserts that the only other possibility is n == 2.
+                    // We believe this. We only check that our matching rules believe it too.
+                    if n != 2 {
+                        println!("Fail 2: {:?}", &el);
+                    }
+                    assert!(n == 2)
                 }
-                assert!(n == 2)
             }
-        });
+        }
     }
 }
