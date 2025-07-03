@@ -115,20 +115,26 @@ impl AutomorphismData {
         self.y
     }
 
-    /// Calculate the number of automorphism generators (defined in Yod+25) necessary
-    /// to implement this automorphism group element.
+    /// Calculate the number of automorphism generators  necessary to implement this
+    /// automorphism group element.
+    /// See Yod+25, Sec. A.2, pg 47, paragraph 2.
     pub fn nr_generators(&self) -> u64 {
         match (self.x, self.y) {
             (0, 0) => 0,
-            (3, 3) => 1,
-            (3, _) | (_, 3) => 2,
-            _ => 1,
+            (1, 0) | (0, 1) | (5, 0) | (0, 5) => 1,
+            (3, 3) | (0, 3) | (3, 0) => 2,
+            (3, _) | (_, 3) => 1,
+            _ => 2,
         }
     }
 
     /// Compute the inverse automorphism
     pub fn inv(&self) -> Self {
         AutomorphismData::new(6 - self.x, 6 - self.y)
+    }
+
+    pub fn is_id(&self) -> bool {
+        self.x == 0 && self.y == 0
     }
 }
 
@@ -321,11 +327,61 @@ mod tests {
     }
 
     #[test]
-    fn automorphism_generators() {
-        assert_eq!(0, AutomorphismData::new(0, 0).nr_generators());
-        assert_eq!(1, AutomorphismData::new(3, 3).nr_generators());
-        assert_eq!(1, AutomorphismData::new(1, 8).nr_generators());
-        assert_eq!(2, AutomorphismData::new(3, 5).nr_generators());
-        assert_eq!(2, AutomorphismData::new(8, 3).nr_generators());
+    fn number_required_generators() {
+        // Exponents for the six elements of the generating set of the shift automorphisms.
+        // These are half of the "basic shift automorphisms" (or "basic shifts").
+        // The inverses of the generators form the other six basic shifts.
+        // The exponents in `generator_exponents` may be found in
+        // Yod+25, Sec. A.2, pg 47, paragraph 2.
+        let generator_exponents = [
+            (1, 0), // x
+            (0, 1), // y
+            (3, 5), // x^3 y^{−1}
+            (1, 3), // x y^3
+            (3, 4), // x^3 y^{−2}
+            (2, 3), // x^2 y^3
+        ];
+
+        // Convert tuples of exponents to `AutomorphismData`.
+        // Include inverses explicitly.
+        let generators: Vec<_> = generator_exponents
+            .into_iter()
+            .flat_map(|(x_exp, y_exp)| {
+                let el = AutomorphismData::new(x_exp, y_exp);
+                [el, el.inv()]
+            })
+            .collect();
+
+        // Loop over all 36 elements of the group of shift automorphisms.
+        // - Treat (0, 0) specially.
+        // - If element is a generator, or inverse, then it requires one generator.
+        // - Otherwise, expect that two generators are required.
+        // - Compare this with nr_generators (or nr_generators_old).
+        for x_exponent in 0..6 {
+            for y_exponent in 0..6 {
+                let el = AutomorphismData::new(x_exponent, y_exponent);
+                let n = el.nr_generators();
+                // According to the rules the identity should require two "basic shifts".
+                // But in fact, it requires zero basic shifts.
+                if el.is_id() {
+                    assert!(n == 0);
+                }
+                // If `el` is a generator or its inverse, then it is already a basic shift.
+                // Therefore it can be implemented with one basic shift.
+                else if generators.contains(&el) {
+                    if n != 1 {
+                        println!("Fail 1: {:?}", &el);
+                    }
+                    assert!(n == 1)
+                } else {
+                    // Yod+25 asserts that the only other possibility is n == 2.
+                    // We believe this. We only check that our matching rules believe it too.
+                    if n != 2 {
+                        println!("Fail 2: {:?}", &el);
+                    }
+                    assert!(n == 2)
+                }
+            }
+        }
     }
 }
