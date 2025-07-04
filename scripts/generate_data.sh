@@ -91,6 +91,9 @@ done
 # Read parameters from parameters.csv and run each parameter 8 times
 echo "Running random_numerics"
 
+# Ensure that temporary directory exists
+mkdir -p ../tmp/
+
 if command -v parallel >/dev/null 2>&1; then
     echo "Using GNU parallel."
     ./run_random_numerics.sh
@@ -103,6 +106,5 @@ else
 fi
 
 echo "Data generation complete. Concatenating output to '$input_data_dir/data.csv'."
-mkdir -p ../tmp/
 awk '(NR == 1) || (FNR > 1)' ../tmp/out_*.csv > "$input_data_dir/data.csv"
 rm ../tmp/out_*.csv
