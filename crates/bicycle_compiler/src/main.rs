@@ -54,20 +54,44 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         measurement_table: cache_str,
     }) = cli.commands
     {
-        info!("Generating measurement table, then exiting.");
+        info!("Generating measurement table.");
         let cache_path = Path::new(&cache_str);
-        let mut f =
-            File::create(cache_path).expect("Should be able to open the measurement_table file");
-
+        match File::create(cache_path) {
+            Ok(_) => {
+                // Successfully created dummy file. Remove file.
+                std::fs::remove_file(cache_path)?;
+            }
+            Err(e) => {
+                eprintln!(
+                    "Cannot create  measurement_table output file in the target directory: {}",
+                    e
+                );
+                std::process::exit(1);
+            }
+        }
         let mut builder =
             MeasurementTableBuilder::new(NativeMeasurement::all(), cli.code.measurement());
         builder.build();
         let measurement_table = builder.complete()?;
         let serialized =
             bitcode::serialize(&measurement_table).expect("The table should be serializable");
-        f.write_all(&serialized)
-            .expect("The serialized table should be writable to the cache");
-        std::process::exit(1);
+        info!("Done generating measurement table, writing.");
+        let f = File::create(cache_path);
+        match f {
+            Ok(mut f) => {
+                f.write_all(&serialized)
+                    .expect("The serialized table should be writable to the cache");
+            }
+            Err(e) => {
+                eprintln!(
+                    "Cannot create  measurement_table output file in the target directory: {}",
+                    e
+                );
+                std::process::exit(1);
+            }
+        }
+        info!("Done writing measurement table, exiting.");
+        std::process::exit(0);
     }
 
     // Generate measurement table, from cache if given or otherwise from scratch
