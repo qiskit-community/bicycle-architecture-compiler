@@ -271,11 +271,11 @@ pub enum BicycleISA {
     ParallelMeasure(ParallelMeasureData),
 
     // Entanglement between two blocks
-    JointBellInit, // Initialize two codes into 12 Bell states via rotating donut method
-    JointTransversalCX, // Transversal CX using rotating donut
+    JointBellInit,      // Initialize two codes into 12 Bell states via transversal CX
+    JointTransversalCX, // Transversal CX
 
     // Magic
-    InitT,            // Initialization into 8 physical-noise |T> states
+    InitT,            // Initialization into 12 physical-noise |T> states
     TGate(TGateData), // Apply exp(iπ/8 P), with P in {X, X', Z, Z'}
 }
 

@@ -7,8 +7,8 @@
  - An end-to-end compilation scheme from Pauli-Based Computation (PBC) to the bicycle ISA
 
 This repository implements and benchmarks this end-to-end compilation scheme. We provide facilities for:
- - Random PBC circuits as a form of worst-case Clifford+T quantum circuits, see `src/bicycle_random_numerics` and `scripts/run_random_numerics.sh/py`
- - User-specified PBC circuits supporting arbitrary-angle rotations, see `src/bicycle_numerics`
+ - Random PBC circuits as a form of worst-case Clifford+T quantum circuits, see `crates/bicycle_random_numerics` and `scripts/run_random_numerics.sh/py`
+ - User-specified PBC circuits supporting arbitrary-angle rotations, see `crates/bicycle_numerics`
 
 ## Installation
 

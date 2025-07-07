@@ -63,7 +63,7 @@ In particular, joint operations between blocks are paired as two instructions.
 
 The PBC Gross compiler requires a lookup table on how to synthesize Clifford rotations,
 $e^{i \frac{\pi}{4} P}$ for $P$ a Pauli string on 12 qubits,
-and the package `gross_code_cliffords` produces one.
+and the package `bicycle_cliffords` produces one.
 Because this takes some time (about a minute on my laptop),
 there is an option to save the lookup table on disk.
 ```
@@ -77,4 +77,4 @@ For example:
 cat ./src/pbc_gross/example/simple.json |  jq --compact-output '.[]' | ./target/release/pbc_gross gross --measurement-table table_gross
 ```
 Once you have created a measurement table, it can be reused as many times as you want (it is read-only).
-Note that changes to the contents of the table (i.e., in `gross_code_cliffords`) require regenerating the table.
+Note that changes to the contents of the table (i.e., in `bicycle_cliffords`) require regenerating the table.
