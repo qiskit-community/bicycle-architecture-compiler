@@ -1,35 +1,13 @@
-# Pauli-based compilation for the Gross Code
+# `bicycle_compiler`
 
-This is a compiler targeting the Gross code architecture
-for programs given in Pauli-based compilation (PBC) form.
-It consist of a Rust library and a main binary.
-
-## Installation
-
-### Gridsynth
-For synthesizing rotations by angles other than $\pm\pi/4$,
-please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
-The following command should succeed
-```
-python -m pygridsynth 0.5 1e-3
-```
-and something like (the exact output may differ)
-```
-THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWWWWWWW
-```
-
-This can be achieved by setting a local virtual environment as follows
-```
-pyenv virtualenv pbc-gross
-pyenv local pbc-gross
-pip install "pygridsynth~=1.1"
-```
-
-## Usage
+This crate compiles Pauli-Based Computation (PBC) circuits into circuits built from the Bicycle ISA defined in the `bicycle_common` crate.
 
 ### Input Program
+
+See Appendix A.9 of [Tour de Gross arXiv:2506.03094](https://arxiv.org/abs/2506.03094) for a review of PBC. PBC refers to a variety of quantum circuit families and compilation methods in the literature, but generally consists of gates acting on $n$ qubits that are defined by $n$-qubit Pauli matrices. For the purposes of this repository, a PBC circuit consists of multi-qubit Pauli rotations $\exp(i \phi P)$, and multi-qubit Pauli measurements.
+
 The input program must be in a PBC form.
-We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.11391890))
+We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.11391890)).
 ```json
 {"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","Y"],"angle":"0.125"}}
 {"Rotation":{"basis":["Z","Z","I","I","I","I","I","I","I","I","I","I"],"angle":"0.5"}}
@@ -38,10 +16,11 @@ We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.113
 {"Measurement":{"basis":["X","I","I","I","I","Z","I","I","I","I","I","I"],"flip_result":false}}
 
 ```
-which shows the only two operations allowed in such a PBC program: Rotations and Measurements.
+
+The above format gives examples of the only two operations allowed in such a PBC program: rotations and measurements.
 All operations should act on the same number of logical qubits.
-Rotations are specified objections with a Rotation field and includes the basis and the rotation angle.
-Measurements are specified by objects with a Measurement field, and includes the basis, then whether the resulting measurement result should be flipped (currently not used).
+Rotations $\exp(i \phi P)$ are specified objections with a `Rotation` dictionary, which has the `basis` field for the Pauli $P$ and the `angle` field for $\phi$.
+Measurements are specified by objects with a `Measurement` dictionary, which also has a `basis` field, and whether the resulting measurement result should be flipped (currently not used). The `flip_result` is intended to support a future implementation of 'measurement projections' as defined in equation (1) of [arXiv:2506.03094](https://arxiv.org/abs/2506.03094) in Section 3.
 
 ### Running the program
 You can pipe a program of the above format into the binary by running
