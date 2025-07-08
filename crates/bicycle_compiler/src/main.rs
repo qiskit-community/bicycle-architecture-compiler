@@ -8,7 +8,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::{env, error, fs::File, io, path::{Path, PathBuf}};
+use std::{
+    env, error,
+    fs::File,
+    io,
+    path::{Path, PathBuf},
+};
 
 use bicycle_cliffords::{
     native_measurement::NativeMeasurement, CompleteMeasurementTable, MeasurementChoices,
@@ -65,7 +70,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     Ok(_) => {
                         // Successfully created dummy file. Remove file.
                         std::fs::remove_file(temp_file_path)?;
-                    },
+                    }
                     Err(e) => {
                         eprintln!(
                             "Cannot create measurement_table output file in the target directory: {}",
@@ -74,7 +79,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                         std::process::exit(1);
                     }
                 }
-            },
+            }
             None => {
                 eprintln!("No parent directory found for {}", cache_str);
                 std::process::exit(1);
