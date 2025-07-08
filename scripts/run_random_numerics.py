@@ -8,8 +8,11 @@ import os
 ## Run the executable `random_numerics` several times, in parallel,
 ## for various input parameter values.
 ##
-## This script should be run from generate_data.sh.
+## This script should be run from generate_tables_and_random_numerics.sh
 ## It should not be run directly.
+##
+## This script does the same thing that run_random_numerics.sh does.
+## But run_random_numerics.sh depends on finding the GNU parallel program in your path.
 ##
 
 ## Change directory to the script's directory

@@ -2,13 +2,16 @@
 set -euo pipefail
 
 ##
+## Run the executable `random_numerics` several times, in parallel,
+## for various input parameter values. This script depends on
+## finding the GNU parallel program in your path.
+##
+## This script should be run from generate_tables_and_random_numerics.sh
+## It should not be run directly.
+##
 ## This script is a simpler alternative to run_random_numerics.py
 ## It does the same thing that run_random_numerics.py does
-##
-## This script should be run from generate_data.sh.
-## It need not be run directly.
-##
-## This script requires the utility GNU parallel
+## 
 
 # Change to this script's directory
 cd "$(dirname "$0")" || exit
