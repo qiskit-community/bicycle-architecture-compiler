@@ -1,6 +1,14 @@
 #!/bin/sh
 set -euo pipefail
 
+# Ensure that measurement tables have been generated.
+#
+# This script checks that measurement tables are present in
+# `bicycle-architecture-compiler/data/table_gross` and
+# `bicycle-architecture-compiler/data/table_gross`
+#
+# If they are not present, this script runs `bicycle_compiler` to generate them.
+
 # Change to this script's directory
 cd "$(dirname "$0")" || exit
 
@@ -87,24 +95,3 @@ for pid in $pids; do
         exit 1
     fi
 done
-
-# Read parameters from parameters.csv and run each parameter 8 times
-echo "Running random_numerics"
-
-# Ensure that temporary directory exists
-mkdir -p ../tmp/
-
-if command -v parallel >/dev/null 2>&1; then
-    echo "Using GNU parallel."
-    ./run_random_numerics.sh
-elif command -v python3 >/dev/null 2>&1 && python3 -c "import sys; sys.exit(0)" >/dev/null 2>&1; then
-    echo "Python3 is available and functional. Using python3"
-    ./run_random_numerics.py
-else
-    echo "You must install either GNU parallel or a functional Python 3." >&2
-    exit 1
-fi
-
-echo "Data generation complete. Concatenating output to '$input_data_dir/data.csv'."
-awk '(NR == 1) || (FNR > 1)' ../tmp/out_*.csv > "$input_data_dir/data.csv"
-rm ../tmp/out_*.csv
