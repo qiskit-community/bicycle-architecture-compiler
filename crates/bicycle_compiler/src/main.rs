@@ -61,6 +61,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     {
         info!("Generating measurement table.");
         let cache_path = Path::new(&cache_str);
+
+        // Ensure that we can write a file in the desired output directory.  To do this we
+        // write and delte an empty file in the parent directory of the full path of the
+        // (output) cache file.  We do this in order to fail early rather than computing the
+        // measurement table, only to find at the end that we cannot write the result.
         match cache_path.parent() {
             Some(cache_dir) => {
                 let temp_filename = "dummy_file_check";
@@ -85,10 +90,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 std::process::exit(1);
             }
         }
+
+        // Create a builder and build the measurement table.
         let mut builder =
             MeasurementTableBuilder::new(NativeMeasurement::all(), cli.code.measurement());
         builder.build();
         let measurement_table = builder.complete()?;
+
+        // Serialize the measurement table and write to the cache file.
         let serialized =
             bitcode::serialize(&measurement_table).expect("The table should be serializable");
         info!("Done generating measurement table, writing.");
