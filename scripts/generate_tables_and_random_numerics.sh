@@ -33,6 +33,11 @@ else
 fi
 
 input_data_dir="../data"
+
 echo "Data generation complete. Concatenating output to '$input_data_dir/random_numerics_output.csv'."
+
+# Concatenate all files written by random_numerics, omitting the first line of each file.
 awk '(NR == 1) || (FNR > 1)' ../tmp/out_*.csv > "$input_data_dir/random_numerics_output.csv"
+
+# Clean temporary directory
 rm ../tmp/out_*.csv
