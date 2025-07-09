@@ -13,7 +13,7 @@ An example of a rotation instruction printed for `nqubits` equal to `3` is
 {"Rotation":{"basis":["I","Y","Y"],"angle":"0.78539816339744830961566084581"}}
 ```
 
-This executable provide and example of the library function provided by this crate.
+This executable provides an example of the library function provided by this crate.
 The executable itself is not used elsewhere.
 
 But the library function `bicycle_benchmark::random::random_rotations` is used
