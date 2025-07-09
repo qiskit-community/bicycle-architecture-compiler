@@ -32,6 +32,7 @@ else
     exit 1
 fi
 
+input_data_dir="../data"
 echo "Data generation complete. Concatenating output to '$input_data_dir/random_numerics_output.csv'."
 awk '(NR == 1) || (FNR > 1)' ../tmp/out_*.csv > "$input_data_dir/random_numerics_output.csv"
 rm ../tmp/out_*.csv
