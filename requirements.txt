@@ -1,3 +1,4 @@
 pygridsynth~=1.1
 numpy~=2.3.1
+matplotlib~=3.10.3
 
