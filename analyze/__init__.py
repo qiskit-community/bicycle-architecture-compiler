@@ -9,6 +9,8 @@ from .random_numerics import (
     read_and_plot,
     )
 
+from .generate_tables import generate_measurement_tables
+
 import subprocess
 import os
 

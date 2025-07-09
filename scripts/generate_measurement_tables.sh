@@ -57,6 +57,7 @@ pids=""
 
 pbc_program="bicycle_compiler"
 pbc_gross_com="../target/release/$pbc_program gross generate"
+pbc_two_gross_com="../target/release/$pbc_program two-gross generate"
 
 # Cache measurement tables
 if [ "$gross_table_exists" = "false" ] ; then
@@ -68,8 +69,8 @@ fi
 
 if [ "$twogross_table_exists" = "false" ] ; then
     echo "Measurement table 'table_two-gross' not found. Generating measurement table."
-    echo $pbc_gross_com $twogross_table_path
-    $pbc_gross_com $twogross_table_path &
+    echo $pbc_two_gross_com $twogross_table_path
+    $pbc_two_gross_com $twogross_table_path &
     pids="$pids $!"
 fi
 

@@ -54,7 +54,7 @@ INPUT_DATA_DIR = Path(TOP_DIR, 'data')
 COLLATED_PATHNAME = f"{INPUT_DATA_DIR}/random_numerics_output.csv"
 
 # Path to the rust binary executable
-EXECUTABLE_PATH = Path(TOP_DIR, 'target', 'release', 'random_numerics')
+EXECUTABLE_PATH = Path(TOP_DIR, 'target', 'release', 'bicycle_random_numerics')
 
 def ensure_directory_exists(directory_path):
     if not os.path.exists(directory_path):
