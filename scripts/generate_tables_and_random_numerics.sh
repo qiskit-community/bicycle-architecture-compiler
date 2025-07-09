@@ -16,7 +16,7 @@ echo "Running random_numerics"
 # Ensure that the temporary directory exists
 # Data genererated by several `random_numerics` processes will be written to this
 # temp directory.
-# The data will be collated and written to `bicycle-architecture-compiler/data/data.csv`
+# The data will be collated and written to `bicycle-architecture-compiler/data/random_numerics_output.csv`
 # Finally, the temporary files will be deleted.
 
 mkdir -p ../tmp/
@@ -32,6 +32,6 @@ else
     exit 1
 fi
 
-echo "Data generation complete. Concatenating output to '$input_data_dir/data.csv'."
-awk '(NR == 1) || (FNR > 1)' ../tmp/out_*.csv > "$input_data_dir/data.csv"
+echo "Data generation complete. Concatenating output to '$input_data_dir/random_numerics_output.csv'."
+awk '(NR == 1) || (FNR > 1)' ../tmp/out_*.csv > "$input_data_dir/random_numerics_output.csv"
 rm ../tmp/out_*.csv
