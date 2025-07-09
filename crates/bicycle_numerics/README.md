@@ -29,7 +29,7 @@ The help output is
 Usage: numerics [OPTIONS] <QUBITS> <MODEL>
 
 Arguments:
-  <QUBITS>  
+  <QUBITS>
   <MODEL>   [possible values: gross_1e-3, gross_1e-4, two-gross_1e-3, two-gross_1e-4]
 
 Options:
