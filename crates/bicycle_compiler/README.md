@@ -19,7 +19,7 @@ We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.113
 
 The above format gives examples of the only two operations allowed in such a PBC program: rotations and measurements.
 All operations should act on the same number of logical qubits.
-Rotations $\exp(i \phi P)$ are specified objections with a `Rotation` dictionary, which has the `basis` field for the Pauli $P$ and the `angle` field for $\phi$.
+Rotations $\exp(i \phi P)$ are specified by objects with with a `Rotation` dictionary, which has the `basis` field for the Pauli $P$ and the `angle` field for $\phi$.
 Measurements are specified by objects with a `Measurement` dictionary, which also has a `basis` field, and whether the resulting measurement result should be flipped (currently not used). The `flip_result` is intended to support a future implementation of 'measurement projections' as defined in equation (1) of [arXiv:2506.03094](https://arxiv.org/abs/2506.03094) in Section 3.
 
 ### Running the program
