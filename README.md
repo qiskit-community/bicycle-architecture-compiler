@@ -97,7 +97,7 @@ pbc-compiler/
 ├── scripts/                       # Scripts for generating data (has some overlap with analysis)
 ├── notebooks/                     # Notebook for running and plotting a random circuit experiment.
 ├── data/                          # Cached measurement tables, and random circuit data
-└── src/
+└── crates/
     ├── bicycle_common/            # Definition of bicycle ISA
     ├── bicycle_benchmark/         # Random generation of PBC circuits
     ├── bicycle_cliffords/         # Clifford gate implementation via brute-force search
@@ -107,10 +107,11 @@ pbc-compiler/
 ```
 
 ### PBC Compiler
-The PBC compiler packages are located under `src/`.
+
+The PBC compiler packages are located under `crates/`.
 There are various packages:
 
-1. `bicycle_common` define the bicycle instructions, which are used as a shared language.
+1. [`bicycle_common`](bicycle_common) define the bicycle instructions, which are used as a shared language.
 1. `bicycle_benchmark` generates random circuits of Pauli-generated rotations or measurements.
 1. `bicycle_cliffords` searches & builds a table to implement Clifford gates on Gross and Two Gross codes using the least rotations.
 1. `bicycle_compiler` the main compiler that takes in a PBC circuit and outputs a circuit using bicycle instructions.
