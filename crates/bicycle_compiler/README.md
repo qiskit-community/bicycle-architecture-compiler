@@ -72,9 +72,15 @@ Usage: bicycle_compiler <CODE> generate <MEASUREMENT_TABLE>
 We select `<CODE>` from `gross` or `two-gross` and `<MEASUREMENT_TABLE>` is an output file.
 We can then use the measurement table to speed up compilation.
 For example:
+
+Build the table
+```sh
+> ./target/release/bicycle_compiler gross generate ./data/table_gross
 ```
-./target/release/bicycle_compiler gross generate ./data/table_gross
-cat ./crates/bicycle_compiler/example/simple.json |  jq --compact-output '.[]' | ./target/release/bicycle_compiler gross --measurement-table ./data/table_gross > bicycle_circuit.json
+
+Use the table
+```sh
+> cat ./crates/bicycle_compiler/example/simple.json |  jq --compact-output '.[]' | ./target/release/bicycle_compiler gross --measurement-table ./data/table_gross > bicycle_circuit.json
 ```
 Once you have created a measurement table, it can be reused as many times as you want (it is read-only).
 Note that changes to the contents of the table (i.e., in `bicycle_cliffords`) require regenerating the table.
