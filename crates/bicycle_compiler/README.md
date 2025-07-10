@@ -67,14 +67,14 @@ and the package `bicycle_cliffords` produces one.
 Because this takes some time (about a minute on my laptop),
 there is an option to save the lookup table on disk.
 ```
-Usage: pbc_gross <CODE> generate <MEASUREMENT_TABLE>
+Usage: bicycle_compiler <CODE> generate <MEASUREMENT_TABLE>
 ```
 We select `<CODE>` from `gross` or `two-gross` and `<MEASUREMENT_TABLE>` is an output file.
 We can then use the measurement table to speed up compilation.
 For example:
 ```
-./target/release/pbc_gross gross generate table_gross
-cat ./src/pbc_gross/example/simple.json |  jq --compact-output '.[]' | ./target/release/pbc_gross gross --measurement-table table_gross
+./target/release/bicycle_compiler gross generate ./data/table_gross
+cat ./crates/bicycle_compiler/example/simple.json |  jq --compact-output '.[]' | ./target/release/bicycle_compiler gross --measurement-table ./data/table_gross > bicycle_circuit.json
 ```
 Once you have created a measurement table, it can be reused as many times as you want (it is read-only).
 Note that changes to the contents of the table (i.e., in `bicycle_cliffords`) require regenerating the table.
