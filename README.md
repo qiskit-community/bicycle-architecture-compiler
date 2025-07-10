@@ -7,7 +7,10 @@
  - An end-to-end compilation scheme from Pauli-Based Computation (PBC) to the bicycle ISA
 
 This repository implements and benchmarks this end-to-end compilation scheme. We provide facilities for:
- - Random PBC circuits as a form of worst-case Clifford+T quantum circuits, see `crates/bicycle_random_numerics` and `scripts/run_random_numerics.sh/py`
+ - Random PBC circuits as a form of worst-case Clifford+T quantum circuits. See
+     - [`./crates/bicycle_random_numerics`](./crates/bicycle_random_numerics)
+     - [`./scripts/generate_tables_and_random_numerics.py`](./scripts/generate_tables_and_random_numerics.py)
+     - [`./notebooks/Circuit_failure_probability.ipynb`](./notebooks/Circuit_failure_probability.ipynb)
  - User-specified PBC circuits supporting arbitrary-angle rotations, see `crates/bicycle_numerics`
 
 ## Installation
@@ -17,17 +20,17 @@ See information on installing rust [below](#rust)
 shell> cargo build --release
 ```
 
-### Platform support
+## Platform support
 
 This software is tested on some Linux and macOS platforms.
 
-### Dependencies
+## Dependencies
 
-#### Rust
+### Rust
 
 We recommend using [rustup](https://www.rust-lang.org/tools/install) to install a rust toolchain
 
-#### Python
+### Python
 
 Please ensure that a `python` (python3) executable is available in your path.
 We recommend using a virtual environment, such as `venv` or `pyenv`. For example
@@ -37,16 +40,38 @@ shell> python -m venv ./.venv
 shell> source ./.venv/bin/activate # for macos or linux running `bash` or `zsh`
 ```
 
-#### Python dependencies
+Or if you choose `pyenv`,
+```sh
+shell> pyenv virtualenv pbc-gross
+shell> pyenv local pbc-gross
+```
 
+### Python dependencies
 
-The compiler depends on the the package `pygridsynth~=1.1`, which can be installed with
+Once your virtual environment is activated, you can install required and optional packages.
+
+Required packages (currently only `pygridsynth~=1.1`) may be installed like this
 ```sh
 shell> pip install -r requirements.txt
 ```
 
-Optional Python packages. These packages are `numpy`, `matplotlib`, and `jupyter`.
-They are needed to run the notebook.
+#### Gridsynth
+
+The compiler depends on the the package `pygridsynth~=1.1`
+for synthesizing rotations by angles other than $\pm\pi/4$.
+
+To test your installation, the following command should succeed
+```sh
+shell> python -m pygridsynth 0.5 1e-3
+```
+printing something like (the exact output may differ)
+```
+THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWWWWWWW
+```
+
+#### Optional Python packages
+
+These packages are `numpy`, `matplotlib`, and `jupyter`. They are needed to run the notebook.
 ```sh
 shell> pip install -r optional_dependencies.txt
 ```
@@ -60,25 +85,6 @@ shell> pip install -r optional_dependencies.txt
 * You must have installed either `python3` or GNU `parallel` in order to
   run [./scripts/run_random_numerics.sh](./scripts/run_random_numerics.sh).
 
-### Gridsynth
-For synthesizing rotations by angles other than $\pm\pi/4$,
-please ensure that a `python` executable is available in your path with the `pygridsynth~=1.1` package installed.
-The following command should succeed
-```sh
-shell> python -m pygridsynth 0.5 1e-3
-```
-and something like (the exact output may differ)
-```
-THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWWWWWWW
-```
-
-This can be achieved by setting a local virtual environment as follows
-```sh
-shell> pyenv virtualenv pbc-gross
-shell> pyenv local pbc-gross
-shell> pip install "pygridsynth~=1.1"
-```
-
 ## Usage
 
 For a workflow for generating benchmarks, see [scripts/README.md](scripts/).
@@ -87,7 +93,10 @@ For a workflow for generating benchmarks, see [scripts/README.md](scripts/).
 
 ```
 pbc-compiler/
-├── scripts/                       # Scripts for generating data
+├── analysis/                      # Python modules for postprocessing and steering
+├── scripts/                       # Scripts for generating data (has some overlap with analysis)
+├── notebooks/                     # Notebook for running and plotting a random circuit experiment.
+├── data/                          # Cached measurement tables, and random circuit data
 └── src/
     ├── bicycle_common/            # Definition of bicycle ISA
     ├── bicycle_benchmark/         # Random generation of PBC circuits
@@ -113,7 +122,7 @@ Each package has more info in their respective READMEs.
 ### Installation
 
 ```sh
-shell> cargo build
+shell> cargo build -r
 
 shell> python -m venv venv
 shell> source venv/bin/activate
@@ -121,6 +130,9 @@ shell> pip install -e .
 ```
 
 ### Crate Dependencies
+
+This information is provide to aid in understanding the role of each crate.
+
 ```
 bicycle_common v0.0.1
 
@@ -140,7 +152,7 @@ bicycle_numerics v0.0.1
 ├── bicycle_common v0.0.1
 └── bicycle_compiler v0.0.1
 
-random_numerics v0.0.1
+bicycle_random_numerics v0.0.1
 ├── bicycle_benchmark v0.0.1
 ├── bicycle_common v0.0.1
 ├── bicycle_cliffords v0.0.1
