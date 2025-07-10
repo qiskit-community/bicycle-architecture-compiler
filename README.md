@@ -12,13 +12,47 @@ This repository implements and benchmarks this end-to-end compilation scheme. We
 
 ## Installation
 
+See information on installing rust [below](#rust)
 ```sh
 shell> cargo build --release
 ```
 
+### Platform support
+
+This software is tested on some Linux and macOS platforms.
+
 ### Dependencies
 
-Dependencies not availble via `pip` or `cargo`.
+#### Rust
+
+We recommend using [rustup](https://www.rust-lang.org/tools/install) to install a rust toolchain
+
+#### Python
+
+Please ensure that a `python` (python3) executable is available in your path.
+We recommend using a virtual environment, such as `venv` or `pyenv`. For example
+
+```sh
+shell> python -m venv ./.venvs/py313
+shell> source venv/bin/activate # for macos or linux running `bash` or `zsh`
+```
+
+
+#### Python dependencies
+
+
+The compiler depends on the the package `pygridsynth~=1.1`, which can be installed with
+```sh
+shell> pip install -r requirements.txt
+```
+
+Optional Python packages. These packages are `numpy`, `matplotlib`, and `jupyter`.
+They are needed to run the notebook.
+```sh
+shell> pip install -r optional_dependencies.txt
+```
+
+#### Dependencies not availble via `pip` or `cargo`.
 
 * `jq` - commandline JSON processor
 
