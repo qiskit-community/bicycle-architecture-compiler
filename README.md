@@ -33,8 +33,8 @@ Please ensure that a `python` (python3) executable is available in your path.
 We recommend using a virtual environment, such as `venv` or `pyenv`. For example
 
 ```sh
-shell> python -m venv ./.venvs/py313
-shell> source ./.venvs/py313/bin/activate # for macos or linux running `bash` or `zsh`
+shell> python -m venv ./.venv
+shell> source ./.venv/bin/activate # for macos or linux running `bash` or `zsh`
 ```
 
 
