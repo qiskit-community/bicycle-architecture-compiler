@@ -111,12 +111,12 @@ pbc-compiler/
 The PBC compiler packages are located under `crates/`.
 There are various packages:
 
-1. [`bicycle_common`](bicycle_common) define the bicycle instructions, which are used as a shared language.
-1. `bicycle_benchmark` generates random circuits of Pauli-generated rotations or measurements.
-1. `bicycle_cliffords` searches & builds a table to implement Clifford gates on Gross and Two Gross codes using the least rotations.
-1. `bicycle_compiler` the main compiler that takes in a PBC circuit and outputs a circuit using bicycle instructions.
-1. `bicycle_numerics` adds timing information and collects data about the compiled circuits.
-1. `bicycle_random_numerics` a wrapper package for collecting data faster (basically runs `cargo run --package benchmark <args> | cargo run --package pbc_gross <args> | cargo run --package numerics <args>` without (de)serialization overhead).
+1. [`bicycle_common`](./crates/bicycle_common) define the bicycle instructions, which are used as a shared language.
+1. [`bicycle_benchmark`](./crates/) generates random circuits of Pauli-generated rotations or measurements.
+1. [`bicycle_cliffords`](./crates/) searches & builds a table to implement Clifford gates on Gross and Two Gross codes using the least rotations.
+1. [`bicycle_compiler`](./crates/) the main compiler that takes in a PBC circuit and outputs a circuit using bicycle instructions.
+1. [`bicycle_numerics`](./crates/) adds timing information and collects data about the compiled circuits.
+1. [`bicycle_random_numerics`](./crates/) a wrapper package for collecting data faster (basically runs `cargo run --package benchmark <args> | cargo run --package pbc_gross <args> | cargo run --package numerics <args>` without (de)serialization overhead).
 
 Each package has more info in their respective READMEs.
 
