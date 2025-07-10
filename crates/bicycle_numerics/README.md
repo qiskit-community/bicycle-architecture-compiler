@@ -3,7 +3,7 @@ This package collects in circuits of bicycle ISA instructions
 and assigns logical error rates, $P_i$, for each bicycle instruction as well as timing information.
 Using this, it computes the execution time (in syndrome cycles) and circuit failure probability.
 
-The input of the program is the output of `pbc_gross`.
+The input of the program is the output of `bicycle_compiler`.
 
 The output of the program is of the form
 ```csv
@@ -26,7 +26,7 @@ cat simulation_circuit_twogross.json | cargo run --release -- 120 two-gross_1e-4
 The help output is
 
 ```
-Usage: numerics [OPTIONS] <QUBITS> <MODEL>
+Usage: bicycle_numerics [OPTIONS] <QUBITS> <MODEL>
 
 Arguments:
   <QUBITS>
