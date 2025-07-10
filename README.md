@@ -37,7 +37,6 @@ shell> python -m venv ./.venv
 shell> source ./.venv/bin/activate # for macos or linux running `bash` or `zsh`
 ```
 
-
 #### Python dependencies
 
 
@@ -59,7 +58,7 @@ shell> pip install -r optional_dependencies.txt
 ### Optional dependencies
 
 * You must have installed either `python3` or GNU `parallel` in order to
-  run [./scripts/generate_data.sh](./scripts/generate_data.sh).
+  run [./scripts/run_random_numerics.sh](./scripts/run_random_numerics.sh).
 
 ### Gridsynth
 For synthesizing rotations by angles other than $\pm\pi/4$,
