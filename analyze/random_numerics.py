@@ -208,6 +208,24 @@ def read_and_plot(filepath: str):
     plot_means(grouped_data)
     return data, grouped_data
 
+
+import subprocess
+import os
+
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+PROGRAM_PATH = f"{THIS_DIR}/generate_random_numerics.py"
+
+def run_random_numerics(overwrite=True, verbose=True):
+    """
+    Run `random_numerics` several times each of various parameter sets and collate the results.
+    """
+    command = [PROGRAM_PATH]
+    if overwrite:
+        command.append("--overwrite")
+    if verbose:
+        command.append("--verbose")
+    subprocess.run(command, stdout=None, stderr=None, check=True)
+
 # Test that asking for number of physical qubits reliably gets entries with the
 # correct number of logical qubits (and other parameters)
 def test_num_logical(data):

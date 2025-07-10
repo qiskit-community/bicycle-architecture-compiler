@@ -7,24 +7,9 @@ from .random_numerics import (
     compute_means,
     plot_means,
     read_and_plot,
+    run_random_numerics,
     )
 
 from .generate_tables import generate_measurement_tables
 
-import subprocess
-import os
-
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-
-PROGRAM_PATH = f"{THIS_DIR}/generate_random_numerics.py"
-
-def run_random_numerics(overwrite=True, verbose=True):
-    command = [PROGRAM_PATH]
-    if overwrite:
-        command.append("--overwrite")
-    if verbose:
-        command.append("--verbose")
-
-    subprocess.run(command, stdout=None, stderr=None, check=True)
-
-# from .generate_random_numerics import generate_random_numerics, collate_random_numerics
+from .check_crates import compile_crates

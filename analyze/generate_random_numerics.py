@@ -34,7 +34,7 @@ import argparse
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Top level of pbc-compiler
+# Top level directory of bicycle-architecture-compiler
 TOP_DIR = Path(THIS_DIR, '..')
 
 # `random_numerics` output will be written to files in this directory
