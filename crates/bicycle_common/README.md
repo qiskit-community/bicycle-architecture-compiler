@@ -1,8 +1,17 @@
 # `bicycle_common`
 
-Description of the instruction set of logical operations in bivariate bicycle codes, see `pub enum BicycleISA`.
+This crate implements the instruction set of the bivariate bicycle codes. It supports
+instantiating instructions and some methods for manipulation, random sampling, etc.
+
+`pub enum Pauli` is defined in this crate as well because `pub enum BicycleISA` depends on it.
+However `Pauli` is also used directly in other crates, and so has public visibility.
+
+Description of the instruction set of logical operations in bivariate bicycle codes,
+see [`pub enum BicycleISA`](https://github.ibm.com/ibm-q-research/bicycle-architecture-compiler/blob/e4b18b9e850ec84c78ab7366058705a89cdb18b7/crates/bicycle_common/src/lib.rs#L255).
 
 Summary of the gates:
+
+On the left is the name of the rust `enum` variant. On the right is the display format.
 
 * __SyndromeCycle__ `sc` Idle operation.
 * __CSSInitZero__ `init0` Initialize all logical qubits in block to `|0>`.
