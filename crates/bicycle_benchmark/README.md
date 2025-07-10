@@ -13,8 +13,11 @@ An example of a rotation instruction printed for `nqubits` equal to `3` is
 {"Rotation":{"basis":["I","Y","Y"],"angle":"0.78539816339744830961566084581"}}
 ```
 
-This executable provides an example of the library function provided by this crate.
-The executable itself is not used elsewhere.
+The executable `bicycle_benchmark` can be used like this
+```sh
+cargo run --package bicycle_benchmark <args> | cargo run --package bicycle_compiler <args> | cargo run --package bicycle_numerics <args>
+```
 
-But the library function `bicycle_benchmark::random::random_rotations` is used
-by the executable `bicycle_random_numerics` found in the crate of the same name.
+However, the executable `bicycle_random_numerics`, found in the crate of the same name,
+instead uses the library function `bicycle_benchmark::random::random_rotations`.
+This is in order to avoid the overhead of (de)serialization to JSON.
