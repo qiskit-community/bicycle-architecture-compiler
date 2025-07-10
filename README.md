@@ -34,7 +34,7 @@ We recommend using a virtual environment, such as `venv` or `pyenv`. For example
 
 ```sh
 shell> python -m venv ./.venvs/py313
-shell> source venv/bin/activate # for macos or linux running `bash` or `zsh`
+shell> source ./.venvs/py313/bin/activate # for macos or linux running `bash` or `zsh`
 ```
 
 
