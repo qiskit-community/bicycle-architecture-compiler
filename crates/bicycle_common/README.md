@@ -9,7 +9,7 @@ However `Pauli` is also used directly in other crates, and so has public visibil
 Description of the instruction set of logical operations in bivariate bicycle codes,
 see [`pub enum BicycleISA`](https://github.ibm.com/ibm-q-research/bicycle-architecture-compiler/blob/e4b18b9e850ec84c78ab7366058705a89cdb18b7/crates/bicycle_common/src/lib.rs#L255).
 
-Summary of the gates:
+### Summary of the gates
 
 On the left is the name of the rust `enum` variant. On the right is the display format.
 

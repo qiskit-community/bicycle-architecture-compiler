@@ -6,12 +6,9 @@
  - Circuit-level noise benchmarks of all the ISA instructions
  - An end-to-end compilation scheme from Pauli-Based Computation (PBC) to the bicycle ISA
 
-This repository implements and benchmarks this end-to-end compilation scheme. We provide facilities for:
- - Random PBC circuits as a form of worst-case Clifford+T quantum circuits. See
-     - [`./crates/bicycle_random_numerics`](./crates/bicycle_random_numerics)
-     - [`./scripts/generate_tables_and_random_numerics.py`](./scripts/generate_tables_and_random_numerics.py)
-     - [`./notebooks/Circuit_failure_probability.ipynb`](./notebooks/Circuit_failure_probability.ipynb)
- - User-specified PBC circuits supporting arbitrary-angle rotations, see `crates/bicycle_numerics`
+This repository implements and benchmarks this end-to-end compilation scheme.
+ - Random PBC circuits as a form of worst-case Clifford+T quantum circuits. See [`./notebooks/random_circuits.ipynb`](./notebooks/random_circuits.ipynb)
+ - User-specified PBC circuits supporting arbitrary-angle rotations, see [`./notebooks/custom_circuits.ipynb`](./notebooks/custom_circuits.ipynb)
 
 ## Installation
 
@@ -106,16 +103,15 @@ pbc-compiler/
     └── bicycle_random_numerics/   # Benchmarking via random PBC circuits
 ```
 
-### PBC Compiler
+### Crates
 
 The PBC compiler packages are located under `crates/`.
-There are various packages:
 
 1. [`bicycle_common`](./crates/bicycle_common) define the bicycle instructions, which are used as a shared language.
-1. [`bicycle_benchmark`](./crates/) generates random circuits of Pauli-generated rotations or measurements.
 1. [`bicycle_cliffords`](./crates/) searches & builds a table to implement Clifford gates on Gross and Two Gross codes using the least rotations.
 1. [`bicycle_compiler`](./crates/) the main compiler that takes in a PBC circuit and outputs a circuit using bicycle instructions.
 1. [`bicycle_numerics`](./crates/) adds timing information and collects data about the compiled circuits.
+1. [`bicycle_benchmark`](./crates/) generates random circuits of Pauli-generated rotations or measurements.
 1. [`bicycle_random_numerics`](./crates/) a wrapper package for collecting data faster (basically runs `cargo run --package benchmark <args> | cargo run --package pbc_gross <args> | cargo run --package numerics <args>` without (de)serialization overhead).
 
 Each package has more info in their respective READMEs.

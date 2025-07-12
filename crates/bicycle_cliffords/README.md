@@ -1,4 +1,4 @@
-# Gross Code Cliffords
+# `bicycle_cliffords`
 
 As discussed in [this paper by Cross et al.](https://arxiv.org/abs/2407.18393), section 4.3,
 we can construct logical Clifford rotations and measurements from the measurements enabled by the ancilla system attached to a Gross code.

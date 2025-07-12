@@ -1,4 +1,5 @@
-# Numerics
+# `bicycle_numerics`
+
 This package collects in circuits of bicycle ISA instructions
 and assigns logical error rates, $P_i$, for each bicycle instruction as well as timing information.
 Using this, it computes the execution time (in syndrome cycles) and circuit failure probability.

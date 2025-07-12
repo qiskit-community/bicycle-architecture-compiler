@@ -1,6 +1,6 @@
-# bicyle_benchmark
+# `bicyle_benchmark`
 
-The executable `bicycle_benchmark` prints an infinite stream of `nqubit`
+The executable `bicycle_benchmark` prints an infinite stream random of `nqubit`
 Pauli-based rotations to `stdout`.
 
 The executable is invoked like this.
