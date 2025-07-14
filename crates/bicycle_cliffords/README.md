@@ -1,20 +1,13 @@
 # `bicycle_cliffords`
 
-As discussed in [this paper by Cross et al.](https://arxiv.org/abs/2407.18393), section 4.3,
-we can construct logical Clifford rotations and measurements from the measurements enabled by the ancilla system attached to a Gross code.
-In this repository,
-we implement some searches to find faster implementations of arbitrary Clifford rotations and measurements.
+Following [Cross et al. arXiv:2407.18393](https://arxiv.org/abs/2407.18393), Section 4.3, the 12 logical qubits of a gross or two-gross qLDPC module are divided into one `pivot` qubit and 11 `data` qubits. Here we implement a scheme that allows:
+ - implementation of arbitrary 11-qubit Clifford gates on the `data` qubits,
+ - and, implementation of multi-module Pauli rotations $\exp(i \phi (P_1 \otimes P_2 \otimes ...))$ or multi-module Pauli measurements $(P_1 \otimes P_2 \otimes ...)$, for any 11-qubit $P_i$ on each module.
 
-We consider implementing Clifford rotations, $e^{i \frac{\pi}{4} P}$ for Pauli string $P$.
-and Clifford measurements that are defined by the measurement basis
+ This is achieved by synthesizing Clifford Pauli rotations $\exp(i \phi Q)$ for *11-qubit* Pauli matrices $Q$. These are synthesized as follows:
 
-$$\set{I + (-1)^b e^{i \frac{\pi}{4} P}}_{b = 0}^1.$$
+  - The LPU can perform some family of Pauli measurements $\mathcal{P}_\text{LPU}$, and some family of Clifford unitaries can be implemented by automorphisms $\mathcal{C}_\text{aut}$. The *native measurements* are defined as the set $\{ CPC^\dagger \text{ for } P \in \mathcal{P}_\text{LPU} \text{, for } C \in \mathcal{C}_\text{aut} \}$ of 12-qubit Pauli matrices.
+  - The sequence of measurements $(X \otimes I_{11})$, $(Y \otimes Q), (Z \otimes I_{11})$, for an 11-qubit Pauli $Q$ synthesizes $\exp(i \frac{\pi}{4} (I \otimes Q))$ up to Pauli corrections. Here the measurements on the first qubit were $X,Y,Z$, but any ordering of these works. Furthermore, $(X \otimes I_{11}),(Y \otimes I_{11}),(Z \otimes I_{11})$ are all native from the construction of the LPU. Hence we can implement $\exp(i \frac{\pi}{4} (I \otimes Q))$ whenever $I \otimes Q$ is native. We call such 11-qubit $Q$ native rotations.
+  - Suppose $P$ and $Q$ are native rotations, and $PQ = -QP$. Then $\exp(i \frac{\pi}{4}Q)\exp(i \frac{\pi}{4}P)\exp(-i \frac{\pi}{4}Q) = \exp(i \frac{\pi}{4}PQ)$. Hence we can construct more Pauli rotations by multiplying the Pauli matrices of existing anticommuting ones together.
 
-By injecting a magic state $\ket T \coloneqq T\ket +$ [^game] (Fig. 7),
-a Clifford measurements of $Z \otimes P$ can implement a $\pi/8$ rotation of $P$ up to Clifford corrections.
-
-[^game]: Game of Surface Codes [doi](https://doi.org/10.22331/q-2019-03-05-128)
-
-## How to construct rotations and measurements
-
-TODO
+This module implements a search algorithm that computes efficient implementations of all $4^{11}$ Pauli matrices in terms of native rotations, see `decomposition.rs`. Which Pauli matrices are native depends entirely on the automorphism actions, since the LPU design is mostly the same in [Cross et al. arXiv:2407.18393](https://arxiv.org/abs/2407.18393) and [Tour de Gross arXiv:2506.03094](https://arxiv.org/abs/2506.03094). The automorphism actions are tabulated in `native_measurement.rs`, and can be computed using [`notebooks/gross_code_automorphisms.ipynb`](../../notebooks/gross_code_automorphisms.ipynb).
