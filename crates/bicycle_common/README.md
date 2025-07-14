@@ -1,28 +1,31 @@
 # `bicycle_common`
 
-This crate implements the instruction set of the bivariate bicycle codes. It supports
-instantiating instructions and some methods for manipulation, random sampling, etc.
+This crate implements common functionality of the Bicycle Architecture Compiler.
+Its main contribution are the logical instruction of bivariate bicycle codes.
+It supports instantiating instructions and some methods for manipulation, random sampling, etc.
 
-`pub enum Pauli` is defined in this crate as well because `pub enum BicycleISA` depends on it.
-However `Pauli` is also used directly in other crates, and so has public visibility.
+`Pauli` is also defined in this crate.
 
-Description of the instruction set of logical operations in bivariate bicycle codes,
-see [`pub enum BicycleISA`](https://github.ibm.com/ibm-q-research/bicycle-architecture-compiler/blob/e4b18b9e850ec84c78ab7366058705a89cdb18b7/crates/bicycle_common/src/lib.rs#L255).
+### Summary of the logical instructions
+We list 
 
-### Summary of the gates
+> type `display name` description
 
-On the left is the name of the rust `enum` variant. On the right is the display format.
+of the _bicycle instructions_ used in [Tour de Gross arXiv:2506.03094](https://arxiv.org/abs/2506.03094):
 
-* __SyndromeCycle__ `sc` Idle operation.
-* __CSSInitZero__ `init0` Initialize all logical qubits in block to `|0>`.
-* __CSSInitPlus__ `init+` Initialize all logical qubits in block to `|+>`.
-* __DestructiveZ__ `measZ` Measure all logical qubits in block in Z basis.
-* __DestructiveX__ `measX` Measure all logical qubits in block in X basis.
+* __SyndromeCycle__ `sc` Idle operation. Not used explicitly by the compiler, only inferred with timing information in the numerics.
 * __Automorphism__ `aut(_,_)` Perform a unitary automorphism gate, see Section 9.2 of [arXiv:2308.07915](https://arxiv.org/abs/2308.07915).
-* __Measure__ `meas(_,_)` Measure the first and/or seventh qubit using the Logic Processing Unit (LPU).
-* __JointMeasure__ `jMeas(_,_)` One half of a two-block gate. Measure the first and/or seventh qubit.
+* __Measure__ `meas(_,_)` Measure the first and/or seventh qubit.
+* __JointMeasure__ `jMeas(_,_)` One half of a joint measurement between code modules. Measure the first and/or seventh qubit of each module.
+* __TGate__ `T(_,_,_)` Apply $exp(i P\pi/8)$ for $P \in \set{X,Z,Y}$ on the first or seventh qubit.
+
+Note that we also define other logical instructions of bivariate bicycle codes that are not used (explicitly) by the compiler:
+
+* __CSSInitZero__ `init0` Initialize all logical qubits in a code module to `|0>`.
+* __CSSInitPlus__ `init+` Initialize all logical qubits in a code module to `|+>`.
+* __DestructiveZ__ `measZ` Measure all logical qubits in a code module in Z basis.
+* __DestructiveX__ `measX` Measure all logical qubits in a code module in X basis.
 * __ParallelMeasure__`pMeas(_)` Measure the first and seventh qubit independently.
-* __JointBellInit__ `jBell` One half of a two-block gate. Initialize 12 Bell pairs using transversal CX.
-* __JointTransversalCX__ `jCnot` One half of a two-block gate. Perform 12 CX gates via transversal CX.
-* __InitT__ `initT` Initialize all logical qubits in a block to `|T>`, at physical noise rate.
-* __TGate__ `T(_,_,_)` Apply exp(i pi/8 P) for P either X or Z on first or seventh qubit.
+* __JointBellInit__ `jBell` One half of an instruction acting on two code modules. Initialize 12 Bell pairs using transversal CX.
+* __JointTransversalCX__ `jCnot` One half of an instruction acting on two code modules. Perform 12 CX gates via transversal CX.
+* __InitT__ `initT` Initialize all logical qubits in a code module to `|T>`, at physical noise rate.
