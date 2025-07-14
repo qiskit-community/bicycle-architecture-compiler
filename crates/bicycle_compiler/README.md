@@ -1,29 +1,29 @@
 # `bicycle_compiler`
 
-This crate compiles Pauli-Based Computation (PBC) circuits into circuits built from the Bicycle ISA defined in the `bicycle_common` crate.
-
-### Input Program
-
-See Appendix A.9 of [Tour de Gross arXiv:2506.03094](https://arxiv.org/abs/2506.03094) for a review of PBC. PBC refers to a variety of quantum circuit families and compilation methods in the literature, but generally consists of gates acting on $n$ qubits that are defined by $n$-qubit Pauli matrices. For the purposes of this repository, a PBC circuit consists of multi-qubit Pauli rotations $\exp(i \phi P)$, and multi-qubit Pauli measurements.
-
-The input program must be in a PBC form.
-We choose the following format ([inspiration](https://doi.org/10.5281/zenodo.11391890)).
+This crate compiles circuits defined by sequences of Pauli-generated rotations, $\exp(i P \phi/2)$ for $n$-qubit Pauli string $P$,
+and Pauli measurements (also known as _Pauli-based Compilation_ (PBC) circuits)
+into bicycle circuits.
+See Appendix A.9 of [Tour de Gross arXiv:2506.03094](https://arxiv.org/abs/2506.03094) for a review of how PBC circuits may be obtained from Clifford+$R_z$ circuits.
+We represent PBC circuits in a line-based format:
 ```json
 {"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","Y"],"angle":"0.125"}}
 {"Rotation":{"basis":["Z","Z","I","I","I","I","I","I","I","I","I","I"],"angle":"0.5"}}
 {"Rotation":{"basis":["X","X","I","I","I","I","I","I","I","I","I","I"],"angle":"-0.125"}}
 {"Measurement":{"basis":["Z","X","I","I","I","I","I","I","I","I","I","I"],"flip_result":true}}
 {"Measurement":{"basis":["X","I","I","I","I","Z","I","I","I","I","I","I"],"flip_result":false}}
-
 ```
-
-The above format gives examples of the only two operations allowed in such a PBC program: rotations and measurements.
+where each line is a JSON-object representing either a Pauli-generated rotation or a Pauli measurement.
 All operations should act on the same number of logical qubits.
-Rotations $\exp(i \phi P)$ are specified by objects with with a `Rotation` dictionary, which has the `basis` field for the Pauli $P$ and the `angle` field for $\phi$.
-Measurements are specified by objects with a `Measurement` dictionary, which also has a `basis` field, and whether the resulting measurement result should be flipped (currently not used). The `flip_result` is intended to support a future implementation of 'measurement projections' as defined in equation (1) of [arXiv:2506.03094](https://arxiv.org/abs/2506.03094) in Section 3.
+Rotations $\exp(i \phi P)$ are specified by objects with with a `Rotation` field, which has the `basis` field for the Pauli $P$ and the `angle` field for $\phi \in \mathbb R$.
+Measurements are specified by objects with a `Measurement` field, which also has a `basis` field and whether the resulting measurement result should be flipped (currently not used).
+The `flip_result` is intended to support a future implementation of 'measurement projections' as defined in equation (1) of [arXiv:2506.03094](https://arxiv.org/abs/2506.03094) in Section 3.
 
-### Running the program
-You can pipe a program of the above format into the binary by running
+## Usage
+Some example PBC circuits are provided in the `examples` directory.
+Their JSON format is specified by `pbc_schema.json`.
+These files are not in the line-based format required by the compiler;
+to translate a JSON file into the line-based format, you can use `jq`
+as in
 
 ```
 cat example/simple.json | jq --compact-output '.[]' | cargo run --release -- gross
@@ -32,9 +32,7 @@ cat example/simple.json | jq --compact-output '.[]' | cargo run --release -- gro
 This may take a while because a Clifford synthesis table will be built in-memory.
 See below on how to speed this up.
 
-### Output
-
-The output looks like
+The output looks (with some newlines inserted for readability) like
 ```json
 [
     [[0,{"Measure":{"p1":"Z","p7":"I"}}]],
@@ -54,33 +52,38 @@ The output looks like
 ...
 ```
 This output is similarly delineated by newlines so that each line corresponds to one input PBC operation.
-Within a line is a sequence of operations, that come either as single or paired instructions.
-Each instruction has an associated block and operation.
+Within a line is a sequence of bicycle instruction, that come either as single or paired instructions.
+Each bicycle instruction has an associated code module and operation.
 In particular, joint operations between blocks are paired as two instructions.
 
+For a more advanced example on how the compiler can be used,
+see how it is used as a library in the `bicycle_random_numerics` crate
+or as a binary in [custom_circuits.ipynb](../../notebooks/custom_circuits.ipynb).
 
-### Speeding up Clifford synthesis
 
-The PBC Gross compiler requires a lookup table on how to synthesize Clifford rotations,
+## Caching up Clifford synthesis
+
+The compiler uses a lookup table on how to synthesize Clifford rotations,
 $e^{i \frac{\pi}{4} P}$ for $P$ a Pauli string on 12 qubits,
-and the package `bicycle_cliffords` produces one.
+and uses the package `bicycle_cliffords` produces one.
 Because this takes some time (about a minute on my laptop),
-there is an option to save the lookup table on disk.
+there is an option to cache the lookup table on disk:
 ```
-Usage: bicycle_compiler <CODE> generate <MEASUREMENT_TABLE>
+bicycle_compiler <CODE> generate <MEASUREMENT_TABLE>
 ```
-We select `<CODE>` from `gross` or `two-gross` and `<MEASUREMENT_TABLE>` is an output file.
-We can then use the measurement table to speed up compilation.
+where `<CODE>` can be `gross` or `two-gross` and `<MEASUREMENT_TABLE>` is an output file name.
+This will write a Clifford synthesis table in a binary serialized format to the file `MEASUREMENT_TABLE`.
+We can then use the measurement table to reduce start-up costs of compilation.
 For example:
 
 Build the table
 ```sh
-> ./target/release/bicycle_compiler gross generate ./data/table_gross
+> bicycle_compiler gross generate table_gross
 ```
 
 Use the table
 ```sh
-> cat ./crates/bicycle_compiler/example/simple.json |  jq --compact-output '.[]' | ./target/release/bicycle_compiler gross --measurement-table ./data/table_gross > bicycle_circuit.json
+> cat example/simple.json |  jq --compact-output '.[]' | bicycle_compiler gross --measurement-table table_gross
 ```
 Once you have created a measurement table, it can be reused as many times as you want (it is read-only).
-Note that changes to the contents of the table (i.e., in `bicycle_cliffords`) require regenerating the table.
+Note that changes to the contents of the table (i.e., in `bicycle_cliffords`) require manually regenerating the table.

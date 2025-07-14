@@ -16,4 +16,4 @@ authors = [
     "Eddie Schoute <eddie.schoute@ibm.com>",
     "John Lapeyre <john.lapeyre@ibm.com>",
 ]
-description = "Bicycle architecture tools"
+description = "Bicycle architecture compiler"

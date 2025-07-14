@@ -23,11 +23,14 @@ use serde_json::Deserializer;
 #[derive(Parser)]
 #[command(version, about, long_about=None)]
 struct Cli {
+    /// Select the bicycle code (either gross or two-gross)
     code: MeasurementChoices,
     #[command(subcommand)]
     commands: Option<Commands>,
+    /// Read a cached Clifford synthesis table from the given file name
     #[arg(long)]
     measurement_table: Option<String>,
+    /// The accuracy of small angle synthesis
     #[arg(short, long, default_value_t = AnglePrecision::lit("1e-9"))]
     accuracy: AnglePrecision,
 }
@@ -35,7 +38,11 @@ struct Cli {
 /// Caching commands
 #[derive(Subcommand, Clone, PartialEq, Eq)]
 enum Commands {
-    Generate { measurement_table: String },
+    /// Generate Clifford measurement table and save to file name
+    Generate {
+        /// The file name to output to
+        measurement_table: String,
+    },
 }
 
 fn main() -> Result<(), Box<dyn error::Error>> {
