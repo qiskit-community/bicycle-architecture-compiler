@@ -12,20 +12,17 @@ This repository implements and benchmarks this end-to-end compilation scheme.
 
 ## Installation
 
-See information on installing rust [below](#rust)
-```sh
-shell> cargo build --release
-```
-
-## Platform support
+### Platform support
 
 This software is tested on some Linux and macOS platforms.
 
-## Dependencies
-
 ### Rust
 
-We recommend using [rustup](https://www.rust-lang.org/tools/install) to install a rust toolchain
+We recommend using [rustup](https://www.rust-lang.org/tools/install) to install a rust toolchain.
+Then run
+```sh
+shell> cargo build --release
+```
 
 ### Python
 
@@ -43,20 +40,14 @@ shell> pyenv virtualenv pbc-gross
 shell> pyenv local pbc-gross
 ```
 
-### Python dependencies
-
 Once your virtual environment is activated, you can install required and optional packages.
-
-Required packages (currently only `pygridsynth~=1.1`) may be installed like this
+Required packages may be installed like this
 ```sh
 shell> pip install -r requirements.txt
 ```
 
-#### Gridsynth
-
 The compiler depends on the the package `pygridsynth~=1.1`
 for synthesizing rotations by angles other than $\pm\pi/4$.
-
 To test your installation, the following command should succeed
 ```sh
 shell> python -m pygridsynth 0.5 1e-3
@@ -66,21 +57,19 @@ printing something like (the exact output may differ)
 THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWWWWWWW
 ```
 
-#### Optional Python packages
+### Optional dependencies
 
-These packages are `numpy`, `matplotlib`, and `jupyter`. They are needed to run the notebook.
+To run the notebooks,
+we require the packages `numpy`, `matplotlib`, and `jupyter`.
+These can be installed via
 ```sh
 shell> pip install -r optional_dependencies.txt
 ```
 
-#### Dependencies not availble via `pip` or `cargo`.
-
-* `jq` - commandline JSON processor
-
-### Optional dependencies
-
-* You must have installed either `python3` or GNU `parallel` in order to
-  run [./scripts/run_random_numerics.sh](./scripts/run_random_numerics.sh).
+Furthermore, the following commandline applications are helpful and may be required for some functionality:
+* `jq` - commandline JSON processor, or parsing JSON to a newline-delimited input.
+* GNU `parallel` in order to
+  run [./scripts/run_random_numerics.sh](./scripts/run_random_numerics.sh) in parallel.
 
 ## Usage
 
@@ -114,49 +103,10 @@ The PBC compiler packages are located under `crates/`.
 1. [`bicycle_benchmark`](./crates/) generates random circuits of Pauli-generated rotations or measurements.
 1. [`bicycle_random_numerics`](./crates/) a wrapper package for collecting data faster (basically runs `cargo run --package benchmark <args> | cargo run --package pbc_gross <args> | cargo run --package numerics <args>` without (de)serialization overhead).
 
-Each package has more info in their respective READMEs.
+Each crate has more info in their respective READMEs.
 
-### Installation
 
-```sh
-shell> cargo build -r
-
-shell> python -m venv venv
-shell> source venv/bin/activate
-shell> pip install -e .
-```
-
-### Crate Dependencies
-
-This information is provide to aid in understanding the role of each crate.
-
-```
-bicycle_common v0.0.1
-
-bicycle_cliffords v0.0.1
-└── bicycle_common v0.0.1
-
-bicycle_benchmark v0.0.1
-├── bicycle_common v0.0.1
-└── bicycle_compiler v0.0.1
-
-bicycle_compiler v0.0.1
-├── bicycle_common v0.0.1
-└── bicycle_cliffords v0.0.1
-
-bicycle_numerics v0.0.1
-├── bicycle_benchmark v0.0.1
-├── bicycle_common v0.0.1
-└── bicycle_compiler v0.0.1
-
-bicycle_random_numerics v0.0.1
-├── bicycle_benchmark v0.0.1
-├── bicycle_common v0.0.1
-├── bicycle_cliffords v0.0.1
-└── bicycle_compiler v0.0.1
-```
-
-### Testing
+## Testing
 
 To test in release mode try this
 ```sh
@@ -165,13 +115,3 @@ shell> cargo test -r
 
 The script [./scripts/local_QA.sh](./scripts/local_QA.sh) runs quality assurance tests locally.
 This includes test, rustfmt, and clippy.
-
-The tests run almost twice as fast if you use `nextest`.
-You can installl nextest like this
-```sh
-shell> cargo install cargo-binstall
-shell> cargo binstall cargo-nextest --secure
-```
-
-The script [./scripts/local_QA.sh](./scripts/local_QA.sh) will use `nextest` if it is
-installed.

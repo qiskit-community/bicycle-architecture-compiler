@@ -1,12 +1,20 @@
 # Scripts Usage
 
-## Top-level scripts
-
 These scripts are intended to be run directly by the user.
 
 - [`local_QA.sh`](./local_QA.sh) Performs locally the same checks that will be run on github upon making a pull request (PR).
    In practice, syncing local and remote versions of various components can be difficult. The result is that
    occasionally, local tests pass, while remote tests fail.
+
+    The tests run almost twice as fast if you use `nextest`.
+    You can installl nextest like this
+    ```sh
+    shell> cargo install cargo-binstall
+    shell> cargo binstall cargo-nextest --secure
+    ```
+
+    The script [./scripts/local_QA.sh](./scripts/local_QA.sh) will use `nextest` if it is
+    installed.
 
    See comments in [`local_QA.sh`](./local_QA.sh) for more details.
 
