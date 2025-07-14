@@ -1,4 +1,4 @@
-# IBM Bicycle Architecture Compiler
+# Bicycle Architecture Compiler
 
 [Tour de Gross arXiv:2506.03094](https://arxiv.org/abs/2506.03094) presents the Bicycle Architecture - a modular architecture for fault-tolerant quantum computation based on bivariate bicycle codes. The analysis features:
 
