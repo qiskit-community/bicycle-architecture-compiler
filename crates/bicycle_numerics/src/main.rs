@@ -15,14 +15,19 @@ use serde_json::Deserializer;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
 enum ModelChoices {
+    /// Gross codes with physical noise rate p=10^-3
     #[clap(name = "gross_1e-3")]
     Gross1e3,
+    /// Gross codes with physical noise rate p=10^-4
     #[clap(name = "gross_1e-4")]
     Gross1e4,
+    /// Two-gross codes with physical noise rate p=10^-3
     #[clap(name = "two-gross_1e-3")]
     TwoGross1e3,
+    /// Two-gross codes with physical noise rate p=10^-4
     #[clap(name = "two-gross_1e-4")]
     TwoGross1e4,
+    /// A model that has no physical noise, p=0, and worst-case timing information between all of the previous models
     #[clap(name = "fake_slow")]
     FakeSlow,
 }
@@ -83,11 +88,16 @@ impl Output {
 }
 
 #[derive(Parser, Debug)]
+#[command(version, about, long_about=None)]
 struct Cli {
+    /// Number of logical qubits in the input circuit (do not include pivot ancillas).
     qubits: usize,
+    /// Choose which architecture the circuit is run on.
     model: ModelChoices,
+    /// Set a limit to the error rate when the numerics should halt
     #[arg(short = 'e', long, default_value_t = 1.0/3.0)]
     max_error: f64,
+    /// Set a limit to the number of input lines (PBC gates) before halting.
     #[arg(short = 'i', long, default_value_t = 10_usize.pow(6))]
     max_iter: usize,
 }
