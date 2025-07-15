@@ -13,8 +13,6 @@ Some example use cases are:
 
 ## Installation
 
-### Platform support
-
 This software is tested on some Linux and macOS platforms.
 
 ### Rust
@@ -74,9 +72,9 @@ Furthermore, the following commandline applications are helpful and may be requi
 
 ## Usage
 
-For a workflow for generating benchmarks, see [scripts/README.md](scripts/).
-
-### Folder map
+This Rust workspace consists of many Rust crates (packages) that can be used either as library
+or, in many cases, also as a binary.
+The contents of the repository as summarized as follows.
 
 ```
 pbc-compiler/
@@ -85,33 +83,27 @@ pbc-compiler/
 ├── notebooks/                     # Notebook for running and plotting a random circuit experiment.
 ├── data/                          # Cached measurement tables, and random circuit data
 └── crates/
-    ├── bicycle_common/            # Definition of bicycle ISA
+    ├── bicycle_common/            # Common definitions. Bicycle instructions.
     ├── bicycle_benchmark/         # Random generation of PBC circuits
-    ├── bicycle_cliffords/         # Clifford gate implementation via brute-force search
-    ├── bicycle_compiler/          # PBC to Bicycle ISA compiler
-    ├── bicycle_numerics/          # Simple noise simulation and stats collections
+    ├── bicycle_cliffords/         # Clifford gate implementation via search
+    ├── bicycle_compiler/          # PBC to bicycle circuit compiler
+    ├── bicycle_numerics/          # Additive noise estimates and stats collection
     └── bicycle_random_numerics/   # Benchmarking via random PBC circuits
 ```
 
-### Crates
-
-The PBC compiler packages are located under `crates/`.
-
-1. [`bicycle_common`](./crates/bicycle_common) define the bicycle instructions, which are used as a shared language.
-1. [`bicycle_cliffords`](./crates/) searches & builds a table to implement Clifford gates on Gross and Two Gross codes using the least rotations.
-1. [`bicycle_compiler`](./crates/) the main compiler that takes in a PBC circuit and outputs a circuit using bicycle instructions.
-1. [`bicycle_numerics`](./crates/) adds timing information and collects data about the compiled circuits.
-1. [`bicycle_benchmark`](./crates/) generates random circuits of Pauli-generated rotations or measurements.
-1. [`bicycle_random_numerics`](./crates/) a wrapper package for collecting data faster (basically runs `cargo run --package benchmark <args> | cargo run --package pbc_gross <args> | cargo run --package numerics <args>` without (de)serialization overhead).
-
 Each crate has more info in their respective READMEs.
 
+Many binary crates can be used via their compiled binaries (obtained by `cargo build` or `cargo run --package <package>`).
+For an example workflow that generates benchmarks see [scripts/README.md](scripts/),
+and more advanced examples are illustrated by Jupyter notebooks in `./notebooks/`.
 
-## Testing
 
-To test in release mode try this
+### Testing
+
+To test in release mode, run
+
 ```sh
-shell> cargo test -r
+shell> cargo test --release
 ```
 
 The script [./scripts/local_QA.sh](./scripts/local_QA.sh) runs quality assurance tests locally.

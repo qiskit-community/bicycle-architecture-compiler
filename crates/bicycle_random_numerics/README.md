@@ -4,6 +4,12 @@ This crates generates circuits $\prod_j \exp(i \frac{\pi}{8} P_j)$, for random P
 It uses `bicycle_benchmark` to generate the Pauli-generated rotations,
 compiles them using `bicycle_compiler`,
 and immediately feeds the resulting circuits into `bicycle_numerics`.
+It is morally the same as running
+```
+bicycle_benchmark <args> | bicycle_compiler <args> | bicycle_numerics <args>
+```
+without (de)serialization overhead.
+
 
 This workflow was used in Section 4 and Appendix A.10 of [Tour de Gross (2506.03094)](https://arxiv.org/abs/2506.03094) for benchmarking random Clifford+T circuits.
 
