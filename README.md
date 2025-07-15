@@ -6,7 +6,8 @@
  - Circuit-level noise benchmarks of all the ISA instructions
  - An end-to-end compilation scheme from Pauli-Based Computation (PBC) to the bicycle ISA
 
-This repository implements and benchmarks this end-to-end compilation scheme.
+This compiler prototype implements and benchmarks this end-to-end compilation scheme so that it may inform future Qiskit development for fault-tolerant architectures.
+Some example use cases are:
  - Random PBC circuits as a form of worst-case Clifford+T quantum circuits. See [`./notebooks/random_circuits.ipynb`](./notebooks/random_circuits.ipynb)
  - User-specified PBC circuits supporting arbitrary-angle rotations, see [`./notebooks/custom_circuits.ipynb`](./notebooks/custom_circuits.ipynb)
 
