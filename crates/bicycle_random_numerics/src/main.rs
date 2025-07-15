@@ -67,19 +67,27 @@ impl From<ErrorRate> for f64 {
 }
 
 #[derive(Parser, Debug)]
+#[command(version, about, long_about=None)]
 struct Cli {
+    /// Number of logical qubits in the circuit
     #[arg(short, long)]
     qubits: usize,
+    /// What code to use
     #[arg(short, long)]
     model: MeasurementChoices,
+    /// The physical error rate
     #[arg(short, long)]
     noise: ErrorRate,
+    /// The cumulative logical error rate at which to halt
     #[arg(short = 'e', long, default_value_t = 1.0/3.0)]
     max_error: f64,
+    /// The maximum number of gates to simulate and halt at
     #[arg(short = 'i', long, default_value_t = 10_usize.pow(5))]
     max_iter: usize,
+    /// A cache file name that stores a Clifford synthesis table. See bicycle_compiler generate subcommand.
     #[arg(long)]
     measurement_table: String,
+    /// The small-angle synthesis precision
     #[arg(short, long)]
     accuracy: Option<AnglePrecision>,
 }
