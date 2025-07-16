@@ -3,7 +3,7 @@ name = "bicycle_common"
 edition = "2021"
 version.workspace = true
 authors.workspace = true
-description.workspace = true
+description = "Common definitions for bicycle architecture compiler crates"
 
 [dependencies]
 rand = "0.9.0"
