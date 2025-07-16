@@ -10,10 +10,13 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.1"
+version = "0.1.0"
 authors = [
     "Patrick Rall <patrickjrall@ibm.com>",
     "Eddie Schoute <eddie.schoute@ibm.com>",
     "John Lapeyre <john.lapeyre@ibm.com>",
 ]
-description = "Bicycle architecture compiler"
+description = "Compiler and benchmarking for the bicycle quantum architecture"
+license = "Apache-2.0"
+keywords = ["quantum", "compiler", "benchmarking", "architecture"]
+categories = ["science", "compilers"]
