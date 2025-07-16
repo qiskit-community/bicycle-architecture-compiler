@@ -3,7 +3,7 @@ name = "bicycle_benchmark"
 edition = "2021"
 version.workspace = true
 authors.workspace = true
-description.workspace = true
+description = "Generates PBC circuits that can be used for benchmarking"
 
 [dependencies]
 env_logger = "0.11.6"

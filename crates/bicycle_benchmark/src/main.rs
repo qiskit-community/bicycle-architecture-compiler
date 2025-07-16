@@ -11,7 +11,9 @@ use bicycle_compiler::language::AnglePrecision;
 use clap::Parser;
 
 #[derive(Parser)]
+#[command(version, about, long_about=None)]
 struct Cli {
+    /// Number of logical qubits
     qubits: usize,
 }
 

@@ -1,17 +1,19 @@
 # `bicyle_benchmark`
 
 The executable `bicycle_benchmark` prints an infinite stream random of `nqubit`
-Pauli-based rotations to `stdout`.
+Pauli-based rotations to `stdout` that have angle $\pi/4$ to a high accuracy.
 
 The executable is invoked like this.
 ```sh
-../../target/release/bicycle_benchmark -- nqubits > /dev/null
+bicycle_benchmark nqubits
 ```
 
-An example of a rotation instruction printed for `nqubits` equal to `3` is
+An example output of a rotation instruction printed for `nqubits` equal to `3` is
 ```json
 {"Rotation":{"basis":["I","Y","Y"],"angle":"0.78539816339744830961566084581"}}
 ```
+
+## Example benchmark
 
 The executable `bicycle_benchmark` can be used like this
 ```sh
