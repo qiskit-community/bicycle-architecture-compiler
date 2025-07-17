@@ -20,3 +20,12 @@ description = "Compiler and benchmarking for the bicycle quantum architecture"
 license = "Apache-2.0"
 keywords = ["quantum", "compiler", "benchmarking", "architecture"]
 categories = ["science", "compilers"]
+
+[workspace.dependencies]
+# local crates
+bicycle_benchmark = { path = "crates/bicycle_benchmark", version = "0.1.0" }
+bicycle_cliffords = { path = "crates/bicycle_cliffords", version = "0.1.0" }
+bicycle_common = { path = "crates/bicycle_common", version = "0.1.0" }
+bicycle_compiler = { path = "crates/bicycle_compiler", version = "0.1.0" }
+bicycle_numerics = { path = "crates/bicycle_numerics", version = "0.1.0" }
+bicycle_random_numerics = { path = "crates/bicycle_random_numerics", version = "0.1.0" }

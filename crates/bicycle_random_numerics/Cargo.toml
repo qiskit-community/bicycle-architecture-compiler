@@ -6,11 +6,11 @@ authors.workspace = true
 description = "Collect numerics for random Pauli-generated rotations run on the bicycle architecture"
 
 [dependencies]
-bicycle_common = { path = "../bicycle_common" }
-bicycle_compiler = { path = "../bicycle_compiler" }
-bicycle_benchmark = { path = "../bicycle_benchmark" }
-bicycle_numerics = { path = "../bicycle_numerics" }
-bicycle_cliffords = { path = "../bicycle_cliffords" }
+bicycle_common.workspace = true
+bicycle_compiler.workspace = true
+bicycle_benchmark.workspace = true
+bicycle_numerics.workspace = true
+bicycle_cliffords.workspace = true
 env_logger = "0.11.7"
 log = "0.4.27"
 clap = { version = "4.5.36", features = ["derive"] }
