@@ -22,6 +22,9 @@ Then run
 ```sh
 shell> cargo build --release
 ```
+Binaries are built and placed in `./target/release/`.
+In the documentation we use these binaries without including their (relative) path.
+Alternatively, you can use `cargo run --release --package <packageName> -- <arguments>`.
 
 ### Python
 
