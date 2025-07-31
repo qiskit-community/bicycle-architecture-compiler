@@ -3,6 +3,11 @@ name = "bicycle_common"
 edition = "2021"
 version.workspace = true
 authors.workspace = true
+license.workspace = true
+categories.workspace = true
+keywords.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 description = "Common definitions for bicycle architecture compiler crates"
 
 [dependencies]

@@ -3,6 +3,11 @@ name = "bicycle_numerics"
 edition = "2021"
 version.workspace = true
 authors.workspace = true
+license.workspace = true
+categories.workspace = true
+keywords.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 description = "Compute numerics for bicycle circuits"
 
 [dependencies]

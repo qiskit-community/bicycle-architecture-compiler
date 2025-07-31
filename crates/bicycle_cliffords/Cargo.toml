@@ -3,7 +3,12 @@ name = "bicycle_cliffords"
 edition = "2021"
 version.workspace = true
 authors.workspace = true
-description.workspace = true
+license.workspace = true
+categories.workspace = true
+keywords.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Synthesis of Clifford gates in a code module on the bicycle architecture"
 
 [dependencies]
 env_logger = "0.11.6"

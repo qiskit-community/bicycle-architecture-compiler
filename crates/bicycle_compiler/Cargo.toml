@@ -3,6 +3,11 @@ name = "bicycle_compiler"
 edition = "2021"
 version.workspace = true
 authors.workspace = true
+license.workspace = true
+categories.workspace = true
+keywords.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 description = "A compiler for Pauli-based compilation (PBC) circuits to bicycle instructions"
 
 [dependencies]
