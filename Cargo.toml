@@ -22,6 +22,7 @@ keywords = ["quantum", "compiler", "benchmarking", "architecture"]
 categories = ["science", "compilers"]
 repository = "https://github.com/qiskit-community/bicycle-architecture-compiler"
 rust-version = "1.86.0"
+edition = "2024"
 
 [workspace.dependencies]
 # local crates

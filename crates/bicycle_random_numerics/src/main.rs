@@ -95,7 +95,8 @@ struct Cli {
 fn main() -> Result<(), Box<dyn Error>> {
     // By default log INFO.
     if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "info");
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { env::set_var("RUST_LOG", "info") };
     }
     env_logger::init();
 
