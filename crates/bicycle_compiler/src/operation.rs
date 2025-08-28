@@ -30,7 +30,7 @@ pub fn fmt_operation(op: &Operation, f: &mut dyn std::fmt::Write) -> std::fmt::R
         .collect::<Vec<_>>()
         .join(",");
     s += "]";
-    write!(f, "{}", s)
+    write!(f, "{s}")
 }
 
 /// Wrapper for a vector of operations for pretty printing

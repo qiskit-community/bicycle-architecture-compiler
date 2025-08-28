@@ -254,7 +254,7 @@ impl fmt::Display for PauliString {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let paulis: [Pauli; 12] = (*self).into();
         for pauli in paulis.iter().rev() {
-            write!(f, "{}", pauli)?;
+            write!(f, "{pauli}")?;
         }
         Ok(())
     }
@@ -323,9 +323,9 @@ mod tests {
     fn check_display() {
         let y1 = X1 * Z1;
 
-        assert_eq!("IIIIIIIIIIIX", format!("{}", X1));
-        assert_eq!("IIIIIIIIIIIZ", format!("{}", Z1));
-        assert_eq!("IIIIIIIIIIIY", format!("{}", y1));
+        assert_eq!("IIIIIIIIIIIX", format!("{X1}"));
+        assert_eq!("IIIIIIIIIIIZ", format!("{Z1}"));
+        assert_eq!("IIIIIIIIIIIY", format!("{y1}"));
         assert_eq!("IIIIIIIXIIIZ", format!("{}", Z1 * X5));
     }
 

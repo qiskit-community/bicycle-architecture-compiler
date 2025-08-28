@@ -30,7 +30,7 @@ struct Output {
 
 impl Output {
     pub fn new(model: MeasurementChoices, error: ErrorRate, data: OutputData) -> Self {
-        let code = format!("{}", model);
+        let code = format!("{model}");
         let p: f64 = error.into();
 
         Self {
@@ -101,7 +101,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     let cli = Cli::parse();
-    trace!("Cli arguments: {:?}", cli);
+    trace!("Cli arguments: {cli:?}");
     let model = match (cli.model, cli.noise) {
         (MeasurementChoices::Gross, ErrorRate::E3) => GROSS_1E3,
         (MeasurementChoices::Gross, ErrorRate::E4) => GROSS_1E4,
@@ -143,7 +143,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut outputs = short_data.map(|data| Output::new(cli.model, cli.noise, data));
     let mut wtr = csv::Writer::from_writer(io::stdout());
     let err = outputs.try_for_each(|output| wtr.serialize(output));
-    debug!("Exited with {:?}", err);
+    debug!("Exited with {err:?}");
 
     Ok(())
 }

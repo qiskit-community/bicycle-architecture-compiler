@@ -522,7 +522,7 @@ mod tests {
                 .copied()
                 .collect();
             let ops = Operations(compile_measurement(&arch, &GROSS_TABLE, basis));
-            println!("Compiled: {}", ops);
+            println!("Compiled: {ops}");
 
             // One joint operation
             let joint_ops: Vec<_> = ops.0.iter().filter(|op| op.len() == 2).collect();
@@ -543,7 +543,7 @@ mod tests {
 
             let expected = Operations(expected);
 
-            println!("Expected {}", expected);
+            println!("Expected {expected}");
 
             for (op0, op1) in expected.0.iter().zip(ops.0.iter()) {
                 assert_eq!(op0, op1);
@@ -579,7 +579,7 @@ mod tests {
                     .collect();
 
                 let ops = Operations(compile_measurement(&arch, &GROSS_TABLE, basis));
-                println!("Compiled: {}", ops);
+                println!("Compiled: {ops}");
 
                 let mut expected: Vec<Operation> = vec![];
 
@@ -617,7 +617,7 @@ mod tests {
                     }
                 }
                 let expected = Operations(expected);
-                println!("Expected {}", expected);
+                println!("Expected {expected}");
 
                 for (op0, op1) in expected.0.iter().zip(ops.0.iter()) {
                     assert_eq!(op0, op1);
@@ -672,7 +672,7 @@ mod tests {
                 *CLIFF_ANGLE,
                 ACCURACY,
             ));
-            println!("Compiled: {}", ops);
+            println!("Compiled: {ops}");
 
             let mut expected: Vec<_> = prep(1).map(|o| block_basis.change_basis(o)).collect();
             expected.extend(meas.implementation().map(|isa| vec![(0, isa)]));
@@ -682,7 +682,7 @@ mod tests {
             )]));
             expected.extend(unprep(1).map(|o| block_basis.change_basis(o)));
             let expected = Operations(expected);
-            println!("Expected: {}", expected);
+            println!("Expected: {expected}");
 
             assert_eq!(expected, ops);
 
@@ -724,7 +724,7 @@ mod tests {
                     *CLIFF_ANGLE,
                     ACCURACY,
                 ));
-                println!("Compiled: {}", ops);
+                println!("Compiled: {ops}");
 
                 let mut expected: Vec<Operation> = vec![];
 
@@ -769,7 +769,7 @@ mod tests {
                     }
                 }
                 let expected = Operations(expected);
-                println!("Expected {}", expected);
+                println!("Expected {expected}");
 
                 for (i, (op0, op1)) in expected.0.iter().zip(ops.0.iter()).enumerate() {
                     assert_eq!(op0, op1, "Unequal at index {i}");

@@ -80,7 +80,7 @@ mod test {
             .collect();
         let ops = Operations(compiled);
 
-        println!("{}", ops);
+        println!("{ops}");
 
         Ok(())
     }

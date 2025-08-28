@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         output.push('\n');
     }
 
-    print!("{}", output);
+    print!("{output}");
 
     Ok(())
 }

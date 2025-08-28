@@ -155,19 +155,18 @@ impl CompleteMeasurementTable {
         assert!(p.0 <= 4_u32.pow(12), "{}", p);
         assert!(
             p.pivot_bits() == pauli_string::ID,
-            "Expected identity on pivot for {}",
-            p
+            "Expected identity on pivot for {p}"
         );
 
         // Find minimum-length implementation out of three options for the pivot.
-        let res = [pauli_string::X1, pauli_string::Z1, pauli_string::Y1]
+        
+
+        [pauli_string::X1, pauli_string::Z1, pauli_string::Y1]
             .into_iter()
             .map(|pivot_pauli| p * pivot_pauli) // insert pivot basis
             .map(|q| self.implementation(q)) // look up implementation
             .min_by_key(|meas_impl| meas_impl.rotations().len())
-            .unwrap();
-
-        res
+            .unwrap()
     }
 }
 
@@ -276,7 +275,7 @@ impl MeasurementTableBuilder {
             next_paulis = Vec::new();
 
             cur += 1;
-            debug!("Iteration {}", cur);
+            debug!("Iteration {cur}");
 
             // Conjugate all rotations of the cur cost by all base measurements to find new rotations
             for prev_pauli in prev_paulis {
@@ -336,8 +335,7 @@ impl MeasurementTableBuilder {
 
         assert!(
             i <= 4_usize.pow(12),
-            "PauliString {:?} has index too large",
-            p
+            "PauliString {p:?} has index too large"
         );
         i
     }

@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         out.push('\n');
         stdout.write_all(out.as_bytes())
     });
-    debug!("Encountered error while writing to stdout: {:?}", err);
+    debug!("Encountered error while writing to stdout: {err:?}");
 
     Ok(())
 }

@@ -147,7 +147,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut outputs = short_data.map(|data| Output::new(cli.model, data));
     let mut wtr = csv::Writer::from_writer(io::stdout());
     let err = outputs.try_for_each(|output| wtr.serialize(output));
-    debug!("Exited with {:?}", err);
+    debug!("Exited with {err:?}");
 
     Ok(())
 }

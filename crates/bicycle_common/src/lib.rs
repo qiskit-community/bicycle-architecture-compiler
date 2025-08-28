@@ -43,7 +43,7 @@ impl Pauli {
 
 impl Display for Pauli {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -69,7 +69,7 @@ impl TryFrom<&char> for Pauli {
             'x' => Ok(Pauli::X),
             'z' => Ok(Pauli::Z),
             'y' => Ok(Pauli::Y),
-            c => Err(format!("Cannot convert {} to Pauli", c)),
+            c => Err(format!("Cannot convert {c} to Pauli")),
         }
     }
 }
@@ -84,7 +84,7 @@ impl TryFrom<usize> for Pauli {
             1 => Ok(Pauli::X),
             2 => Ok(Pauli::Z),
             3 => Ok(Pauli::Y),
-            _ => Err(format!("Cannot  convert {} to Pauli", value)),
+            _ => Err(format!("Cannot  convert {value} to Pauli")),
         }
     }
 }
@@ -306,8 +306,8 @@ impl Display for BicycleISA {
                 let prime = if basis.primed { "'" } else { "" };
                 let dagger = if basis.adjoint { "†" } else { "" };
                 write!(f, "T({}", basis.get_basis())?;
-                write!(f, "{}", prime)?;
-                write!(f, "{}", dagger)?;
+                write!(f, "{prime}")?;
+                write!(f, "{dagger}")?;
                 write!(f, ")")
             }
         }

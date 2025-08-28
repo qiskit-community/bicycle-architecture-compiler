@@ -90,15 +90,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     }
                     Err(e) => {
                         eprintln!(
-                            "Cannot create measurement_table output file in the target directory: {}",
-                            e
+                            "Cannot create measurement_table output file in the target directory: {e}"
                         );
                         std::process::exit(1);
                     }
                 }
             }
             None => {
-                eprintln!("No parent directory found for {}", cache_str);
+                eprintln!("No parent directory found for {cache_str}");
                 std::process::exit(1);
             }
         }
@@ -121,8 +120,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
             Err(e) => {
                 eprintln!(
-                    "Cannot create  measurement_table output file in the target directory: {}",
-                    e
+                    "Cannot create  measurement_table output file in the target directory: {e}"
                 );
                 std::process::exit(1);
             }
@@ -169,9 +167,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     // Stop on first error
     let err: Result<(), io::Error> = optimized_chunked_ops.try_for_each(|chunk| {
         let out = serde_json::to_string(&chunk)?;
-        writeln!(stdout, "{}", out)
+        writeln!(stdout, "{out}")
     });
-    debug!("Encountered error while writing to stdout: {:?}", err);
+    debug!("Encountered error while writing to stdout: {err:?}");
 
     Ok(())
 }

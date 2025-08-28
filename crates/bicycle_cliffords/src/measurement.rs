@@ -248,8 +248,7 @@ mod tests {
             let p = code.measures(&native);
             assert!(
                 p.0 < 2_u32.pow(24),
-                "PauliString {:?} integer is too large",
-                p
+                "PauliString {p:?} integer is too large"
             );
         }
     }
