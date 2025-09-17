@@ -15,9 +15,9 @@
 use std::fmt::{Debug, Display};
 
 use bicycle_common::{AutomorphismData, Pauli};
-use nalgebra::{matrix, stack, SMatrix, Vector6};
+use nalgebra::{SMatrix, Vector6, matrix, stack};
 
-use crate::{native_measurement::NativeMeasurement, PauliString};
+use crate::{PauliString, native_measurement::NativeMeasurement};
 use clap::ValueEnum;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -47,18 +47,19 @@ impl CodeMeasurement {
             Pauli::Y => (one, one),
         };
 
-        let vec = stack![x1; x7; z1; z7];
-
         // Compute action of automorphism on the Paulis
         let action = |a: AutomorphismData| {
             (self.mx.pow(a.get_x().into()) * self.my.pow(a.get_y().into())).map(|v| v % 2)
         };
         let aut = action(native_measurement.automorphism);
         let inv = action(native_measurement.automorphism.inv());
-        let mat: SMatrix<_, 24, 24> =
-            stack![aut, 0, 0, 0; 0, aut, 0, 0; 0, 0, inv, 0; 0, 0, 0, inv];
 
-        let result = (mat * vec).map(|v| v % 2);
+        let map_x1 = aut * x1;
+        let map_x7 = aut * x7;
+        let map_z1 = inv * z1;
+        let map_z7 = inv * z7;
+        let result = stack![map_x1; map_x7; map_z1; map_z7].map(|v| v % 2);
+
         // Convert to array and then to PauliString
         let arr: [_; 24] = result.into();
         (&arr).into()
