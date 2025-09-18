@@ -18,3 +18,6 @@ serde = { version = "1.0.218", features = ["derive"] }
 bicycle_common.workspace = true
 rand = "0.9.0"
 clap = { version = "4.5.37", features = ["derive"] }
+
+[dev-dependencies]
+itertools = "0.14.0"

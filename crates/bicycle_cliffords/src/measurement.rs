@@ -51,13 +51,15 @@ impl CodeMeasurement {
         let action = |a: AutomorphismData| {
             (self.mx.pow(a.get_x().into()) * self.my.pow(a.get_y().into())).map(|v| v % 2)
         };
-        let aut = action(native_measurement.automorphism);
-        let inv = action(native_measurement.automorphism.inv());
+        // X(i) |-> X(A^-1 i) since U_A^\dagger X(i) U_A = X(A^-1 i)
+        let x_action = action(native_measurement.automorphism.inv());
+        // Z(i) |-> Z(A^T i) since U_A^\dagger Z(i) U_A = Z(A^T i)
+        let z_action = action(native_measurement.automorphism).transpose();
 
-        let map_x1 = aut * x1;
-        let map_x7 = aut * x7;
-        let map_z1 = inv * z1;
-        let map_z7 = inv * z7;
+        let map_x1 = x_action * x1;
+        let map_x7 = x_action * x7;
+        let map_z1 = z_action * z1;
+        let map_z7 = z_action * z7;
         let result = stack![map_x1; map_x7; map_z1; map_z7].map(|v| v % 2);
 
         // Convert to array and then to PauliString
@@ -178,6 +180,51 @@ mod tests {
 
                         assert_eq!(expected_support, paulis_support(&paulis));
                     }
+                }
+            }
+        }
+    }
+
+    /// Check if the commutation relations of measurements are preserved by the automorphism conjugation
+    #[test]
+    fn test_commutation() {
+        let code = GROSS_MEASUREMENT;
+        let paulis = [I, X, Y, Z];
+        for (p1, p2, p3, p4) in itertools::iproduct!(&paulis, &paulis, &paulis, &paulis) {
+            let basis1 = TwoBases::new(*p1, *p2);
+            let basis2 = TwoBases::new(*p3, *p4);
+            // Check if valid measurement basis
+            if basis1.is_none() || basis2.is_none() {
+                continue;
+            }
+            let basis1 = basis1.unwrap();
+            let basis2 = basis2.unwrap();
+
+            // Compute commutation relation
+            let mut ps = [I; 12];
+            ps[0] = *p1;
+            ps[6] = *p2;
+            let ps1: PauliString = (&ps).into();
+            let mut ps = [I; 12];
+            ps[0] = *p3;
+            ps[6] = *p4;
+            let ps2: PauliString = (&ps).into();
+            let commutation_relation = ps1.commutes_with(ps2);
+
+            // Try all automorphisms
+            for x in 0..=5 {
+                for y in 0..=5 {
+                    let automorphism = AutomorphismData::new(x, y);
+                    let paulis1 = code.measures(&NativeMeasurement {
+                        logical: basis1,
+                        automorphism,
+                    });
+                    let paulis2 = code.measures(&NativeMeasurement {
+                        logical: basis2,
+                        automorphism,
+                    });
+
+                    assert_eq!(commutation_relation, paulis1.commutes_with(paulis2));
                 }
             }
         }
