@@ -34,6 +34,6 @@ cd "$(dirname "$0")" || exit
 input_data_dir="../data"
 
 parallel --no-notice --colsep "," \
-         "../target/release/random_numerics --model {1} --noise {2} --qubits {3} --measurement-table $input_data_dir/table_{1} > ../tmp/out_{1}_{2}_{3}_{4}.csv" \
+         "../target/release/bicycle_random_numerics --model {1} --noise {2} --qubits {3} --measurement-table $input_data_dir/table_{1} > ../tmp/out_{1}_{2}_{3}_{4}.csv" \
          :::: parameters.csv \
          ::: $(seq 1 8)

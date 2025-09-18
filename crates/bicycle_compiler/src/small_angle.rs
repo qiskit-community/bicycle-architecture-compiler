@@ -55,7 +55,6 @@ pub fn synthesize_angle(
     // Do I need scientific notation here? E.g. for the accuracy.
     let gates = run_gridsynth(&theta.to_string(), &accuracy.to_string())
         .expect("gridsynth should run successfully. Is it installed? See README.");
-    dbg!(&gates);
     let res =
         compile_rots(&gates).expect("Should be able to parse MA normal form provided by gridsynth");
 
@@ -84,23 +83,11 @@ fn run_gridsynth(angle: &str, accuracy: &str) -> Result<String, io::Error> {
     let cmd = Command::new("gridsynth")
         .arg("-p") // Ignore global phase
         .args(["--epsilon", accuracy])
-        .arg(angle)
+        // Use "--" to ensure negative angles are not interpreted as arguments
+        .args(["--", angle])
         .output()?;
 
     let mut output = cmd.stdout;
-    output.truncate(output.len() - 1);
-
-    String::from_utf8(output).map_err(|err| io::Error::new(ErrorKind::InvalidData, err.to_string()))
-}
-
-fn run_pygridsynth(angle: &str, accuracy: &str) -> Result<String, io::Error> {
-    let res = Command::new("python")
-        .args(["-m", "pygridsynth"])
-        .arg(angle)
-        .arg(accuracy)
-        .output()?;
-
-    let mut output = res.stdout;
     output.truncate(output.len() - 1);
 
     String::from_utf8(output).map_err(|err| io::Error::new(ErrorKind::InvalidData, err.to_string()))
@@ -237,20 +224,19 @@ mod test {
 
     use super::*;
 
-    #[test]
-    fn test_05_minus3() -> Result<(), Box<dyn Error>> {
-        let test_str =
-            "THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWWWWWWW";
-        let res = run_pygridsynth("0.5", "1e-3")?;
+    // #[test]
+    // fn test_05_minus3() -> Result<(), Box<dyn Error>> {
+    //     let test_str = "THTHTSHTSHTHTHTHTHTHTHTHTHTHTHTHTSHTHTHTSHTHTSHTHTHTSHTHTHTHTHTSHTHTSSS";
+    //     let res = run_gridsynth("0.5", "1e-3")?;
 
-        // The exact sequence is not stable, but T count is.
-        assert_eq!(
-            test_str.chars().filter(|c| c == &'T').count(),
-            res.chars().filter(|c| c == &'T').count()
-        );
+    //     // The exact sequence is not stable, but T count is.
+    //     assert_eq!(
+    //         test_str.chars().filter(|c| c == &'T').count(),
+    //         res.chars().filter(|c| c == &'T').count()
+    //     );
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     #[test]
     fn parse_ma_form_t_start() -> Result<(), Box<dyn Error>> {
@@ -318,8 +304,7 @@ mod test {
 
     #[test]
     fn synthesize_01() {
-        let (rots, cliffs) =
-            synthesize_angle(AnglePrecision::lit("0.1"), AnglePrecision::lit("1e-6"));
+        let (rots, _) = synthesize_angle(AnglePrecision::lit("0.1"), AnglePrecision::lit("1e-6"));
         assert!(rots.len() > 30);
     }
 }

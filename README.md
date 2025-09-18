@@ -26,37 +26,19 @@ Binaries are built and placed in `./target/release/`.
 In the documentation we use these binaries without including their (relative) path.
 Alternatively, you can use `cargo run --release --package <packageName> -- <arguments>`.
 
-### Python
+### Gridsynth
 
-Please ensure that a `python` (python3) executable is available in your path.
-We recommend using a virtual environment, such as `venv` or `pyenv`. For example
+The compiler depends on the `gridsynth` binary for synthesizing angles other than $\pm\pi/4$.
+Gridsynth can be installed by following [the installation instructions](https://www.mathstat.dal.ca/~selinger/newsynth/).
+Please ensure `gridsynth` is available on your path.
 
-```sh
-shell> python -m venv ./.venv
-shell> source ./.venv/bin/activate # for macos or linux running `bash` or `zsh`
-```
-
-Or if you choose `pyenv`,
-```sh
-shell> pyenv virtualenv pbc-gross
-shell> pyenv local pbc-gross
-```
-
-Once your virtual environment is activated, you can install required and optional packages.
-Required packages may be installed like this
-```sh
-shell> pip install -r requirements.txt
-```
-
-The compiler depends on the the package `pygridsynth~=1.1`
-for synthesizing rotations by angles other than $\pm\pi/4$.
 To test your installation, the following command should succeed
 ```sh
-shell> python -m pygridsynth 0.5 1e-3
+shell> gridsynth -p --epsilon 1e-4 0.1
 ```
-printing something like (the exact output may differ)
+and print something like (the exact output may differ)
 ```
-THTHTSHTHTHTHTHTSHTHTHTHTSHTHTSHTSHTSHTSHTSHTSHTSHTHTSHTHTSHTSHTHTSHTSHTHTSHSSWWWWWWW
+HTSHTSHTSHTSHTHTSHTSHTSHTSHTHTHTSHTHTSHTHTSHTSHTSHTHTSHTSHTHTHTSHTSHTHTHTSHTHTHTHTSHTSHTS
 ```
 
 ### Optional dependencies
