@@ -53,10 +53,11 @@ pub fn synthesize_angle(
     debug!("Synthesizing angle: {theta}");
 
     // Do I need scientific notation here? E.g. for the accuracy.
-    let gates = run_pygridsynth(&theta.to_string(), &accuracy.to_string())
-        .expect("Pygridsynth should run successfully. Is it installed? See README.");
-    let res = compile_rots(&gates)
-        .expect("Should be able to parse MA normal form provided by pygridsynth");
+    let gates = run_gridsynth(&theta.to_string(), &accuracy.to_string())
+        .expect("gridsynth should run successfully. Is it installed? See README.");
+    dbg!(&gates);
+    let res =
+        compile_rots(&gates).expect("Should be able to parse MA normal form provided by gridsynth");
 
     CACHE
         .try_lock()
@@ -77,6 +78,19 @@ pub fn synthesize_angle_x(
     cliff.insert(0, CliffordGate::H);
     cliff.push(CliffordGate::H);
     (rots, cliff)
+}
+
+fn run_gridsynth(angle: &str, accuracy: &str) -> Result<String, io::Error> {
+    let cmd = Command::new("gridsynth")
+        .arg("-p") // Ignore global phase
+        .args(["--epsilon", accuracy])
+        .arg(angle)
+        .output()?;
+
+    let mut output = cmd.stdout;
+    output.truncate(output.len() - 1);
+
+    String::from_utf8(output).map_err(|err| io::Error::new(ErrorKind::InvalidData, err.to_string()))
 }
 
 fn run_pygridsynth(angle: &str, accuracy: &str) -> Result<String, io::Error> {
@@ -300,5 +314,12 @@ mod test {
             AnglePrecision::lit("1e-6"),
         );
         assert_eq!(rots, vec![SingleRotation::X { dagger: true }]);
+    }
+
+    #[test]
+    fn synthesize_01() {
+        let (rots, cliffs) =
+            synthesize_angle(AnglePrecision::lit("0.1"), AnglePrecision::lit("1e-6"));
+        assert!(rots.len() > 30);
     }
 }
