@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::error::Error;
+use std::{
+    error::Error,
+    io::{BufWriter, Write},
+};
 
-use log::debug;
+use log::{debug, info};
 
 use bicycle_cliffords::{
-    native_measurement::NativeMeasurement, MeasurementChoices, MeasurementTableBuilder, PauliString,
+    MeasurementChoices, MeasurementTableBuilder, PauliString, native_measurement::NativeMeasurement,
 };
 
 use clap::Parser;
@@ -25,6 +28,9 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 struct Cli {
     code: MeasurementChoices,
+    /// Do not optimize over choice of pivot basis. Result will be 12-qubit strings.
+    #[arg(long)]
+    no_optimize: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -39,28 +45,39 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Rotation,Base Meas,Rots len");
 
-    // Map into one string before sending to stdout for speed
-    let output_lines = (1..4_u32.pow(11)).map(|i| {
-        // Find cheapest implementation for rotation
-        let x_bits = i & ((1 << 11) - 1);
-        let z_bits = i >> 11;
-        let p = PauliString((z_bits << 13) | (x_bits << 1));
-        let meas_impl = complete.min_data(p);
-        format!(
-            "{},{},{}",
-            p,
-            meas_impl.base_measurement().measures(),
-            meas_impl.rotations().len(),
-        )
-    });
-
-    let mut output = String::new();
-    for output_line in output_lines {
-        output.push_str(&output_line);
-        output.push('\n');
+    let stdout = std::io::stdout();
+    let mut buf_out = BufWriter::new(stdout);
+    if !cli.no_optimize {
+        info!("Optimizing over pivot measurement basis");
+        for i in 1..4_u32.pow(11) {
+            // Find cheapest implementation for rotation
+            let x_bits = i & ((1 << 11) - 1);
+            let z_bits = i >> 11;
+            let p = PauliString((z_bits << 13) | (x_bits << 1));
+            let meas_impl = complete.min_data(p);
+            writeln!(
+                buf_out,
+                "{},{},{}",
+                p,
+                meas_impl.base_measurement().measures(),
+                meas_impl.rotations().len(),
+            )?;
+        }
+    } else {
+        info!("Not optimizing over pivot qubit");
+        for i in 1..4_u32.pow(12) {
+            let p = PauliString(i);
+            let meas_impl = complete.implementation(p);
+            writeln!(
+                buf_out,
+                "{},{},{}",
+                p,
+                meas_impl.base_measurement().measures(),
+                meas_impl.rotations().len()
+            )?;
+        }
     }
 
-    print!("{output}");
-
+    buf_out.flush()?;
     Ok(())
 }
