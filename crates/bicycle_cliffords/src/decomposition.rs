@@ -159,7 +159,6 @@ impl CompleteMeasurementTable {
         );
 
         // Find minimum-length implementation out of three options for the pivot.
-        
 
         [pauli_string::X1, pauli_string::Z1, pauli_string::Y1]
             .into_iter()
@@ -435,16 +434,23 @@ mod tests {
     }
 
     #[test]
-    fn test_gross_builder() -> Result<(), String> {
-        test_measurement_builder(GROSS_MEASUREMENT)
+    fn test_gross_table() -> Result<(), String> {
+        table_tests(GROSS_MEASUREMENT)
     }
 
     #[test]
-    fn test_twogross_builder() -> Result<(), String> {
-        test_measurement_builder(TWOGROSS_MEASUREMENT)
+    fn test_twogross_table() -> Result<(), String> {
+        table_tests(TWOGROSS_MEASUREMENT)
     }
 
-    fn test_measurement_builder(m: CodeMeasurement) -> Result<(), String> {
+    fn table_tests(m: CodeMeasurement) -> Result<(), String> {
+        let table: CompleteMeasurementTable = build_complete_table(m)?;
+        check_correct_implementation(&table);
+        check_native_measurements(&table, m);
+        Ok(())
+    }
+
+    fn build_complete_table(m: CodeMeasurement) -> Result<CompleteMeasurementTable, String> {
         let mut table = MeasurementTableBuilder::new(NativeMeasurement::all(), m);
         table.build();
 
@@ -452,8 +458,10 @@ mod tests {
         let res: Vec<_> = measurements.into_iter().flatten().collect();
         assert_eq!(res.len(), table.len);
 
-        let complete = table.complete()?;
+        table.complete()
+    }
 
+    fn check_correct_implementation(complete: &CompleteMeasurementTable) {
         // Check that the completed table gives correct implementations for each pauli string
         for i in 1..4_u32.pow(12) {
             let p = PauliString(i);
@@ -466,7 +474,18 @@ mod tests {
 
             assert_eq!(p, q);
         }
+    }
 
-        Ok(())
+    fn check_native_measurements(table: &CompleteMeasurementTable, code: CodeMeasurement) {
+        let native_ps: Vec<_> = NativeMeasurement::all()
+            .iter()
+            .map(|native| code.measures(native))
+            .collect();
+
+        for native_p in native_ps {
+            let implementation = table.implementation(native_p);
+            assert_eq!(native_p, implementation.measures());
+            assert_eq!(0, implementation.rotations().len());
+        }
     }
 }

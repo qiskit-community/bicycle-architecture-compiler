@@ -247,14 +247,14 @@ mod tests {
             .collect();
 
         // Some code to print native rotations
-        // let mut sorted_rots: Vec<_> = rots.into_iter().collect();
-        // sorted_rots.sort();
-        // println!("{}", sorted_rots.len());
+        let mut sorted_rots: Vec<_> = rots.into_iter().collect();
+        sorted_rots.sort();
+        println!("{}", sorted_rots.len());
 
-        // for rot in &sorted_rots {
-        //     println!("{rot}");
-        // }
-        assert_eq!(511, rots.len());
+        for rot in &sorted_rots {
+            println!("{rot}");
+        }
+        assert_eq!(511, sorted_rots.len());
     }
     #[test]
     fn all_native_gross() {
@@ -272,12 +272,12 @@ mod tests {
         let set: HashSet<_> = all_native.iter().map(|n| code.measures(n)).collect();
 
         // Some code to print the native measurements
-        // let mut ms: Vec<_> = set.iter().collect();
-        // ms.sort();
+        let mut ms: Vec<_> = set.iter().collect();
+        ms.sort();
 
-        // for m in ms {
-        //     println!("{m}");
-        // }
+        for m in ms {
+            println!("{m}");
+        }
         assert_eq!(15 * 36, set.len());
     }
 
