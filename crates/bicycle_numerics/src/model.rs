@@ -118,7 +118,7 @@ pub const GROSS_1E4: Model = Model {
         shift: 12,
         inmodule: 120,
         intermodule: 120,
-        t_inj: 73 + 120,
+        t_inj: 109 + 120,
     },
 };
 
