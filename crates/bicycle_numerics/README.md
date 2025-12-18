@@ -27,20 +27,39 @@ cat simulation_circuit_twogross.json | cargo run --release -- 120 two-gross_1e-4
 The help output is
 
 ```
+Compute numerics for bicycle circuits
+
 Usage: bicycle_numerics [OPTIONS] <QUBITS> <MODEL>
 
 Arguments:
   <QUBITS>
-  <MODEL>   [possible values: gross_1e-3, gross_1e-4, two-gross_1e-3, two-gross_1e-4]
+          Number of logical qubits in the input circuit (do not include pivot ancillas)
+
+  <MODEL>
+          Choose which architecture the circuit is run on
+
+          Possible values:
+          - gross_1e-3:     Gross codes with physical noise rate p=10^-3
+          - gross_1e-4:     Gross codes with physical noise rate p=10^-4
+          - two-gross_1e-3: Two-gross codes with physical noise rate p=10^-3
+          - two-gross_1e-4: Two-gross codes with physical noise rate p=10^-4
+          - fake_slow:      A model that has no physical noise, p=0, and worst-case timing information between all of the previous models
 
 Options:
-  -e, --max-error <MAX_ERROR>  [default: 0.3333333333333333]
-  -i, --max-iter <MAX_ITER>    [default: 1000000]
-  -h, --help                   Print help
+  -e, --max-error <MAX_ERROR>
+          Set a limit to the error rate when the numerics should halt
+
+  -i, --max-iter <MAX_ITER>
+          Set a limit to the number of input lines (PBC gates) before halting
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
 ```
 
-1. The `max-error` is the circuit failure probability to halt at. (TODO: Optionally enable max)
-2. The `max-iter` is a maximum number of iterations to process and halt. (TODO: Optionally enable max)
+1. The `max-error` is the circuit failure probability to halt at.
+2. The `max-iter` is a maximum number of iterations to process and halt.
 
 ## Counting the total number of instructions
 The output of the numerics includes the number of gates in each row of input circuit.

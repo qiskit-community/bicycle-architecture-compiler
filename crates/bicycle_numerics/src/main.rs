@@ -15,8 +15,8 @@
 use std::{env, error::Error, io};
 
 use bicycle_numerics::{
-    model::{Model, FAKE_SLOW, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
     OutputData,
+    model::{FAKE_SLOW, GROSS_1E3, GROSS_1E4, Model, TWO_GROSS_1E3, TWO_GROSS_1E4},
 };
 use log::{debug, trace};
 
@@ -107,11 +107,11 @@ struct Cli {
     /// Choose which architecture the circuit is run on.
     model: ModelChoices,
     /// Set a limit to the error rate when the numerics should halt
-    #[arg(short = 'e', long, default_value_t = 1.0/3.0)]
-    max_error: f64,
+    #[arg(short = 'e', long)]
+    max_error: Option<f64>,
     /// Set a limit to the number of input lines (PBC gates) before halting.
-    #[arg(short = 'i', long, default_value_t = 10_usize.pow(6))]
-    max_iter: usize,
+    #[arg(short = 'i', long)]
+    max_iter: Option<usize>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -137,12 +137,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let output_data = bicycle_numerics::run_numerics(ops, architecture, model);
 
-    // Stop when error exceeds 1/3 or iterations gets too large
+    // Stop when error exceeds set value (if set) or iterations gets too large (if set)
     let short_data = output_data
-        // Output at least one line.
         .take_while(|data| {
-            data.i == 1 || (data.total_error <= cli.max_error && data.i <= cli.max_iter)
-        });
+            cli.max_error
+                .is_none_or(|max_err| data.total_error <= max_err)
+        })
+        .take_while(|data| cli.max_iter.is_none_or(|max_iter| data.i <= max_iter));
 
     let mut outputs = short_data.map(|data| Output::new(cli.model, data));
     let mut wtr = csv::Writer::from_writer(io::stdout());
