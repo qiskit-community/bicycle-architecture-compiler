@@ -1,1 +1,2 @@
 pygridsynth~=1.1
+numpy
