@@ -30,6 +30,8 @@ type CacheHashMap =
     HashMap<(AnglePrecision, AnglePrecision), (Vec<SingleRotation>, Vec<CliffordGate>)>;
 static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(Default::default);
 
+const T_ANGLE: AnglePrecision = AnglePrecision::from_bits(AnglePrecision::PI.to_bits() / 4);
+
 /// Synthesize a rotation e^{iθZ} in terms of e^{iπ/8Z} and e^{iπ/8X} rotations, followed by Cliffords.
 /// The required accuracy must be less than 0.1 and determines ‖e^{iθZ} - U‖ ≤ ε.
 pub fn synthesize_angle(
@@ -38,13 +40,30 @@ pub fn synthesize_angle(
 ) -> (Vec<SingleRotation>, Vec<CliffordGate>) {
     assert!(accuracy <= 1e-1);
 
-    // Handle T gate special case
-    let sign = theta.is_negative();
-
-    if (AnglePrecision::PI / AnglePrecision::lit("4.0") - theta.abs()).abs() <= accuracy {
-        trace!("Close to T: {theta}");
-        return (vec![SingleRotation::Z { dagger: sign }], vec![]);
+    // Handle T gate special case. We only check for equality, and if not pass it to gridsynth.
+    if theta.abs() == T_ANGLE {
+        trace!("Angle equal to T: {theta}");
+        return (
+            vec![SingleRotation::Z {
+                dagger: theta.is_negative(),
+            }],
+            vec![],
+        );
     }
+    // Some notes for approximation guarantees and an implementation that suffers from rounding errors.
+    // Since we don't care about the global phase, we can write Z(θ) = diag(1, exp(-i2θ))
+    // and obtain ||Z(θ) - T|| = √(2(1-cos(2(π/4-θ))) ≤ ε
+    // (More generally, we can compute ||Z(θ) - Z(θ')|| = √(2(1-cos(θ-θ')))
+    // Note: ε² needs 96*2 fractional bits and therefore may underflow to 0. This is fine because
+    // that means it is smaller than the precision of the left hand side.
+    // let rhs = AnglePrecision::ONE - (accuracy * accuracy) / 2;
+    // let lhs = (2 * (T_ANGLE - theta.abs());
+    // // FIXME: The cos may round 1-δ to 1, which is not ok.
+    // let lhs_float: f64 = lhs.to_num();
+    // if lhs_float.cos() >= rhs {
+    //     trace!("Close to T: {theta}");
+    //     return (vec![SingleRotation::Z { dagger: theta.is_negative() }], vec![]);
+    // }
 
     if let Some(result) = CACHE.try_lock().unwrap().get(&(theta, accuracy)) {
         trace!("Cached angle: {theta}");
@@ -80,6 +99,8 @@ pub fn synthesize_angle_x(
 }
 
 fn run_gridsynth(angle: &str, accuracy: &str) -> Result<String, io::Error> {
+    dbg!(angle);
+    dbg!(accuracy);
     let cmd = Command::new("gridsynth")
         .arg("-p") // Ignore global phase
         .args(["--epsilon", accuracy])
@@ -284,27 +305,42 @@ mod test {
     }
 
     #[test]
+    fn parse_t_dag() -> Result<(), Box<dyn Error>> {
+        let ma = "TSSS";
+        let (rotations, cliffords) = compile_rots(ma)?;
+        assert_eq!(rotations, vec![SingleRotation::Z { dagger: false }]);
+        assert_eq!(cliffords, vec![CliffordGate::S; 3]);
+        Ok(())
+    }
+
+    #[test]
     fn synthesize_t() {
-        let (rots, cliffs) = synthesize_angle(
-            AnglePrecision::PI / AnglePrecision::lit("4.0"),
-            AnglePrecision::lit("1e-6"),
-        );
+        let (rots, cliffs) = synthesize_angle(T_ANGLE, AnglePrecision::lit("1e-6"));
         assert_eq!(rots, vec![SingleRotation::Z { dagger: false }]);
         assert_eq!(cliffs, vec![]);
     }
 
     #[test]
     fn synthesize_tx() {
-        let (rots, _) = synthesize_angle_x(
-            -AnglePrecision::PI / AnglePrecision::lit("4.0"),
-            AnglePrecision::lit("1e-6"),
-        );
+        let (rots, cliffords) = synthesize_angle_x(-T_ANGLE, AnglePrecision::lit("1e-6"));
         assert_eq!(rots, vec![SingleRotation::X { dagger: true }]);
+        assert_eq!(cliffords, vec![CliffordGate::H, CliffordGate::H]);
     }
 
     #[test]
     fn synthesize_01() {
         let (rots, _) = synthesize_angle(AnglePrecision::lit("0.1"), AnglePrecision::lit("1e-6"));
+        println!("{rots:?}");
+        assert!(rots.len() > 30);
+    }
+
+    #[test]
+    /// Test the highest-precision synthesis of an angle close to T.
+    /// This should not give only a T gate because it is too far from a T at the given accuracy.
+    fn underflow_precision() {
+        let smallest_accuracy = AnglePrecision::from_bits(1);
+        let (rots, _) = synthesize_angle(T_ANGLE - 2 * smallest_accuracy, smallest_accuracy);
+        println!("{rots:?}");
         assert!(rots.len() > 30);
     }
 }
