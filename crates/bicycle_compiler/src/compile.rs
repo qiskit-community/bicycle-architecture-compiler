@@ -356,15 +356,13 @@ mod tests {
     use bicycle_common::Pauli::{I, X, Y, Z};
 
     use bicycle_cliffords::{
-        native_measurement::NativeMeasurement, MeasurementTableBuilder, GROSS_MEASUREMENT,
+        GROSS_MEASUREMENT, MeasurementTableBuilder, native_measurement::NativeMeasurement,
     };
     use rand::{
         distr::{Distribution, StandardUniform},
         seq::IndexedRandom,
     };
 
-    static CLIFF_ANGLE: LazyLock<AnglePrecision> =
-        LazyLock::new(|| AnglePrecision::PI / AnglePrecision::lit("4.0"));
     const ACCURACY: AnglePrecision = AnglePrecision::lit("1e-10");
 
     static GROSS_TABLE: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
@@ -669,7 +667,7 @@ mod tests {
                 &arch,
                 &GROSS_TABLE,
                 basis,
-                *CLIFF_ANGLE,
+                small_angle::T_ANGLE,
                 ACCURACY,
             ));
             println!("Compiled: {ops}");
@@ -721,7 +719,7 @@ mod tests {
                     &arch,
                     &GROSS_TABLE,
                     basis,
-                    *CLIFF_ANGLE,
+                    small_angle::T_ANGLE,
                     ACCURACY,
                 ));
                 println!("Compiled: {ops}");

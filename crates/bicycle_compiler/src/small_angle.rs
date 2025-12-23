@@ -30,7 +30,7 @@ type CacheHashMap =
     HashMap<(AnglePrecision, AnglePrecision), (Vec<SingleRotation>, Vec<CliffordGate>)>;
 static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(Default::default);
 
-const T_ANGLE: AnglePrecision = AnglePrecision::from_bits(AnglePrecision::PI.to_bits() / 4);
+pub const T_ANGLE: AnglePrecision = AnglePrecision::from_bits(AnglePrecision::PI.to_bits() / 4);
 
 /// Synthesize a rotation e^{iθZ} in terms of e^{iπ/8Z} and e^{iπ/8X} rotations, followed by Cliffords.
 /// The required accuracy must be less than 0.1 and determines ‖e^{iθZ} - U‖ ≤ ε.
