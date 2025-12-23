@@ -30,10 +30,12 @@ type CacheHashMap =
     HashMap<(AnglePrecision, AnglePrecision), (Vec<SingleRotation>, Vec<CliffordGate>)>;
 static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(Default::default);
 
-pub const T_ANGLE: AnglePrecision = AnglePrecision::from_bits(AnglePrecision::PI.to_bits() / 4);
+/// The angle θ such that Z(θ) := exp(-iθ/2) diag(1, exp(iθ)) = T up to the global phase exp(iθ/2).
+pub const T_ANGLE: AnglePrecision = AnglePrecision::FRAC_PI_4;
 
-/// Synthesize a rotation e^{iθZ} in terms of e^{iπ/8Z} and e^{iπ/8X} rotations, followed by Cliffords.
-/// The required accuracy must be less than 0.1 and determines ‖e^{iθZ} - U‖ ≤ ε.
+/// Synthesize a rotation e^{iθZ} in terms of T and T_X = HTH rotations, followed by Cliffords,
+/// up to a global phase.
+/// The required accuracy must be less than 0.1 and determines ‖e^{iθZ} - U‖ ≤ ε in operator norm.
 pub fn synthesize_angle(
     theta: AnglePrecision,
     accuracy: AnglePrecision,
@@ -84,7 +86,7 @@ pub fn synthesize_angle(
     res
 }
 
-/// Synthesize a rotation e^{iθX}
+/// Synthesize a rotation e^{iθX} up to global phase.
 pub fn synthesize_angle_x(
     theta: AnglePrecision,
     accuracy: AnglePrecision,
