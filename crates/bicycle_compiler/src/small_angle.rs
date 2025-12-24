@@ -30,7 +30,7 @@ type CacheHashMap =
     HashMap<(AnglePrecision, AnglePrecision), (Vec<SingleRotation>, Vec<CliffordGate>)>;
 static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(Default::default);
 
-/// The angle θ such that Z(θ) := exp(-iθ/2) diag(1, exp(iθ)) = T up to the global phase exp(iθ/2).
+/// The angle θ such that Z(θ) := exp(-iθ/2) diag(1, exp(iθ)) = T up to the global phase exp(-iθ/2).
 pub const T_ANGLE: AnglePrecision = AnglePrecision::FRAC_PI_4;
 
 /// Synthesize a rotation e^{iθZ} in terms of T and T_X = HTH rotations, followed by Cliffords,
