@@ -46,7 +46,7 @@ def iter_qiskit_pbc_circuit(
         If ``as_str`` is ``True``, the dictionaries are JSON serialized and whitespaces removed.
 
     Raises:
-        ValueError: If the input cirucit is not in the required PBC format.
+        ValueError: If the input circuit is not in the required PBC format.
     """
 
     qubit_to_index = {qubit: index for index, qubit in enumerate(pbc.qubits)}
