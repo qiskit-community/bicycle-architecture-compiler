@@ -17,8 +17,8 @@ set -euo pipefail
 
 # Change to this script's directory.
 cd "$(dirname "$0")" || exit
-N="${1:-100}"
->&2 echo "Using n=${N} qubits"
+N="${1:-10}"
+>&2 echo "Using n=${N} x ${N} qubits"
 
 COMPILER_PATH=../target/release # path to the bicycle compiler executables
 INPUT_DATA_DIR="../data" # path to store measurement tables
