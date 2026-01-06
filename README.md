@@ -10,6 +10,7 @@ This compiler prototype implements and benchmarks this end-to-end compilation sc
 Some example use cases are:
  - Random PBC circuits as a form of worst-case Clifford+T quantum circuits. See [`./notebooks/random_circuits.ipynb`](./notebooks/random_circuits.ipynb)
  - User-specified PBC circuits supporting arbitrary-angle rotations, see [`./notebooks/custom_circuits.ipynb`](./notebooks/custom_circuits.ipynb)
+ - Qiskit circuits to Gross code ISA, see [`./scripts/qiskit_demo.sh`](./scripts/qiskit_demo.sh)
 
 ## Installation
 
