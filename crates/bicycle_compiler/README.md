@@ -60,6 +60,45 @@ For a more advanced example on how the compiler can be used,
 see how it is used as a library in the `bicycle_random_numerics` crate
 or as a binary in [custom_circuits.ipynb](../../notebooks/custom_circuits.ipynb).
 
+## Multi-block circuits
+
+Each gross-code module encodes 11 data qubits (plus 1 pivot qubit used
+internally by the compiler).  When a PBC circuit acts on more than 11
+logical qubits the compiler automatically distributes it across multiple
+modules:  the number of modules is $\lceil n/11 \rceil$, where $n$ is
+the basis length.
+
+For example, a basis of length 22 spans **2 modules** and a basis of
+length 33 spans **3 modules**.  The compiler pads any basis that is not
+a multiple of 11 with identity (`I`) entries.
+
+Multi-block compilation introduces inter-module operations:
+
+* **GHZ-state preparation** via `JointMeasure` instructions on adjacent
+  modules.
+* **T-gate injection** on the last module in the path.
+* **GHZ uncomputation** via local measurements on each module.
+
+### Examples
+
+Single block (11 qubits):
+```sh
+cat example/one_block.json | jq --compact-output '.[]' | cargo run --release -- gross
+```
+
+Two blocks (22 qubits, both modules active):
+```sh
+cat example/two_blocks.json | jq --compact-output '.[]' | cargo run --release -- gross
+```
+
+Three blocks (33 qubits, all modules active):
+```sh
+cat example/three_blocks.json | jq --compact-output '.[]' | cargo run --release -- gross
+```
+
+In the output you will see instructions addressed to modules `0`, `1`,
+`2`, etc., as well as paired `JointMeasure` instructions that entangle
+adjacent modules.
 
 ## Caching up Clifford synthesis
 
