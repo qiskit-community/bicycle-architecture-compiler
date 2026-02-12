@@ -22,6 +22,7 @@ N="${1:-10}"
 
 COMPILER_PATH=../target/release # path to the bicycle compiler executables
 INPUT_DATA_DIR="../data" # path to store measurement tables
+mkdir -p "$INPUT_DATA_DIR"
 CODE="two-gross" # type of code, can be "gross" or "two-gross"
 P="1e-4" # physical error rate, can be "1e-3" or "1e-4"
 

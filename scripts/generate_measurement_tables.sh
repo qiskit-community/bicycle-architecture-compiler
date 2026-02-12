@@ -34,6 +34,9 @@ fi
 
 input_data_dir="../data"
 
+# Ensure data directory exists (fixes #3)
+mkdir -p "$input_data_dir"
+
 gross_table_path="$input_data_dir/table_gross"
 twogross_table_path="$input_data_dir/table_two-gross"
 
