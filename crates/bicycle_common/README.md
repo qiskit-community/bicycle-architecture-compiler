@@ -37,6 +37,7 @@ Note that we also define other logical instructions of bivariate bicycle codes t
 * `gross_toric_parity_checks()` and `two_gross_toric_parity_checks()` build toric `Hx` / `Hz`.
 * `BinaryMatrix::to_csr()` converts to `sprs::CsMat<u8>` for decoder interop.
 * `syndrome(&h, &error)` computes `H * e^T` over GF(2) with input validation.
+* `simulate_syndrome_once(&hx, &hz, x_error, z_error)` runs one seeded or explicit CSS syndrome sample.
 
 Example:
 
@@ -49,4 +50,10 @@ error[0] = 1;
 let s = syndrome(&checks.hx, &error)?;
 assert_eq!(s.len(), checks.hx.rows());
 # Ok::<(), bicycle_common::parity_check::SyndromeError>(())
+```
+
+Throughput benchmark:
+
+```sh
+cargo bench -p bicycle_common --bench bench_syndrome
 ```
