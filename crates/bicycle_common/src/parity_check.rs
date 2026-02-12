@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fmt::{Display, Formatter};
+
+use sprs::{CsMat, TriMat};
+
 /// Dense GF(2) matrix in row-major form.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BinaryMatrix {
@@ -87,6 +91,19 @@ impl BinaryMatrix {
         &self.data
     }
 
+    /// Convert to CSR format for decoder interoperability.
+    pub fn to_csr(&self) -> CsMat<u8> {
+        let mut tri = TriMat::new((self.rows, self.cols));
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                if self.get(row, col) == 1 {
+                    tri.add_triplet(row, col, 1u8);
+                }
+            }
+        }
+        tri.to_csr()
+    }
+
     fn index(&self, row: usize, col: usize) -> usize {
         assert!(row < self.rows);
         assert!(col < self.cols);
@@ -105,6 +122,31 @@ pub struct ToricParityChecks {
     pub hx: BinaryMatrix,
     pub hz: BinaryMatrix,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SyndromeError {
+    DimensionMismatch { expected: usize, found: usize },
+    NonBinaryInput { index: usize, value: u8 },
+}
+
+impl Display for SyndromeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DimensionMismatch { expected, found } => write!(
+                f,
+                "error vector length mismatch: expected {expected}, found {found}"
+            ),
+            Self::NonBinaryInput { index, value } => {
+                write!(
+                    f,
+                    "error vector contains non-binary entry at {index}: {value}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for SyndromeError {}
 
 const GROSS_A_TERMS: &[(i32, i32)] = &[(0, 0), (0, 1), (3, -1)];
 const GROSS_B_TERMS: &[(i32, i32)] = &[(0, 0), (1, 0), (-1, -3)];
@@ -133,6 +175,31 @@ pub fn gross_toric_parity_checks() -> ToricParityChecks {
 /// Two-gross toric parity-check matrices.
 pub fn two_gross_toric_parity_checks() -> ToricParityChecks {
     toric_parity_checks((12, 12), GROSS_A_TERMS, GROSS_B_TERMS)
+}
+
+/// Compute syndrome s = H * e^T over GF(2).
+pub fn syndrome(h: &BinaryMatrix, error: &[u8]) -> Result<Vec<u8>, SyndromeError> {
+    if error.len() != h.cols() {
+        return Err(SyndromeError::DimensionMismatch {
+            expected: h.cols(),
+            found: error.len(),
+        });
+    }
+    for (index, value) in error.iter().copied().enumerate() {
+        if value > 1 {
+            return Err(SyndromeError::NonBinaryInput { index, value });
+        }
+    }
+
+    let mut out = vec![0u8; h.rows()];
+    for (row, out_value) in out.iter_mut().enumerate() {
+        let mut parity = 0u8;
+        for (col, error_value) in error.iter().copied().enumerate() {
+            parity ^= h.get(row, col) & error_value;
+        }
+        *out_value = parity;
+    }
+    Ok(out)
 }
 
 fn polynomial_matrix(order: (usize, usize), terms: &[(i32, i32)]) -> BinaryMatrix {
@@ -164,8 +231,8 @@ mod tests {
     use sha2::{Digest, Sha256};
 
     use super::{
-        BinaryMatrix, gross_toric_parity_checks, polynomial_matrix, toric_parity_checks,
-        two_gross_toric_parity_checks,
+        BinaryMatrix, SyndromeError, gross_toric_parity_checks, polynomial_matrix, syndrome,
+        toric_parity_checks, two_gross_toric_parity_checks,
     };
 
     #[test]
@@ -258,6 +325,67 @@ mod tests {
         let built = toric_parity_checks((12, 6), a_terms, b_terms);
         assert_eq!(built.hx, gross_toric_parity_checks().hx);
         assert_eq!(built.hz, gross_toric_parity_checks().hz);
+    }
+
+    #[test]
+    fn sparse_interop_preserves_shape_and_entries() {
+        let mut matrix = BinaryMatrix::zeros(3, 4);
+        matrix.toggle(0, 1);
+        matrix.toggle(1, 3);
+        matrix.toggle(2, 0);
+        matrix.toggle(2, 1);
+
+        let sparse = matrix.to_csr();
+        assert_eq!(sparse.rows(), 3);
+        assert_eq!(sparse.cols(), 4);
+        assert_eq!(sparse.nnz(), 4);
+        assert_eq!(sparse.get(0, 1), Some(&1));
+        assert_eq!(sparse.get(1, 3), Some(&1));
+        assert_eq!(sparse.get(2, 0), Some(&1));
+        assert_eq!(sparse.get(2, 1), Some(&1));
+        assert_eq!(sparse.get(0, 0), None);
+    }
+
+    #[test]
+    fn sparse_interop_scales_to_gross_hx() {
+        let gross = gross_toric_parity_checks();
+        let sparse = gross.hx.to_csr();
+        assert_eq!(sparse.rows(), gross.hx.rows());
+        assert_eq!(sparse.cols(), gross.hx.cols());
+        assert_eq!(sparse.nnz(), gross.hx.rows() * 6);
+    }
+
+    #[test]
+    fn syndrome_matches_manual_parity() {
+        let mut h = BinaryMatrix::zeros(3, 4);
+        h.toggle(0, 1);
+        h.toggle(1, 3);
+        h.toggle(2, 0);
+        h.toggle(2, 1);
+
+        let s = syndrome(&h, &[1, 0, 1, 1]).expect("valid binary vector");
+        assert_eq!(s, vec![0, 1, 1]);
+    }
+
+    #[test]
+    fn syndrome_rejects_non_binary_input() {
+        let mut h = BinaryMatrix::zeros(1, 3);
+        h.toggle(0, 0);
+        let err = syndrome(&h, &[1, 2, 0]).expect_err("must reject non-binary entries");
+        assert_eq!(err, SyndromeError::NonBinaryInput { index: 1, value: 2 });
+    }
+
+    #[test]
+    fn syndrome_rejects_wrong_length() {
+        let h = BinaryMatrix::zeros(2, 4);
+        let err = syndrome(&h, &[1, 0]).expect_err("must reject wrong length");
+        assert_eq!(
+            err,
+            SyndromeError::DimensionMismatch {
+                expected: 4,
+                found: 2
+            }
+        );
     }
 
     fn assert_css_orthogonality(hx: &BinaryMatrix, hz: &BinaryMatrix) {
