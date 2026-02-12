@@ -20,6 +20,8 @@ use std::{
 use rand::distr::{Distribution, StandardUniform};
 use serde::{Deserialize, Serialize};
 
+pub mod parity_check;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub enum Pauli {
     #[default]

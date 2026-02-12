@@ -13,3 +13,6 @@ description = "Common definitions for bicycle architecture compiler crates"
 [dependencies]
 rand = "0.9.0"
 serde = { version = "1.0.217", features = ["derive"] }
+
+[dev-dependencies]
+sha2 = "0.10.9"

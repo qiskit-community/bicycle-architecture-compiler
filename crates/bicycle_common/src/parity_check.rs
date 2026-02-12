@@ -1,0 +1,288 @@
+// Copyright contributors to the Bicycle Architecture Compiler project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/// Dense GF(2) matrix in row-major form.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BinaryMatrix {
+    rows: usize,
+    cols: usize,
+    data: Vec<u8>,
+}
+
+impl BinaryMatrix {
+    pub fn zeros(rows: usize, cols: usize) -> Self {
+        Self {
+            rows,
+            cols,
+            data: vec![0; rows * cols],
+        }
+    }
+
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
+
+    pub fn cols(&self) -> usize {
+        self.cols
+    }
+
+    pub fn get(&self, row: usize, col: usize) -> u8 {
+        self.data[self.index(row, col)]
+    }
+
+    pub fn row_weight(&self, row: usize) -> usize {
+        assert!(row < self.rows);
+        let start = row * self.cols;
+        let end = start + self.cols;
+        self.data[start..end].iter().map(|v| *v as usize).sum()
+    }
+
+    pub fn col_weight(&self, col: usize) -> usize {
+        assert!(col < self.cols);
+        (0..self.rows).map(|row| self.get(row, col) as usize).sum()
+    }
+
+    pub fn transpose(&self) -> Self {
+        let mut out = Self::zeros(self.cols, self.rows);
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                let out_idx = out.index(col, row);
+                out.data[out_idx] = self.get(row, col);
+            }
+        }
+        out
+    }
+
+    pub fn hstack(&self, rhs: &Self) -> Self {
+        assert_eq!(
+            self.rows, rhs.rows,
+            "cannot hstack matrices with different rows"
+        );
+        let mut out = Self::zeros(self.rows, self.cols + rhs.cols);
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                let out_idx = out.index(row, col);
+                out.data[out_idx] = self.get(row, col);
+            }
+            for col in 0..rhs.cols {
+                let out_idx = out.index(row, self.cols + col);
+                out.data[out_idx] = rhs.get(row, col);
+            }
+        }
+        out
+    }
+
+    pub fn row_major_bytes(&self) -> &[u8] {
+        &self.data
+    }
+
+    fn index(&self, row: usize, col: usize) -> usize {
+        assert!(row < self.rows);
+        assert!(col < self.cols);
+        row * self.cols + col
+    }
+
+    fn toggle(&mut self, row: usize, col: usize) {
+        let idx = self.index(row, col);
+        self.data[idx] ^= 1;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToricParityChecks {
+    pub order: (usize, usize),
+    pub hx: BinaryMatrix,
+    pub hz: BinaryMatrix,
+}
+
+const GROSS_A_TERMS: &[(i32, i32)] = &[(0, 0), (0, 1), (3, -1)];
+const GROSS_B_TERMS: &[(i32, i32)] = &[(0, 0), (1, 0), (-1, -3)];
+
+/// Build toric parity-check matrices from two bivariate polynomials A, B.
+///
+/// The generated matrices follow the notebook construction:
+/// Hx = [A | B], Hz = [B^T | A^T].
+pub fn toric_parity_checks(
+    order: (usize, usize),
+    a_terms: &[(i32, i32)],
+    b_terms: &[(i32, i32)],
+) -> ToricParityChecks {
+    let a = polynomial_matrix(order, a_terms);
+    let b = polynomial_matrix(order, b_terms);
+    let hx = a.hstack(&b);
+    let hz = b.transpose().hstack(&a.transpose());
+    ToricParityChecks { order, hx, hz }
+}
+
+/// Gross toric parity-check matrices.
+pub fn gross_toric_parity_checks() -> ToricParityChecks {
+    toric_parity_checks((12, 6), GROSS_A_TERMS, GROSS_B_TERMS)
+}
+
+/// Two-gross toric parity-check matrices.
+pub fn two_gross_toric_parity_checks() -> ToricParityChecks {
+    toric_parity_checks((12, 12), GROSS_A_TERMS, GROSS_B_TERMS)
+}
+
+fn polynomial_matrix(order: (usize, usize), terms: &[(i32, i32)]) -> BinaryMatrix {
+    let (d1, d2) = order;
+    let dim = d1 * d2;
+    let mut out = BinaryMatrix::zeros(dim, dim);
+
+    for &(ax, ay) in terms {
+        let sx = rem_euclid_i32(ax, d1);
+        let sy = rem_euclid_i32(ay, d2);
+        for x in 0..d1 {
+            for y in 0..d2 {
+                let row = x * d2 + y;
+                let col = ((x + sx) % d1) * d2 + ((y + sy) % d2);
+                out.toggle(row, col);
+            }
+        }
+    }
+    out
+}
+
+fn rem_euclid_i32(value: i32, modulus: usize) -> usize {
+    let modulus = modulus as i64;
+    (value as i64).rem_euclid(modulus) as usize
+}
+
+#[cfg(test)]
+mod tests {
+    use sha2::{Digest, Sha256};
+
+    use super::{
+        BinaryMatrix, gross_toric_parity_checks, polynomial_matrix, toric_parity_checks,
+        two_gross_toric_parity_checks,
+    };
+
+    #[test]
+    fn polynomial_matrix_handles_negative_exponents() {
+        let matrix = polynomial_matrix((3, 2), &[(0, 0), (-1, 1)]);
+        assert_eq!(matrix.rows(), 6);
+        assert_eq!(matrix.cols(), 6);
+        assert_eq!(matrix.row_weight(0), 2);
+        assert_eq!(matrix.get(0, 0), 1);
+        assert_eq!(matrix.get(0, 5), 1);
+    }
+
+    #[test]
+    fn gross_shapes_and_weights() {
+        let checks = gross_toric_parity_checks();
+        assert_eq!(checks.order, (12, 6));
+        assert_eq!(checks.hx.rows(), 72);
+        assert_eq!(checks.hx.cols(), 144);
+        assert_eq!(checks.hz.rows(), 72);
+        assert_eq!(checks.hz.cols(), 144);
+
+        for row in 0..checks.hx.rows() {
+            assert_eq!(checks.hx.row_weight(row), 6);
+            assert_eq!(checks.hz.row_weight(row), 6);
+        }
+        for col in 0..checks.hx.cols() {
+            assert_eq!(checks.hx.col_weight(col), 3);
+            assert_eq!(checks.hz.col_weight(col), 3);
+        }
+    }
+
+    #[test]
+    fn two_gross_shapes_and_weights() {
+        let checks = two_gross_toric_parity_checks();
+        assert_eq!(checks.order, (12, 12));
+        assert_eq!(checks.hx.rows(), 144);
+        assert_eq!(checks.hx.cols(), 288);
+        assert_eq!(checks.hz.rows(), 144);
+        assert_eq!(checks.hz.cols(), 288);
+
+        for row in 0..checks.hx.rows() {
+            assert_eq!(checks.hx.row_weight(row), 6);
+            assert_eq!(checks.hz.row_weight(row), 6);
+        }
+        for col in 0..checks.hx.cols() {
+            assert_eq!(checks.hx.col_weight(col), 3);
+            assert_eq!(checks.hz.col_weight(col), 3);
+        }
+    }
+
+    #[test]
+    fn css_orthogonality_for_gross_and_two_gross() {
+        assert_css_orthogonality(
+            &gross_toric_parity_checks().hx,
+            &gross_toric_parity_checks().hz,
+        );
+        assert_css_orthogonality(
+            &two_gross_toric_parity_checks().hx,
+            &two_gross_toric_parity_checks().hz,
+        );
+    }
+
+    #[test]
+    fn fingerprints_match_reference_generation() {
+        let gross = gross_toric_parity_checks();
+        let two_gross = two_gross_toric_parity_checks();
+
+        assert_eq!(
+            sha256_hex(gross.hx.row_major_bytes()),
+            "d18899e6afd52abed989ab8f2109ce81e3151af9e619b35888f47e3ef935e058"
+        );
+        assert_eq!(
+            sha256_hex(gross.hz.row_major_bytes()),
+            "0ec2c6530e9fa7d1a266450f830e0c94c7ed71e10b409e64188a4d81eabafd08"
+        );
+        assert_eq!(
+            sha256_hex(two_gross.hx.row_major_bytes()),
+            "64a709abea173ccabf4bb016ddbec0322b949daaec712102ce58124684f7d791"
+        );
+        assert_eq!(
+            sha256_hex(two_gross.hz.row_major_bytes()),
+            "431ac0504f6138c155ec67cf83a069448e337a63bcc9f1aa793f2d59e11659c3"
+        );
+    }
+
+    #[test]
+    fn explicit_order_generation_matches_named_constructors() {
+        let a_terms = &[(0, 0), (0, 1), (3, -1)];
+        let b_terms = &[(0, 0), (1, 0), (-1, -3)];
+        let built = toric_parity_checks((12, 6), a_terms, b_terms);
+        assert_eq!(built.hx, gross_toric_parity_checks().hx);
+        assert_eq!(built.hz, gross_toric_parity_checks().hz);
+    }
+
+    fn assert_css_orthogonality(hx: &BinaryMatrix, hz: &BinaryMatrix) {
+        assert_eq!(
+            hx.cols(),
+            hz.cols(),
+            "hx and hz must have the same number of columns"
+        );
+        for x_row in 0..hx.rows() {
+            for z_row in 0..hz.rows() {
+                let mut parity = 0u8;
+                for col in 0..hx.cols() {
+                    parity ^= hx.get(x_row, col) & hz.get(z_row, col);
+                }
+                assert_eq!(
+                    parity, 0,
+                    "found anticommuting checks at rows ({x_row}, {z_row})"
+                );
+            }
+        }
+    }
+
+    fn sha256_hex(bytes: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(bytes);
+        format!("{:x}", hasher.finalize())
+    }
+}
