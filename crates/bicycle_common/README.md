@@ -29,3 +29,24 @@ Note that we also define other logical instructions of bivariate bicycle codes t
 * __JointBellInit__ `jBell` One half of an instruction acting on two code modules. Initialize 12 Bell pairs using transversal CX.
 * __JointTransversalCX__ `jCnot` One half of an instruction acting on two code modules. Perform 12 CX gates via transversal CX.
 * __InitT__ `initT` Initialize all logical qubits in a code module to `|T>`, at physical noise rate.
+
+### Toric parity-check helpers
+
+`bicycle_common::parity_check` includes a minimal parity-check toolbox:
+
+* `gross_toric_parity_checks()` and `two_gross_toric_parity_checks()` build toric `Hx` / `Hz`.
+* `BinaryMatrix::to_csr()` converts to `sprs::CsMat<u8>` for decoder interop.
+* `syndrome(&h, &error)` computes `H * e^T` over GF(2) with input validation.
+
+Example:
+
+```rust
+use bicycle_common::parity_check::{gross_toric_parity_checks, syndrome};
+
+let checks = gross_toric_parity_checks();
+let mut error = vec![0u8; checks.hx.cols()];
+error[0] = 1;
+let s = syndrome(&checks.hx, &error)?;
+assert_eq!(s.len(), checks.hx.rows());
+# Ok::<(), bicycle_common::parity_check::SyndromeError>(())
+```
