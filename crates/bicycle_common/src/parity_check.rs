@@ -14,6 +14,7 @@
 
 use std::fmt::{Display, Formatter};
 
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use sprs::{CsMat, TriMat};
 
 /// Dense GF(2) matrix in row-major form.
@@ -148,6 +149,48 @@ impl Display for SyndromeError {
 
 impl std::error::Error for SyndromeError {}
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum ErrorSource {
+    Explicit(Vec<u8>),
+    Bernoulli { p: f64, seed: u64 },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SimulatedSyndrome {
+    pub syndrome_x: Vec<u8>,
+    pub syndrome_z: Vec<u8>,
+    pub x_error: Vec<u8>,
+    pub z_error: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SimulationError {
+    CheckWidthMismatch { hx_cols: usize, hz_cols: usize },
+    InvalidProbability { label: &'static str, value: f64 },
+    XSyndrome(SyndromeError),
+    ZSyndrome(SyndromeError),
+}
+
+impl Display for SimulationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CheckWidthMismatch { hx_cols, hz_cols } => {
+                write!(
+                    f,
+                    "check matrix width mismatch: hx has {hx_cols}, hz has {hz_cols}"
+                )
+            }
+            Self::InvalidProbability { label, value } => {
+                write!(f, "invalid Bernoulli probability for {label}: {value}")
+            }
+            Self::XSyndrome(err) => write!(f, "failed to compute x syndrome: {err}"),
+            Self::ZSyndrome(err) => write!(f, "failed to compute z syndrome: {err}"),
+        }
+    }
+}
+
+impl std::error::Error for SimulationError {}
+
 const GROSS_A_TERMS: &[(i32, i32)] = &[(0, 0), (0, 1), (3, -1)];
 const GROSS_B_TERMS: &[(i32, i32)] = &[(0, 0), (1, 0), (-1, -3)];
 
@@ -202,6 +245,59 @@ pub fn syndrome(h: &BinaryMatrix, error: &[u8]) -> Result<Vec<u8>, SyndromeError
     Ok(out)
 }
 
+/// Compute one CSS syndrome sample from either explicit or seeded Bernoulli errors.
+///
+/// Convention:
+/// * `syndrome_x = Hx * z_error^T`
+/// * `syndrome_z = Hz * x_error^T`
+pub fn simulate_syndrome_once(
+    hx: &BinaryMatrix,
+    hz: &BinaryMatrix,
+    x_error_source: ErrorSource,
+    z_error_source: ErrorSource,
+) -> Result<SimulatedSyndrome, SimulationError> {
+    if hx.cols() != hz.cols() {
+        return Err(SimulationError::CheckWidthMismatch {
+            hx_cols: hx.cols(),
+            hz_cols: hz.cols(),
+        });
+    }
+    let n = hx.cols();
+    let x_error = materialize_error_source(n, x_error_source, "x_error")?;
+    let z_error = materialize_error_source(n, z_error_source, "z_error")?;
+
+    let syndrome_x = syndrome(hx, &z_error).map_err(SimulationError::XSyndrome)?;
+    let syndrome_z = syndrome(hz, &x_error).map_err(SimulationError::ZSyndrome)?;
+
+    Ok(SimulatedSyndrome {
+        syndrome_x,
+        syndrome_z,
+        x_error,
+        z_error,
+    })
+}
+
+fn materialize_error_source(
+    n: usize,
+    source: ErrorSource,
+    label: &'static str,
+) -> Result<Vec<u8>, SimulationError> {
+    match source {
+        ErrorSource::Explicit(error) => Ok(error),
+        ErrorSource::Bernoulli { p, seed } => {
+            if !p.is_finite() || !(0.0..=1.0).contains(&p) {
+                return Err(SimulationError::InvalidProbability { label, value: p });
+            }
+            let mut rng = StdRng::seed_from_u64(seed);
+            let mut error = vec![0u8; n];
+            for bit in &mut error {
+                *bit = u8::from(rng.random::<f64>() < p);
+            }
+            Ok(error)
+        }
+    }
+}
+
 fn polynomial_matrix(order: (usize, usize), terms: &[(i32, i32)]) -> BinaryMatrix {
     let (d1, d2) = order;
     let dim = d1 * d2;
@@ -231,8 +327,9 @@ mod tests {
     use sha2::{Digest, Sha256};
 
     use super::{
-        BinaryMatrix, SyndromeError, gross_toric_parity_checks, polynomial_matrix, syndrome,
-        toric_parity_checks, two_gross_toric_parity_checks,
+        BinaryMatrix, ErrorSource, SimulationError, SyndromeError, gross_toric_parity_checks,
+        polynomial_matrix, simulate_syndrome_once, syndrome, toric_parity_checks,
+        two_gross_toric_parity_checks,
     };
 
     #[test]
@@ -385,6 +482,113 @@ mod tests {
                 expected: 4,
                 found: 2
             }
+        );
+    }
+
+    #[test]
+    fn simulate_syndrome_zero_error_returns_zero_vectors() {
+        let checks = gross_toric_parity_checks();
+        let n = checks.hx.cols();
+
+        let shot = simulate_syndrome_once(
+            &checks.hx,
+            &checks.hz,
+            ErrorSource::Explicit(vec![0; n]),
+            ErrorSource::Explicit(vec![0; n]),
+        )
+        .expect("valid zero-error simulation");
+
+        assert!(shot.syndrome_x.iter().all(|&b| b == 0));
+        assert!(shot.syndrome_z.iter().all(|&b| b == 0));
+        assert!(shot.x_error.iter().all(|&b| b == 0));
+        assert!(shot.z_error.iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn simulate_syndrome_seeded_sampling_is_deterministic() {
+        let checks = gross_toric_parity_checks();
+        let s1 = simulate_syndrome_once(
+            &checks.hx,
+            &checks.hz,
+            ErrorSource::Bernoulli { p: 0.05, seed: 42 },
+            ErrorSource::Bernoulli {
+                p: 0.03,
+                seed: 1337,
+            },
+        )
+        .expect("first seeded run should pass");
+        let s2 = simulate_syndrome_once(
+            &checks.hx,
+            &checks.hz,
+            ErrorSource::Bernoulli { p: 0.05, seed: 42 },
+            ErrorSource::Bernoulli {
+                p: 0.03,
+                seed: 1337,
+            },
+        )
+        .expect("second seeded run should pass");
+        assert_eq!(s1, s2);
+    }
+
+    #[test]
+    fn simulate_syndrome_rejects_mismatched_check_widths() {
+        let hx = BinaryMatrix::zeros(2, 5);
+        let hz = BinaryMatrix::zeros(2, 4);
+        let err = simulate_syndrome_once(
+            &hx,
+            &hz,
+            ErrorSource::Explicit(vec![0; 5]),
+            ErrorSource::Explicit(vec![0; 5]),
+        )
+        .expect_err("must reject mismatched check widths");
+
+        assert_eq!(
+            err,
+            SimulationError::CheckWidthMismatch {
+                hx_cols: 5,
+                hz_cols: 4
+            }
+        );
+    }
+
+    #[test]
+    fn simulate_syndrome_rejects_invalid_probability() {
+        let checks = gross_toric_parity_checks();
+        let err = simulate_syndrome_once(
+            &checks.hx,
+            &checks.hz,
+            ErrorSource::Bernoulli { p: 1.5, seed: 1 },
+            ErrorSource::Explicit(vec![0; checks.hx.cols()]),
+        )
+        .expect_err("must reject invalid probability");
+
+        assert_eq!(
+            err,
+            SimulationError::InvalidProbability {
+                label: "x_error",
+                value: 1.5
+            }
+        );
+    }
+
+    #[test]
+    fn simulate_syndrome_rejects_wrong_explicit_error_length() {
+        let checks = gross_toric_parity_checks();
+        let n = checks.hx.cols();
+        let err = simulate_syndrome_once(
+            &checks.hx,
+            &checks.hz,
+            ErrorSource::Explicit(vec![0; n - 1]),
+            ErrorSource::Explicit(vec![0; n]),
+        )
+        .expect_err("must reject wrong explicit x-error length");
+
+        assert_eq!(
+            err,
+            SimulationError::ZSyndrome(SyndromeError::DimensionMismatch {
+                expected: n,
+                found: n - 1
+            })
         );
     }
 
