@@ -12,17 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{env, error, fs::File, io, path::Path};
+use std::{
+    env, error,
+    fs::File,
+    io,
+    path::{Path, PathBuf},
+};
 
 use bicycle_cliffords::{
-    CompleteMeasurementTable, MeasurementChoices, MeasurementTableBuilder,
-    native_measurement::NativeMeasurement,
+    native_measurement::NativeMeasurement, CompleteMeasurementTable, MeasurementChoices,
+    MeasurementTableBuilder,
 };
 use bicycle_compiler::language::{AnglePrecision, PbcOperation};
 
 use io::Write;
 
-use bicycle_compiler::{PathArchitecture, optimize};
+use bicycle_compiler::{optimize, PathArchitecture};
 use clap::{Parser, Subcommand};
 use log::{debug, info};
 use serde_json::Deserializer;
@@ -69,12 +74,32 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         info!("Generating measurement table.");
         let cache_path = Path::new(&cache_str);
 
-        // Ensure that the output directory exists, creating it if necessary.
-        // This avoids "No such file or directory" errors when the user has not
-        // manually created the data directory (fixes #3).
-        if let Err(msg) = bicycle_compiler::ensure_parent_dir(cache_path) {
-            eprintln!("{msg}");
-            std::process::exit(1);
+        // Ensure that we can write a file in the desired output directory.  To do this we
+        // write and delte an empty file in the parent directory of the full path of the
+        // (output) cache file.  We do this in order to fail early rather than computing the
+        // measurement table, only to find at the end that we cannot write the result.
+        match cache_path.parent() {
+            Some(cache_dir) => {
+                let temp_filename = "dummy_file_check";
+                let mut temp_file_path = PathBuf::from(cache_dir);
+                temp_file_path.push(temp_filename);
+                match File::create(&temp_file_path) {
+                    Ok(_) => {
+                        // Successfully created dummy file. Remove file.
+                        std::fs::remove_file(temp_file_path)?;
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "Cannot create measurement_table output file in the target directory: {e}"
+                        );
+                        std::process::exit(1);
+                    }
+                }
+            }
+            None => {
+                eprintln!("No parent directory found for {cache_str}");
+                std::process::exit(1);
+            }
         }
 
         // Create a builder and build the measurement table.
