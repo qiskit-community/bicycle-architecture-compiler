@@ -33,6 +33,10 @@ cd "$(dirname "$0")" || exit
 # This data was computed and written by the executable ./target/release/pbc_gross
 input_data_dir="../data"
 
+# Ensure output directories exist (fixes #3)
+mkdir -p "../tmp"
+mkdir -p "$input_data_dir"
+
 parallel --no-notice --colsep "," \
          "../target/release/bicycle_random_numerics --model {1} --noise {2} --qubits {3} --measurement-table $input_data_dir/table_{1} > ../tmp/out_{1}_{2}_{3}_{4}.csv" \
          :::: parameters.csv \

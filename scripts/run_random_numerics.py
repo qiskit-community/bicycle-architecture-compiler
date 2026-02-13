@@ -40,6 +40,7 @@ TOP_DIR = ".."
 # `random_numerics` output will be written to files in this directory
 # This script will not remove files from this directory
 TMP_DIR = Path(TOP_DIR, "tmp")
+TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 # `random_numerics` will be run for several different sets of parameters
 PARAMETER_INPUT_PATHNAME = Path("parameters.csv")
@@ -48,11 +49,12 @@ PARAMETER_INPUT_PATHNAME = Path("parameters.csv")
 # with different random seeds
 NUM_RANDOMIZATIONS = 8
 
-# Directroy of measurement-table data,  used as input to `random_numerics`.
+# Directory of measurement-table data, used as input to `random_numerics`.
 INPUT_DATA_DIR = Path(TOP_DIR, "data")
+INPUT_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Path to the rust binary executable
-EXECUTABLE_PATH = Path(TOP_DIR, "target", "release", "random_numerics")
+EXECUTABLE_PATH = Path(TOP_DIR, "target", "release", "bicycle_random_numerics")
 
 
 # Run the exectuable once for one set of input parameters
