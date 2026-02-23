@@ -31,13 +31,14 @@ set -euo pipefail
 cd "$(dirname "$0")" || exit
 
 # This data was computed and written by the executable ./target/release/pbc_gross
-input_data_dir="../data"
+INPUT_DATA_DIR="../data"
+./generate_measurement_tables.sh
 
-# Ensure output directories exist (fixes #3)
-mkdir -p "../tmp"
-mkdir -p "$input_data_dir"
+# Ensure output directories exist
+TMP_DIR="../tmp"
+mkdir -p "$TMP_DIR"
 
 parallel --no-notice --colsep "," \
-         "../target/release/bicycle_random_numerics --model {1} --noise {2} --qubits {3} --measurement-table $input_data_dir/table_{1} > ../tmp/out_{1}_{2}_{3}_{4}.csv" \
+         "../target/release/bicycle_random_numerics --model {1} --noise {2} --qubits {3} --measurement-table $INPUT_DATA_DIR/table_{1} > $TMP_DIR/out_{1}_{2}_{3}_{4}.csv" \
          :::: parameters.csv \
          ::: $(seq 1 8)
