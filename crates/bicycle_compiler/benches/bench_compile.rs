@@ -132,6 +132,28 @@ fn dense_single_block_measurement() -> PbcOperation {
     }
 }
 
+/// Create a dense measurement on m blocks
+fn dense_m_block_measurement(m: usize) -> PbcOperation {
+    let basis = vec![
+        Pauli::X,
+        Pauli::Z,
+        Pauli::Y,
+        Pauli::X,
+        Pauli::Z,
+        Pauli::Y,
+        Pauli::Y,
+        Pauli::Y,
+        Pauli::Y,
+        Pauli::X,
+        Pauli::Z,
+    ];
+    let bases = basis.repeat(m);
+    PbcOperation::Measurement {
+        basis: bases,
+        flip_result: false,
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -200,6 +222,23 @@ fn main() {
             black_box(op3.compile(&arch3, &table, accuracy));
         },
     );
+
+    // --- m-block measurements ---
+    println!();
+    println!("[m-block dense measurement compilation]");
+    for m in 1..20 {
+        let arch = PathArchitecture { data_blocks: m };
+        let op = dense_m_block_measurement(m);
+
+        bench(
+            &format!("dense measurement ({m} blocks)"),
+            100,
+            Duration::from_secs(3),
+            || {
+                black_box(op.compile(&arch, &table, accuracy));
+            },
+        );
+    }
 
     // --- JSON parse + compile (end-to-end) ---
     println!();
