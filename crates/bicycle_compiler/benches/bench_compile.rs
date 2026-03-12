@@ -26,6 +26,8 @@
 //! cargo bench --package bicycle_compiler --bench bench_compile
 //! ```
 
+use std::time::Duration;
+
 use bicycle_cliffords::{
     CompleteMeasurementTable, GROSS_MEASUREMENT, MeasurementTableBuilder,
     native_measurement::NativeMeasurement,
@@ -130,7 +132,7 @@ fn bench_compile(c: &mut Criterion) {
 
 criterion_group! {
     name = benches;
-    config = Criterion::default();
+    config = Criterion::default().warm_up_time(Duration::from_millis(100)).measurement_time(Duration::from_secs(1));
     targets = bench_compile
 }
 criterion_main!(benches);
