@@ -36,6 +36,7 @@ pub const T_ANGLE: AnglePrecision = AnglePrecision::FRAC_PI_4;
 /// Synthesize a rotation e^{iθZ} in terms of T and T_X = HTH rotations, followed by Cliffords,
 /// up to a global phase.
 /// The required accuracy must be less than 0.1 and determines ‖e^{iθZ} - U‖ ≤ ε in operator norm.
+/// TODO: Make caching optional. Maybe make this a method on a struct that caches results?
 pub fn synthesize_angle(
     theta: AnglePrecision,
     accuracy: AnglePrecision,
@@ -71,19 +72,29 @@ pub fn synthesize_angle(
         trace!("Cached angle: {theta}");
         return result.clone();
     }
-    debug!("Synthesizing angle: {theta}");
-
-    // Do I need scientific notation here? E.g. for the accuracy.
-    let gates = run_gridsynth(&theta.to_string(), &accuracy.to_string())
-        .expect("gridsynth should run successfully. Is it installed? See README.");
-    let res =
-        compile_rots(&gates).expect("Should be able to parse MA normal form provided by gridsynth");
+    let res = synthesize_angle_direct(theta, accuracy);
 
     CACHE
         .try_lock()
         .unwrap()
         .insert((theta, accuracy), res.clone());
     res
+}
+
+/// Approximate a given angle without further logic
+/// The (recommended) function synthesize_angle includes logic for T angles and Caching,
+/// this function bypasses that logic.
+pub fn synthesize_angle_direct(
+    theta: AnglePrecision,
+    accuracy: AnglePrecision,
+) -> (Vec<SingleRotation>, Vec<CliffordGate>) {
+    debug!("Synthesizing angle: {theta}");
+
+    // Do I need scientific notation here? E.g. for the accuracy.
+    let gates = run_gridsynth(&theta.to_string(), &accuracy.to_string())
+        .expect("gridsynth should run successfully. Is it installed? See README.");
+
+    compile_rots(&gates).expect("Should be able to parse MA normal form provided by gridsynth")
 }
 
 /// Synthesize a rotation e^{iθX} up to global phase.
@@ -100,7 +111,7 @@ pub fn synthesize_angle_x(
     (rots, cliff)
 }
 
-fn run_gridsynth(angle: &str, accuracy: &str) -> Result<String, io::Error> {
+pub(crate) fn run_gridsynth(angle: &str, accuracy: &str) -> Result<String, io::Error> {
     dbg!(angle);
     dbg!(accuracy);
     let cmd = Command::new("gridsynth")
