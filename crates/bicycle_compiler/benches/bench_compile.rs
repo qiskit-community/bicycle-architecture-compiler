@@ -26,16 +26,14 @@
 //! cargo bench --package bicycle_compiler --bench bench_compile
 //! ```
 
-use std::hint::black_box;
-use std::time::{Duration, Instant};
-
 use bicycle_cliffords::{
     CompleteMeasurementTable, GROSS_MEASUREMENT, MeasurementTableBuilder,
     native_measurement::NativeMeasurement,
 };
 use bicycle_common::Pauli;
 use bicycle_compiler::PathArchitecture;
-use bicycle_compiler::language::PbcOperation;
+use bicycle_compiler::language::{AnglePrecision, PbcOperation};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,93 +45,19 @@ fn build_gross_table() -> CompleteMeasurementTable {
     builder.complete().expect("Table should build successfully")
 }
 
-/// Run `f` for at least `min_duration` and report per-iteration average.
-fn bench<F: FnMut()>(label: &str, iters_per_batch: u64, min_duration: Duration, mut f: F) {
-    // Warm-up
-    for _ in 0..iters_per_batch.min(5) {
-        f();
-    }
-
-    let mut total_iters: u64 = 0;
-    let start = Instant::now();
-    while start.elapsed() < min_duration {
-        for _ in 0..iters_per_batch {
-            f();
-        }
-        total_iters += iters_per_batch;
-    }
-    let elapsed = start.elapsed();
-    let per_iter = elapsed / total_iters as u32;
-    println!("  {label:<50} {per_iter:>10.2?}/iter  ({total_iters} iters in {elapsed:.2?})");
-}
-
 // ---------------------------------------------------------------------------
 // Test circuits
 // ---------------------------------------------------------------------------
 
-/// 1-block measurement: single X on qubit 1, rest identity.
-fn single_block_measurement() -> PbcOperation {
-    let mut basis = vec![Pauli::I; 11];
-    basis[0] = Pauli::X;
-    basis[1] = Pauli::Z;
-    PbcOperation::Measurement {
-        basis,
-        flip_result: false,
-    }
-}
-
-/// 2-block measurement: non-trivial Paulis on both 11-qubit modules.
-fn two_block_measurement() -> PbcOperation {
-    let mut basis = vec![Pauli::I; 22];
-    basis[0] = Pauli::X;
-    basis[1] = Pauli::Z;
-    // Second block
-    basis[11] = Pauli::Z;
-    basis[12] = Pauli::X;
-    PbcOperation::Measurement {
-        basis,
-        flip_result: false,
-    }
-}
-
-/// 3-block measurement: non-trivial Paulis across all three modules.
-fn three_block_measurement() -> PbcOperation {
-    let mut basis = vec![Pauli::I; 33];
-    basis[0] = Pauli::X;
-    basis[1] = Pauli::Y;
-    basis[11] = Pauli::Z;
-    basis[12] = Pauli::X;
-    basis[22] = Pauli::Z;
-    basis[23] = Pauli::Y;
-    PbcOperation::Measurement {
-        basis,
-        flip_result: false,
-    }
-}
-
-/// Dense measurement: every qubit has a non-identity Pauli (11 qubits).
-fn dense_single_block_measurement() -> PbcOperation {
-    let basis = vec![
-        Pauli::X,
-        Pauli::Z,
-        Pauli::Y,
-        Pauli::X,
-        Pauli::Z,
-        Pauli::Y,
-        Pauli::X,
-        Pauli::Z,
-        Pauli::Y,
-        Pauli::X,
-        Pauli::Z,
-    ];
-    PbcOperation::Measurement {
-        basis,
-        flip_result: false,
-    }
+/// Create a sparse measurement on m blocks
+fn sparse_m_block_basis(m: usize) -> Vec<Pauli> {
+    let mut basis = [Pauli::I; 11];
+    basis[2] = Pauli::Z;
+    basis.repeat(m)
 }
 
 /// Create a dense measurement on m blocks
-fn dense_m_block_measurement(m: usize) -> PbcOperation {
+fn dense_m_block_basis(m: usize) -> Vec<Pauli> {
     let basis = vec![
         Pauli::X,
         Pauli::Z,
@@ -147,114 +71,66 @@ fn dense_m_block_measurement(m: usize) -> PbcOperation {
         Pauli::X,
         Pauli::Z,
     ];
-    let bases = basis.repeat(m);
-    PbcOperation::Measurement {
-        basis: bases,
-        flip_result: false,
-    }
+    basis.repeat(m)
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
-fn main() {
-    println!("=== Compilation Pipeline Benchmark ===\n");
-
-    // Build table first (this is the expensive step)
-    println!("[Building gross measurement table...]");
-    let t = Instant::now();
+/// Benchmark suite for measurement
+fn bench_compile(c: &mut Criterion) {
     let table = build_gross_table();
-    println!("  Table built in {:.2?}\n", t.elapsed());
-
     let accuracy = bicycle_compiler::language::AnglePrecision::lit("1e-16");
 
-    // --- 1-block measurements ---
-    println!("[Single-block measurement compilation]");
-    let arch1 = PathArchitecture { data_blocks: 1 };
-    let op = single_block_measurement();
-
-    bench(
-        "sparse measurement (1 block, 2 non-I qubits)",
-        100,
-        Duration::from_secs(3),
-        || {
-            black_box(op.compile(&arch1, &table, accuracy));
-        },
-    );
-
-    let op_dense = dense_single_block_measurement();
-    bench(
-        "dense measurement  (1 block, 11 non-I qubits)",
-        100,
-        Duration::from_secs(3),
-        || {
-            black_box(op_dense.compile(&arch1, &table, accuracy));
-        },
-    );
-
-    // --- 2-block measurements ---
-    println!();
-    println!("[Two-block measurement compilation]");
-    let arch2 = PathArchitecture { data_blocks: 2 };
-    let op2 = two_block_measurement();
-
-    bench(
-        "sparse measurement (2 blocks, 4 non-I qubits)",
-        100,
-        Duration::from_secs(3),
-        || {
-            black_box(op2.compile(&arch2, &table, accuracy));
-        },
-    );
-
-    // --- 3-block measurements ---
-    println!();
-    println!("[Three-block measurement compilation]");
-    let arch3 = PathArchitecture { data_blocks: 3 };
-    let op3 = three_block_measurement();
-
-    bench(
-        "sparse measurement (3 blocks, 6 non-I qubits)",
-        100,
-        Duration::from_secs(3),
-        || {
-            black_box(op3.compile(&arch3, &table, accuracy));
-        },
-    );
-
-    // --- m-block measurements ---
-    println!();
-    println!("[m-block dense measurement compilation]");
+    // Dense rotations
+    let mut group = c.benchmark_group("rotation (dense)");
     for m in 1..20 {
         let arch = PathArchitecture { data_blocks: m };
-        let op = dense_m_block_measurement(m);
-
-        bench(
-            &format!("dense measurement ({m} blocks)"),
-            100,
-            Duration::from_secs(3),
-            || {
-                black_box(op.compile(&arch, &table, accuracy));
-            },
-        );
+        let basis = dense_m_block_basis(m);
+        let op = PbcOperation::Rotation {
+            basis,
+            angle: AnglePrecision::lit("0.1"),
+        };
+        group.throughput(criterion::Throughput::Elements(m as u64));
+        group.bench_with_input(BenchmarkId::from_parameter(m), &op, |b, s| {
+            b.iter(|| s.compile(&arch, &table, accuracy));
+        });
     }
+    group.finish();
 
-    // --- JSON parse + compile (end-to-end) ---
-    println!();
-    println!("[End-to-end: JSON parse -> compile (1 block)]");
-    let json_str = r#"{"Measurement":{"basis":["X","Z","I","I","I","I","I","I","I","I","I"],"flip_result":false}}"#;
+    // Dense measurements
+    let mut group = c.benchmark_group("measurement (dense)");
+    for m in 1..20 {
+        let arch = PathArchitecture { data_blocks: m };
+        let basis = dense_m_block_basis(m);
+        let op = PbcOperation::Measurement {
+            basis,
+            flip_result: false,
+        };
+        group.throughput(criterion::Throughput::Elements(m as u64));
+        group.bench_with_input(BenchmarkId::from_parameter(m), &op, |b, s| {
+            b.iter(|| s.compile(&arch, &table, accuracy));
+        });
+    }
+    group.finish();
 
-    bench(
-        "parse + compile measurement",
-        100,
-        Duration::from_secs(3),
-        || {
-            let parsed: PbcOperation = serde_json::from_str(json_str).unwrap();
-            black_box(parsed.compile(&arch1, &table, accuracy));
-        },
-    );
-
-    println!();
-    println!("Done.");
+    // Native measurements
+    let mut group = c.benchmark_group("measurement (native)");
+    for m in 1..20 {
+        let arch = PathArchitecture { data_blocks: m };
+        let basis = sparse_m_block_basis(m);
+        let op = PbcOperation::Measurement {
+            basis,
+            flip_result: false,
+        };
+        group.throughput(criterion::Throughput::Elements(m as u64));
+        group.bench_with_input(BenchmarkId::from_parameter(m), &op, |b, s| {
+            b.iter(|| s.compile(&arch, &table, accuracy));
+        });
+    }
+    group.finish();
 }
+
+criterion_group! {
+    name = benches;
+    config = Criterion::default();
+    targets = bench_compile
+}
+criterion_main!(benches);

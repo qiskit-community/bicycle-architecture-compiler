@@ -24,6 +24,7 @@ bitcode = { version = "0.6.6", features = ["serde"] }
 
 [dev-dependencies]
 rand = "0.9.0"
+criterion = { version = "0.8.2", features = ["html_reports"] }
 
 [[bench]]
 name = "bench_compile"

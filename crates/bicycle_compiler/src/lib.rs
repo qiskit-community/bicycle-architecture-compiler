@@ -31,7 +31,7 @@ mod test {
 
     use super::*;
     use bicycle_cliffords::{
-        native_measurement::NativeMeasurement, MeasurementTableBuilder, TWOGROSS_MEASUREMENT,
+        MeasurementTableBuilder, TWOGROSS_MEASUREMENT, native_measurement::NativeMeasurement,
     };
     use operation::Operations;
 
