@@ -26,8 +26,6 @@
 //! cargo bench --package bicycle_compiler --bench bench_compile
 //! ```
 
-use std::time::Duration;
-
 use bicycle_cliffords::{
     CompleteMeasurementTable, GROSS_MEASUREMENT, MeasurementTableBuilder,
     native_measurement::NativeMeasurement,
@@ -82,6 +80,7 @@ fn bench_compile(c: &mut Criterion) {
     let accuracy = bicycle_compiler::language::AnglePrecision::lit("1e-16");
 
     // Dense rotations
+    // Note: Since the angle is fixed, the small angle synthesis will not be measure since it will be cached.
     let mut group = c.benchmark_group("rotation (dense)");
     for m in 1..20 {
         let arch = PathArchitecture { data_blocks: m };
@@ -130,9 +129,28 @@ fn bench_compile(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_small_angle(c: &mut Criterion) {
+    let mut group = c.benchmark_group("small angle synthesis (0.1)");
+    group.plot_config(
+        criterion::PlotConfiguration::default().summary_scale(criterion::AxisScale::Logarithmic),
+    );
+    for accuracy_exp in 9..=20 {
+        let accuracy = AnglePrecision::lit(&format!("1e-{accuracy_exp}"));
+        let angle = AnglePrecision::lit("0.1");
+        group.bench_with_input(
+            BenchmarkId::from_parameter(format!("1e-{accuracy_exp}")),
+            &accuracy,
+            |b, accuracy| {
+                b.iter(|| bicycle_compiler::small_angle::synthesize_angle_direct(angle, *accuracy));
+            },
+        );
+    }
+    group.finish();
+}
+
 criterion_group! {
     name = benches;
-    config = Criterion::default().warm_up_time(Duration::from_millis(100)).measurement_time(Duration::from_secs(1));
-    targets = bench_compile
+    config = Criterion::default();
+    targets = bench_small_angle, bench_compile
 }
 criterion_main!(benches);

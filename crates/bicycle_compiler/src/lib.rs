@@ -18,7 +18,7 @@ mod compile;
 pub mod language;
 pub mod operation;
 pub mod optimize;
-mod small_angle;
+pub mod small_angle;
 
 pub use architecture::PathArchitecture;
 
