@@ -20,7 +20,15 @@ pub mod operation;
 pub mod optimize;
 pub mod small_angle;
 
+use std::{error::Error, path::Path};
+
 pub use architecture::PathArchitecture;
+use bicycle_cliffords::CompleteMeasurementTable;
+
+pub fn deserialize_table(cache_path: &Path) -> Result<CompleteMeasurementTable, Box<dyn Error>> {
+    let read = std::fs::read(cache_path)?;
+    Ok(bitcode::deserialize::<CompleteMeasurementTable>(&read)?)
+}
 
 #[cfg(test)]
 mod test {

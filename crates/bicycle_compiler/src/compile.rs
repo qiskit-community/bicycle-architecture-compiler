@@ -194,7 +194,7 @@ pub fn compile_measurement(
         .enumerate()
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for nat_measure in meas_impl.rotations() {
+        for nat_measure in meas_impl.rotations().iter().rev() {
             ops.extend(
                 rotation_instructions(nat_measure)
                     .into_iter()
@@ -332,7 +332,7 @@ pub fn compile_rotation(
         .enumerate()
         .filter_map(|(i, opt)| opt.as_ref().map(|val| (i, val)))
     {
-        for nat_measure in meas_impl.rotations() {
+        for nat_measure in meas_impl.rotations().iter().rev() {
             ops.extend(
                 rotation_instructions(nat_measure)
                     .into_iter()
@@ -347,7 +347,7 @@ pub fn compile_rotation(
 #[cfg(test)]
 mod tests {
 
-    use std::sync::LazyLock;
+    use std::{path::Path, sync::LazyLock};
 
     use crate::operation::Operations;
 
@@ -370,6 +370,10 @@ mod tests {
         builder.build();
         builder.complete().expect("Table building should succeed")
     });
+    // static GROSS_TABLE: LazyLock<CompleteMeasurementTable> = LazyLock::new(|| {
+    //     let table_path = Path::new("../../data/table_gross");
+    //     crate::deserialize_table(table_path).expect("Should be able to deserialize table")
+    // });
 
     /// Convert a native measurement to a list of Operations
     fn native_instructions(
@@ -607,7 +611,7 @@ mod tests {
                 expected.extend(unprep().take(blocks).map(|op| block_basis.change_basis(op)));
                 // post-rotations
                 for (block_i, meas_impl) in implementations.iter().enumerate() {
-                    for rot in meas_impl.rotations() {
+                    for rot in meas_impl.rotations().iter().rev() {
                         let operations = rotation_instructions(rot)
                             .into_iter()
                             .map(|instr| vec![(block_i, instr)]);
@@ -759,7 +763,7 @@ mod tests {
 
                 // post-rotations
                 for (block_i, meas_impl) in implementations.iter().enumerate() {
-                    for rot in meas_impl.rotations() {
+                    for rot in meas_impl.rotations().iter().rev() {
                         let operations = rotation_instructions(rot)
                             .into_iter()
                             .map(|instr| vec![(block_i, instr)]);

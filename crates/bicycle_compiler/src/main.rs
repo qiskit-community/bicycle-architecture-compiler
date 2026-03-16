@@ -20,14 +20,13 @@ use std::{
 };
 
 use bicycle_cliffords::{
-    native_measurement::NativeMeasurement, CompleteMeasurementTable, MeasurementChoices,
-    MeasurementTableBuilder,
+    MeasurementChoices, MeasurementTableBuilder, native_measurement::NativeMeasurement,
 };
 use bicycle_compiler::language::{AnglePrecision, PbcOperation};
 
 use io::Write;
 
-use bicycle_compiler::{optimize, PathArchitecture};
+use bicycle_compiler::{PathArchitecture, optimize};
 use clap::{Parser, Subcommand};
 use log::{debug, info};
 use serde_json::Deserializer;
@@ -132,9 +131,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     // Generate measurement table, from cache if given or otherwise from scratch
     let measurement_table = if let Some(cache_str) = cli.measurement_table {
         let cache_path = Path::new(&cache_str);
-        let read =
-            std::fs::read(cache_path).expect("The measurement table file should be readable");
-        bitcode::deserialize::<CompleteMeasurementTable>(&read)?
+        bicycle_compiler::deserialize_table(cache_path)?
     } else {
         let mut builder =
             MeasurementTableBuilder::new(NativeMeasurement::all(), cli.code.measurement());
