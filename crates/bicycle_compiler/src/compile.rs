@@ -347,7 +347,7 @@ pub fn compile_rotation(
 #[cfg(test)]
 mod tests {
 
-    use std::{path::Path, sync::LazyLock};
+    use std::sync::LazyLock;
 
     use crate::operation::Operations;
 
