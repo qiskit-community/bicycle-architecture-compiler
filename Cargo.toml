@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     "Patrick Rall <patrickjrall@ibm.com>",
     "Eddie Schoute <eddie.schoute@ibm.com>",
@@ -26,9 +26,9 @@ edition = "2024"
 
 [workspace.dependencies]
 # local crates
-bicycle_benchmark = { path = "crates/bicycle_benchmark", version = "0.1.0" }
-bicycle_cliffords = { path = "crates/bicycle_cliffords", version = "0.1.0" }
-bicycle_common = { path = "crates/bicycle_common", version = "0.1.0" }
-bicycle_compiler = { path = "crates/bicycle_compiler", version = "0.1.0" }
-bicycle_numerics = { path = "crates/bicycle_numerics", version = "0.1.0" }
-bicycle_random_numerics = { path = "crates/bicycle_random_numerics", version = "0.1.0" }
+bicycle_benchmark = { path = "crates/bicycle_benchmark", version = "0.2.0" }
+bicycle_cliffords = { path = "crates/bicycle_cliffords", version = "0.2.0" }
+bicycle_common = { path = "crates/bicycle_common", version = "0.2.0" }
+bicycle_compiler = { path = "crates/bicycle_compiler", version = "0.2.0" }
+bicycle_numerics = { path = "crates/bicycle_numerics", version = "0.2.0" }
+bicycle_random_numerics = { path = "crates/bicycle_random_numerics", version = "0.2.0" }
