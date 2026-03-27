@@ -42,6 +42,12 @@ and print something like (the exact output may differ)
 HTSHTSHTSHTSHTHTSHTSHTSHTSHTHTHTSHTHTSHTHTSHTSHTSHTHTSHTSHTHTHTSHTSHTHTHTSHTHTHTHTSHTSHTS
 ```
 
+The rust feature `rsgridsynth` offers an alternative implementation which replaces the external `gridsynth` dependency with the [rsgridsynth](https://github.com/qiskit-community/rsgridsynth) implementation.
+This feature is disabled by default. The feature may be enabled at compile time using
+```sh
+shell> cargo build --release -F rsgridsynth
+```
+
 ### Optional dependencies
 
 To run the notebooks,
