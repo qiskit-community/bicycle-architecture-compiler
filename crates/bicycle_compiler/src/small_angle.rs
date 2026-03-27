@@ -141,7 +141,8 @@ pub(crate) fn run_gridsynth(
 
     #[cfg(feature = "rsgridsynth")]
     {
-        let seed = 0;
+        // default seed value from rsgridsynth main.rs
+        let seed = 1;
         let mut config =
             config_from_theta_epsilon(angle.to_num(), accuracy.to_num(), seed, false, false);
         let gridsynth_result = gridsynth_gates(&mut config);
