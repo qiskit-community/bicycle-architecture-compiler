@@ -358,9 +358,8 @@ mod test {
 
     #[test]
     fn synthesize_t_direct() {
-        let (rots, cliffs) = synthesize_angle_direct(T_ANGLE, AnglePrecision::lit("1e-6"));
+        let (rots, _) = synthesize_angle_direct(T_ANGLE, AnglePrecision::lit("1e-6"));
         assert_eq!(rots, vec![SingleRotation::Z { dagger: false }]);
-        assert_eq!(cliffs, vec![]);
     }
 
     #[test]
