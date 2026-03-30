@@ -32,3 +32,8 @@ bicycle_common = { path = "crates/bicycle_common", version = "0.2.0" }
 bicycle_compiler = { path = "crates/bicycle_compiler", version = "0.2.0" }
 bicycle_numerics = { path = "crates/bicycle_numerics", version = "0.2.0" }
 bicycle_random_numerics = { path = "crates/bicycle_random_numerics", version = "0.2.0" }
+
+[workspace.metadata.release]
+tag-name = "v{{version}}"
+shared-version = true      # Ensures all crates share the same version
+consolidate-commits = true # Creates a single commit for all changes
