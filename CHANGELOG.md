@@ -1,3 +1,9 @@
+## [0.2.1] - 2026-03-30
+
+### 🚀 Features
+
+- *(compiler)* Add rsgridsynth backend for small angle synthesis (#20)
+
 ## [0.2.0] - 2026-03-26
 
 ### 🚀 Features
