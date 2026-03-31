@@ -37,3 +37,6 @@ bicycle_random_numerics = { path = "crates/bicycle_random_numerics", version = "
 tag-name = "v{{version}}"
 shared-version = true      # Ensures all crates share the same version
 consolidate-commits = true # Creates a single commit for all changes
+
+[profile.test]
+opt-level = 1 # Testing is very slow without optimization
