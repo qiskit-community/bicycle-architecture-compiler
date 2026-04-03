@@ -120,8 +120,7 @@ pub(crate) fn run_gridsynth(
     angle: AnglePrecision,
     accuracy: AnglePrecision,
 ) -> Result<String, io::Error> {
-    dbg!(angle);
-    dbg!(accuracy);
+    debug!("Running gridsynth with angle: {angle} and accuracy: {accuracy}");
 
     #[cfg(not(feature = "rsgridsynth"))]
     {
