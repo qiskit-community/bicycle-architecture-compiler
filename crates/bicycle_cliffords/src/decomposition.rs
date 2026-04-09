@@ -469,6 +469,11 @@ mod tests {
             let mut q = meas_impl.base_measurement().measures();
 
             for rot in meas_impl.rotations() {
+                trace!("applying rotation {} to {q}", rot.measures());
+                assert!(
+                    !rot.measures().commutes_with(q),
+                    "Rotation must anti-commute with measurement"
+                );
                 q = q.conjugate_with(rot.measures().zero_pivot());
             }
 
