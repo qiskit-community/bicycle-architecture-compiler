@@ -377,6 +377,10 @@ mod tests {
 
     use super::*;
 
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
     #[test]
     fn table_constructor() {
         let native = vec![NativeMeasurement {
@@ -435,11 +439,13 @@ mod tests {
 
     #[test]
     fn test_gross_table() -> Result<(), String> {
+        init();
         table_tests(GROSS_MEASUREMENT)
     }
 
     #[test]
     fn test_twogross_table() -> Result<(), String> {
+        init();
         table_tests(TWOGROSS_MEASUREMENT)
     }
 
@@ -469,6 +475,11 @@ mod tests {
             let mut q = meas_impl.base_measurement().measures();
 
             for rot in meas_impl.rotations() {
+                trace!("applying rotation {} to {q}", rot.measures());
+                assert!(
+                    !rot.measures().zero_pivot().commutes_with(q),
+                    "Rotation must anti-commute with measurement"
+                );
                 q = q.conjugate_with(rot.measures().zero_pivot());
             }
 
