@@ -14,7 +14,7 @@ We represent PBC circuits in a line-based format:
 ```
 where each line is a JSON-object representing either a Pauli-generated rotation or a Pauli measurement.
 All operations should act on the same number of logical qubits.
-Rotations $\exp(i \phi P)$ are specified by objects with with a `Rotation` field, which has the `basis` field for the Pauli $P$ and the `angle` field for $\phi \in \mathbb R$.
+Rotations $\exp(i P \phi/2)$ are specified by objects with a `Rotation` field, which has the `basis` field for the Pauli $P$ and the `angle` field for $\phi \in \mathbb R$.
 Measurements are specified by objects with a `Measurement` field, which also has a `basis` field and whether the resulting measurement result should be flipped (currently not used).
 The `flip_result` is intended to support a future implementation of 'measurement projections' as defined in equation (1) of [arXiv:2506.03094](https://arxiv.org/abs/2506.03094) in Section 3.
 

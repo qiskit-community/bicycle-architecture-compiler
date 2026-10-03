@@ -38,9 +38,9 @@ static CACHE: LazyLock<Mutex<CacheHashMap>> = LazyLock::new(Default::default);
 /// The angle θ such that Z(θ) := exp(-iθ/2) diag(1, exp(iθ)) = T up to the global phase exp(-iθ/2).
 pub const T_ANGLE: AnglePrecision = AnglePrecision::FRAC_PI_4;
 
-/// Synthesize a rotation e^{iθZ} in terms of T and T_X = HTH rotations, followed by Cliffords,
+/// Synthesize a rotation e^{iθZ/2} in terms of T and T_X = HTH rotations, followed by Cliffords,
 /// up to a global phase.
-/// The required accuracy must be less than 0.1 and determines ‖e^{iθZ} - U‖ ≤ ε in operator norm.
+/// The required accuracy must be less than 0.1 and determines ‖e^{iθZ/2} - U‖ ≤ ε in operator norm.
 /// TODO: Make caching optional. Maybe make this a method on a struct that caches results?
 pub fn synthesize_angle(
     theta: AnglePrecision,
@@ -102,7 +102,7 @@ pub fn synthesize_angle_direct(
     compile_rots(&gates).expect("Should be able to parse MA normal form provided by gridsynth")
 }
 
-/// Synthesize a rotation e^{iθX} up to global phase.
+/// Synthesize a rotation e^{iθX/2} up to global phase.
 pub fn synthesize_angle_x(
     theta: AnglePrecision,
     accuracy: AnglePrecision,
