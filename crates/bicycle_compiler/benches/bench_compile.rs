@@ -15,10 +15,7 @@
 //! Benchmarks for the compilation pipeline.
 //!
 //! Measures the end-to-end cost of compiling PBC operations (measurements
-//! and Clifford rotations) to bicycle ISA instructions.  Only
-//! measurement compilation is benchmarked here because rotation
-//! compilation delegates to the external `gridsynth` binary which is not
-//! available in all environments.
+//! and Clifford rotations) to bicycle ISA instructions.
 //!
 //! Run with:
 //!

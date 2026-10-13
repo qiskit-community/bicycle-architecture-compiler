@@ -29,24 +29,8 @@ Alternatively, you can use `cargo run --release --package <packageName> -- <argu
 
 ### Gridsynth
 
-The compiler depends on the `gridsynth` binary for synthesizing angles other than $\pm\pi/4$.
-Gridsynth can be installed by following [the installation instructions](https://www.mathstat.dal.ca/~selinger/newsynth/).
-Please ensure `gridsynth` is available on your path.
-
-To test your installation, the following command should succeed
-```sh
-shell> gridsynth -p --epsilon 1e-4 0.1
-```
-and print something like (the exact output may differ)
-```
-HTSHTSHTSHTSHTHTSHTSHTSHTSHTHTHTSHTHTSHTHTSHTSHTSHTHTSHTSHTHTHTSHTSHTHTHTSHTHTHTHTSHTSHTS
-```
-
-The rust feature `rsgridsynth` offers an alternative implementation which replaces the external `gridsynth` dependency with the [rsgridsynth](https://github.com/qiskit-community/rsgridsynth) implementation.
-This feature is disabled by default. The feature may be enabled at compile time using
-```sh
-shell> cargo build --release -F rsgridsynth
-```
+Angles other than $\pm\pi/4$ are synthesized with the built-in [rsgridsynth](https://github.com/qiskit-community/rsgridsynth) library.
+No external `gridsynth` installation is required.
 
 ### Optional dependencies
 

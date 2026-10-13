@@ -19,14 +19,10 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
-#[cfg(not(feature = "rsgridsynth"))]
-use std::process::Command;
-
 use bicycle_common::Pauli;
 use log::{debug, trace};
 use regex::Regex;
 
-#[cfg(feature = "rsgridsynth")]
 use rsgridsynth::{config::config_from_theta_epsilon, gridsynth::gridsynth_gates};
 
 use crate::language::AnglePrecision;
@@ -97,7 +93,7 @@ pub fn synthesize_angle_direct(
 
     // Do I need scientific notation here? E.g. for the accuracy.
     let gates = run_gridsynth(theta, accuracy)
-        .expect("gridsynth should run successfully. Is it installed? See README.");
+        .expect("gridsynth should run successfully");
 
     compile_rots(&gates).expect("Should be able to parse MA normal form provided by gridsynth")
 }
@@ -122,31 +118,12 @@ pub(crate) fn run_gridsynth(
 ) -> Result<String, io::Error> {
     debug!("Running gridsynth with angle: {angle} and accuracy: {accuracy}");
 
-    #[cfg(not(feature = "rsgridsynth"))]
-    {
-        let cmd = Command::new("gridsynth")
-            .arg("-p") // Ignore global phase
-            .args(["--epsilon", &accuracy.to_string()])
-            // Use "--" to ensure negative angles are not interpreted as arguments
-            .args(["--", &angle.to_string()])
-            .output()?;
-
-        let mut output = cmd.stdout;
-        output.truncate(output.len() - 1);
-
-        String::from_utf8(output)
-            .map_err(|err| io::Error::new(ErrorKind::InvalidData, err.to_string()))
-    }
-
-    #[cfg(feature = "rsgridsynth")]
-    {
-        // default seed value from rsgridsynth main.rs
-        let seed = 1;
-        let mut config =
-            config_from_theta_epsilon(angle.to_num(), accuracy.to_num(), seed, false, true);
-        let gridsynth_result = gridsynth_gates(&mut config);
-        Ok(gridsynth_result.gates)
-    }
+    // default seed value from rsgridsynth main.rs
+    let seed = 1;
+    let mut config =
+        config_from_theta_epsilon(angle.to_num(), accuracy.to_num(), seed, false, true);
+    let gridsynth_result = gridsynth_gates(&mut config);
+    Ok(gridsynth_result.gates)
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
