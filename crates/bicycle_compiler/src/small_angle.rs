@@ -255,6 +255,8 @@ fn compile_rots(gates: &str) -> Result<(Vec<SingleRotation>, Vec<CliffordGate>),
 mod test {
     use std::error::Error;
 
+    use serial_test::serial;
+
     use super::*;
 
     // #[test]
@@ -333,6 +335,7 @@ mod test {
     }
 
     #[test]
+    #[serial(rsgridsynth)]
     fn synthesize_t_direct() {
         let (rots, _) = synthesize_angle_direct(T_ANGLE, AnglePrecision::lit("1e-6"));
         assert_eq!(rots, vec![SingleRotation::Z { dagger: false }]);
@@ -346,6 +349,7 @@ mod test {
     }
 
     #[test]
+    #[serial(rsgridsynth)]
     fn synthesize_01() {
         let (rots, _) = synthesize_angle(AnglePrecision::lit("0.1"), AnglePrecision::lit("1e-6"));
         println!("{rots:?}");
@@ -353,6 +357,7 @@ mod test {
     }
 
     #[test]
+    #[serial(rsgridsynth)]
     /// Test the highest-precision synthesis of an angle close to T.
     /// This should not give only a T gate because it is too far from a T at the given accuracy.
     fn underflow_precision() {

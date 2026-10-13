@@ -42,8 +42,11 @@ mod test {
         MeasurementTableBuilder, TWOGROSS_MEASUREMENT, native_measurement::NativeMeasurement,
     };
     use operation::Operations;
+    use serial_test::serial;
 
+    // rsgridsynth hangs or panics when run concurrently; tests reaching it share this serial key.
     #[test]
+    #[serial(rsgridsynth)]
     fn integration_test_rotation() -> Result<(), Box<dyn Error>> {
         let program = r#"[
                                     {
