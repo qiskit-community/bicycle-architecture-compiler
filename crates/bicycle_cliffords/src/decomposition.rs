@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::measurement::CodeMeasurement;
 use crate::pauli_string::PauliString;
@@ -101,7 +101,7 @@ impl NativeMeasurementImpl {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompleteMeasurementTable {
     measurements: Vec<MeasurementTableEntry>,
-    native_measurements: HashMap<PauliString, NativeMeasurement>,
+    native_measurements: BTreeMap<PauliString, NativeMeasurement>,
 }
 
 impl CompleteMeasurementTable {
@@ -184,7 +184,7 @@ impl TryFrom<MeasurementTableBuilder> for CompleteMeasurementTable {
 #[derive(Debug)]
 pub struct MeasurementTableBuilder {
     measurements: Vec<Option<MeasurementTableEntry>>,
-    native_measurements: HashMap<PauliString, NativeMeasurement>,
+    native_measurements: BTreeMap<PauliString, NativeMeasurement>,
     len: usize, // Count how many Some entries there are in measurements
     code: CodeMeasurement,
 }
@@ -194,14 +194,14 @@ impl MeasurementTableBuilder {
         let len = 0;
         let measurements = vec![None; 4usize.pow(12)];
 
-        let native_lookup: HashMap<PauliString, NativeMeasurement> = native_measurements
+        let native_lookup: BTreeMap<PauliString, NativeMeasurement> = native_measurements
             .into_iter()
             .map(|meas| (code.measures(&meas), meas))
             .collect();
 
         let mut table = MeasurementTableBuilder {
             measurements,
-            native_measurements: HashMap::new(), // Placeholder; set later.
+            native_measurements: BTreeMap::new(), // Placeholder; set later.
             len,
             code,
         };
@@ -240,7 +240,7 @@ impl MeasurementTableBuilder {
 
         // Create a set of base rotations
         // We pick the cheapest rotation for each paulistring, if there is duplication
-        let mut base_rots: HashMap<PauliString, MeasurementTableEntry> = HashMap::new();
+        let mut base_rots: BTreeMap<PauliString, MeasurementTableEntry> = BTreeMap::new();
         for native_impl in self.native_impls() {
             let p = native_impl.implements();
             // Must have pivot support so we can prepare an ancilla there
@@ -395,6 +395,16 @@ mod tests {
         });
 
         assert_eq!(3, table.len());
+    }
+
+    #[test]
+    fn native_implementations_are_visited_in_pauli_order() {
+        // The search breaks ties between equally cheap implementations by the order it visits
+        // them, and the table is saved to a file: that order must not change between runs.
+        let table = MeasurementTableBuilder::new(NativeMeasurement::all(), GROSS_MEASUREMENT);
+        let visited: Vec<PauliString> = table.native_impls().map(|e| e.measurement).collect();
+        assert!(visited.len() > 1);
+        assert!(visited.windows(2).all(|pair| pair[0] < pair[1]));
     }
 
     #[test]
