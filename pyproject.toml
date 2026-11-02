@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=77", "setuptools_rust", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bicycle_architecture_compiler"
+version = "0.3.0"
+description = "Resource estimation for the Tour de Gross fault-tolerant architecture"
+dependencies = ["qiskit>=2.4"]
+
+[tool.setuptools]
+packages = ["bicycle_architecture_compiler"]
+
+# development dependencies only (not included in built distribution)
+[dependency-groups]
+dev = ["black", "ruff"]
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 105
+
+[tool.ruff.lint]
+# Add the `line-too-long` rule to the enforced rule set. By default, Ruff omits rules that
+# overlap with the use of a formatter, like Black, but we can override this behavior by
+# explicitly adding the rule.
+extend-select = ["E501"]
+ignore = ["I001"] # sort imports

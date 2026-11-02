@@ -46,6 +46,19 @@ Furthermore, the following commandline applications are helpful and may be requi
 * GNU `parallel` in order to
   run [./scripts/run_random_numerics.sh](./scripts/run_random_numerics.sh) in parallel.
 
+### Python interface
+
+A minimal Python interface is provided as `bicycle_architecture_compiler` package,
+which can be locally installed via 
+```sh
+shell> pip install .
+```
+Note that installing in editable mode compiles the Rust crates in debug mode, which can be
+rebuilt in release mode via
+```sh
+shell> python setup.py build_rust --inplace --release
+```
+
 ## Usage
 
 This Rust workspace consists of many Rust crates (packages) that can be used either as library
@@ -64,7 +77,8 @@ pbc-compiler/
     ├── bicycle_cliffords/         # Clifford gate implementation via search
     ├── bicycle_compiler/          # PBC to bicycle circuit compiler
     ├── bicycle_numerics/          # Additive noise estimates and stats collection
-    └── bicycle_random_numerics/   # Benchmarking via random PBC circuits
+    ├── bicycle_random_numerics/   # Benchmarking via random PBC circuits
+    └── pyext/                     # Python FFI (not included in the default workspaces)
 ```
 
 Each crate has more info in their respective READMEs.
@@ -76,6 +90,8 @@ and more advanced examples are illustrated by Jupyter notebooks in `./notebooks/
 
 ### Testing
 
+**Rust**
+
 To test in release mode, run
 
 ```sh
@@ -84,3 +100,15 @@ shell> cargo test --release
 
 The script [./scripts/local_QA.sh](./scripts/local_QA.sh) runs quality assurance tests locally.
 This includes test, rustfmt, and clippy.
+
+**Python**
+
+To test the Python bindings and lint the tests, run the following after having installed
+the package
+
+```sh
+shell> make lint
+shell> make test
+```
+
+

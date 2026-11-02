@@ -7,6 +7,15 @@ members = [
     "crates/bicycle_benchmark",
     "crates/bicycle_numerics",
     "crates/bicycle_random_numerics",
+    "crates/pyext",  # pyext is a non-default member
+]
+default-members = [
+    "crates/bicycle_common",
+    "crates/bicycle_cliffords",
+    "crates/bicycle_compiler",
+    "crates/bicycle_benchmark",
+    "crates/bicycle_numerics",
+    "crates/bicycle_random_numerics",
 ]
 
 [workspace.package]
