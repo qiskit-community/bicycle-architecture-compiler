@@ -1,11 +1,11 @@
 [package]
-name = "qre_bicycle"
+name = "bicycle_pyext"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [lib]
-name = "qiskit_bicycle_architecture_compiler"
+name = "py_bicycle"
 crate-type = ["cdylib"]
 
 [dependencies]
