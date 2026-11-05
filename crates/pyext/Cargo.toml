@@ -1,0 +1,20 @@
+[package]
+name = "bicycle_pyext"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "py_bicycle"
+crate-type = ["cdylib"]
+
+[dependencies]
+bicycle_compiler = "0.3.0"
+bicycle_cliffords = "0.3.0"
+bicycle_common = "0.3.0"
+bicycle_numerics = "0.3.0"
+bitcode = "0.6.9"
+clap = { version = "4.6.0", features = ["derive"] }
+hashbrown = "0.16.1"
+pyo3 = "0.27"
+qiskit-pyo3-ffi = { path = "../qiskit-pyo3-ffi", version = "0.1.0" }
