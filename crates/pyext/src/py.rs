@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use bicycle_compiler::{PathArchitecture, language::AnglePrecision};
+use bicycle_numerics::model::Model;
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
     intern,
@@ -40,7 +41,8 @@ fn qc_type(py: Python<'_>) -> &Py<PyType> {
     })
 }
 
-/// Take a Qiskit ``QuantumCircuit`` instance to compile and run numerics on each instruction.
+/// Take a Qiskit ``QuantumCircuit`` instance to compile and run numerics on each instruction,
+/// using one of the preset timing and error models.
 ///
 /// Args:
 ///     circuit: The ``QuantumCircuit`` instance.
@@ -59,6 +61,24 @@ fn qc_type(py: Python<'_>) -> &Py<PyType> {
 ///         ``PauliProductMeasurement``.
 ///     ValueError: If the ``code`` is unsupported.
 ///     ValueError: If the ``physical_error`` is unsupported.
+///
+/// Examples:
+///     The circuit must consist of Pauli-based computation (PBC) instructions, which can be
+///     obtained with Qiskit's PBC pass manager::
+///
+///         from qiskit.circuit import QuantumCircuit
+///         from qiskit.transpiler import generate_preset_pbc_pass_manager
+///         from bicycle_architecture_compiler import estimate
+///
+///         bell = QuantumCircuit(2)
+///         bell.h(0)
+///         bell.cx(0, 1)
+///         pbc = generate_preset_pbc_pass_manager().run(bell)
+///
+///         data = estimate(pbc, "gross", "1e-3", "1e-10")
+///         print(data["total_error"])
+///
+///     To use a custom timing and error model, see ``estimate_from_config``.
 #[pyfunction]
 #[pyo3(signature = (circuit, code, physical_error, epsilon, measurement_table = None))]
 fn estimate<'py>(
@@ -68,18 +88,7 @@ fn estimate<'py>(
     epsilon: Bound<'py, PyString>,
     measurement_table: Option<Bound<'py, PyString>>,
 ) -> PyResult<Bound<'py, PyDict>> {
-    let py = circuit.py();
-
-    if !circuit.is_instance(qc_type(py).bind(py))? {
-        return Err(PyTypeError::new_err("Input is not of type QuantumCircuit"));
-    }
-
-    let code = match code.to_str()? {
-        "gross" => CodeType::Gross,
-        "two_gross" => CodeType::TwoGross,
-        _ => return Err(PyValueError::new_err("Invalid code")),
-    };
-
+    let code = parse_code(&code)?;
     let model = match (&code, physical_error.to_str()?) {
         (CodeType::Gross, "1e-3") => bicycle_numerics::model::GROSS_1E3,
         (CodeType::Gross, "1e-4") => bicycle_numerics::model::GROSS_1E4,
@@ -87,6 +96,104 @@ fn estimate<'py>(
         (CodeType::TwoGross, "1e-4") => bicycle_numerics::model::TWO_GROSS_1E4,
         _ => return Err(PyValueError::new_err("Invalid physical error")),
     };
+
+    run_estimate(circuit, code, model, epsilon, measurement_table)
+}
+
+/// Take a Qiskit ``QuantumCircuit`` instance to compile and run numerics on each instruction,
+/// using a timing and error model read from a TOML file.
+///
+/// Args:
+///     circuit: The ``QuantumCircuit`` instance.
+///     code: The code, either ``"gross"`` or ``"two_gross"``.
+///     model_config: The path to a TOML file defining the timing and error model.
+///     epsilon: The target accuracy for gridsynth. Pass this as string!
+///     measurement_table: The path to the measurement table. Generates it at that path
+///         (which defaults to the local directory) if it does not exist.
+///
+/// Returns:
+///     A dictionary containing the accumulated error rates and instruction counts.
+///
+/// Raises:
+///     TypeError: If the input is not a ``QuantumCircuit``.
+///     TypeError: If any instruction in the circuit is not a ``PauliProductRotationGate`` or a
+///         ``PauliProductMeasurement``.
+///     ValueError: If the ``code`` is unsupported.
+///     ValueError: If the ``model_config`` cannot be read or parsed.
+///
+/// Examples:
+///     The model config needs a ``[timing]`` table, with durations in syndrome cycles, and an
+///     ``[error]`` table, with logical error probabilities as strings. For example, the following
+///     ``model.toml`` is equivalent to ``estimate(..., "gross", "1e-3", ...)``:
+///
+///     .. code-block:: toml
+///
+///         [timing]
+///         idle = 8
+///         shift = 12
+///         inmodule = 120
+///         intermodule = 120
+///         t_inj = 471
+///
+///         [error]
+///         # Note that these must be passed as strings!
+///         idle = "1.61e-9"
+///         shift = "4.01e-7"
+///         inmodule = "1.11e-5"
+///         intermodule = "2.01e-3"
+///         t_inj = "2.01e-3"
+///
+///     The circuit must consist of Pauli-based computation (PBC) instructions, which can be
+///     obtained with Qiskit's PBC pass manager::
+///
+///         from qiskit.circuit import QuantumCircuit
+///         from qiskit.transpiler import generate_preset_pbc_pass_manager
+///         from bicycle_architecture_compiler import estimate_from_config
+///
+///         bell = QuantumCircuit(2)
+///         bell.h(0)
+///         bell.cx(0, 1)
+///         pbc = generate_preset_pbc_pass_manager().run(bell)
+///
+///         data = estimate_from_config(pbc, "gross", "model.toml", "1e-10")
+///         print(data["total_error"])
+#[pyfunction]
+#[pyo3(signature = (circuit, code, model_config, epsilon, measurement_table = None))]
+fn estimate_from_config<'py>(
+    circuit: Bound<'py, PyAny>,
+    code: Bound<'py, PyString>,
+    model_config: Bound<'py, PyString>,
+    epsilon: Bound<'py, PyString>,
+    measurement_table: Option<Bound<'py, PyString>>,
+) -> PyResult<Bound<'py, PyDict>> {
+    let code = parse_code(&code)?;
+    let model = Model::from_file(model_config.to_str()?)
+        .map_err(|e| PyValueError::new_err(format!("Invalid model config: {e}")))?;
+
+    run_estimate(circuit, code, model, epsilon, measurement_table)
+}
+
+fn parse_code(code: &Bound<'_, PyString>) -> PyResult<CodeType> {
+    match code.to_str()? {
+        "gross" => Ok(CodeType::Gross),
+        "two_gross" => Ok(CodeType::TwoGross),
+        _ => Err(PyValueError::new_err("Invalid code")),
+    }
+}
+
+/// Compile the circuit and accumulate the numerics, shared by the ``estimate*`` entry points.
+fn run_estimate<'py>(
+    circuit: Bound<'py, PyAny>,
+    code: CodeType,
+    model: Model,
+    epsilon: Bound<'py, PyString>,
+    measurement_table: Option<Bound<'py, PyString>>,
+) -> PyResult<Bound<'py, PyDict>> {
+    let py = circuit.py();
+
+    if !circuit.is_instance(qc_type(py).bind(py))? {
+        return Err(PyTypeError::new_err("Input is not of type QuantumCircuit"));
+    }
 
     let circuit_data = circuit.getattr(intern!(py, "_data"))?;
     let circuit_ptr = unsafe { ffi::qk_circuit_borrow_from_python(circuit_data.as_ptr()) };
@@ -151,5 +258,5 @@ mod numerics {
     }
 
     #[pymodule_export]
-    use super::estimate;
+    use super::{estimate, estimate_from_config};
 }

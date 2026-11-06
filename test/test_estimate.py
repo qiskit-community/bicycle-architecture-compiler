@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
 from typing import cast
 
@@ -20,7 +21,10 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.transpiler import generate_preset_pbc_pass_manager
 from qiskit.quantum_info import SparseObservable
 
-from bicycle_architecture_compiler import estimate
+from bicycle_architecture_compiler import estimate, estimate_from_config
+
+
+ERROR_MODELS = os.path.join(os.path.dirname(__file__), "error_models")
 
 
 class TestEstimateFunction(unittest.TestCase):
@@ -43,6 +47,37 @@ class TestEstimateFunction(unittest.TestCase):
 
         self.assertEqual(counts["t_injs"], 0)
         self.assertEqual(counts["joint_measurements"], 0)
+
+    def test_model_config(self):
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        pbc = self.pm.run(bell)
+
+        # Same values as the built-in gross 1e-3 preset
+        path = os.path.join(ERROR_MODELS, "gross3.toml")
+        custom = estimate_from_config(pbc, "gross", path, "1e-10")
+        self.assertEqual(custom, estimate(pbc, "gross", "1e-3", "1e-10"))
+
+    def test_missing_model_config(self):
+        path = os.path.join(ERROR_MODELS, "does_not_exist.toml")
+        with self.assertRaises(ValueError):
+            estimate_from_config(QuantumCircuit(), "gross", path, "1e-10")
+
+    def test_zero_model_config(self):
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        path = os.path.join(ERROR_MODELS, "zero.toml")
+        data = estimate_from_config(self.pm.run(bell), "gross", path, "1e-10")
+        self.assertEqual(data["total_error"], 0.0)
+        self.assertEqual(data["end_time"], 0)
+
+        # The circuit still compiles to instructions, they are just free
+        counts = data["counts"]
+        self.assertGreater(counts["automorphisms"], 0)
+        self.assertGreater(counts["measurements"], 0)
 
     def test_noncircuit(self):
         with self.assertRaises(TypeError):

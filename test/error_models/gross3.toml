@@ -1,0 +1,13 @@
+[timing]
+idle = 8
+shift = 12
+inmodule = 120
+intermodule = 120
+t_inj = 471
+
+[error]
+idle = "1.61e-9"
+shift = "4.01e-7"
+inmodule = "1.11e-5"
+intermodule = "2.01e-3"
+t_inj = "2.01e-3"

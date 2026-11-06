@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{env, error::Error, io};
+use std::{env, error::Error, io, path::Path};
 
 use bicycle_numerics::{
     OutputData,
@@ -25,7 +25,7 @@ use clap::{Parser, ValueEnum};
 use serde::{Deserialize, Serialize};
 use serde_json::Deserializer;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
+#[derive(Debug, Clone, Eq, PartialEq, ValueEnum)]
 enum ModelChoices {
     /// Gross codes with physical noise rate p=10^-3
     #[clap(name = "gross_1e-3")]
@@ -42,24 +42,42 @@ enum ModelChoices {
     /// A model that has no physical noise, p=0, and worst-case timing information between all of the previous models
     #[clap(name = "fake_slow")]
     FakeSlow,
+    /// A model read from a TOML file, identified by its file name
+    #[value(skip)]
+    Custom { file_name: String, model: Model },
 }
 
 impl ModelChoices {
-    fn model(self) -> Model {
+    fn model(&self) -> Model {
         match self {
             Self::Gross1e3 => GROSS_1E3,
             Self::Gross1e4 => GROSS_1E4,
             Self::TwoGross1e3 => TWO_GROSS_1E3,
             Self::TwoGross1e4 => TWO_GROSS_1E4,
             Self::FakeSlow => FAKE_SLOW,
+            Self::Custom { model, .. } => *model,
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+/// Load the model from the input string; either load the .toml file, or lookup the preset.
+fn parse_model(model: &str) -> Result<ModelChoices, String> {
+    let path = Path::new(model);
+    if path.extension().is_some_and(|ext| ext == "toml") {
+        let model = Model::from_file(path).map_err(|e| e.to_string())?;
+        let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
+        return Ok(ModelChoices::Custom { file_name, model });
+    }
+    ModelChoices::from_str(model, false)
+        .map_err(|_| "expected a .toml file or a preset (see --help)".to_owned())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Output {
-    code: &'static str,
-    p: f64,
+    /// The code of a preset, or the file name of a model config
+    code: String,
+    /// Physical error rate, unknown for a model config
+    p: Option<f64>,
     i: usize,
     qubits: usize,
     idles: u64,
@@ -73,17 +91,18 @@ struct Output {
 }
 
 impl Output {
-    pub fn new(model: ModelChoices, data: OutputData) -> Self {
+    pub fn new(model: &ModelChoices, data: OutputData) -> Self {
         let (code, p) = match model {
-            ModelChoices::Gross1e3 => ("gross", 1e-3),
-            ModelChoices::Gross1e4 => ("gross", 1e-4),
-            ModelChoices::TwoGross1e3 => ("two-gross", 1e-3),
-            ModelChoices::TwoGross1e4 => ("two-gross", 1e-4),
-            ModelChoices::FakeSlow => ("fake", 0.0),
+            ModelChoices::Gross1e3 => ("gross", Some(1e-3)),
+            ModelChoices::Gross1e4 => ("gross", Some(1e-4)),
+            ModelChoices::TwoGross1e3 => ("two-gross", Some(1e-3)),
+            ModelChoices::TwoGross1e4 => ("two-gross", Some(1e-4)),
+            ModelChoices::FakeSlow => ("fake", Some(0.0)),
+            ModelChoices::Custom { file_name, .. } => (file_name.as_str(), None),
         };
 
         Self {
-            code,
+            code: code.to_owned(),
             p,
             i: data.i,
             qubits: data.qubits,
@@ -105,6 +124,19 @@ struct Cli {
     /// Number of logical qubits in the input circuit (do not include pivot ancillas).
     qubits: usize,
     /// Choose which architecture the circuit is run on.
+    ///
+    /// Either a path to a .toml file with a custom timing and error model, or one of the presets:
+    ///
+    /// - gross_1e-3:     Gross codes with physical noise rate p=10^-3
+    /// - gross_1e-4:     Gross codes with physical noise rate p=10^-4
+    /// - two-gross_1e-3: Two-gross codes with physical noise rate p=10^-3
+    /// - two-gross_1e-4: Two-gross codes with physical noise rate p=10^-4
+    /// - fake_slow:      A model that has no physical noise, p=0, and worst-case timing information between all of the previous models
+    ///
+    /// A .toml file needs a [timing] table (in syndrome cycles) and an [error] table (logical
+    /// error probabilities *as strings*), each with the keys idle, shift, inmodule, intermodule and
+    /// t_inj.
+    #[arg(value_parser = parse_model, verbatim_doc_comment)]
     model: ModelChoices,
     /// Set a limit to the error rate when the numerics should halt
     #[arg(short = 'e', long)]
@@ -145,7 +177,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })
         .take_while(|data| cli.max_iter.is_none_or(|max_iter| data.i <= max_iter));
 
-    let mut outputs = short_data.map(|data| Output::new(cli.model, data));
+    let mut outputs = short_data.map(|data| Output::new(&cli.model, data));
     let mut wtr = csv::Writer::from_writer(io::stdout());
     let err = outputs.try_for_each(|output| wtr.serialize(output));
     debug!("Exited with {err:?}");
