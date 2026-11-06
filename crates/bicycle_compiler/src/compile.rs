@@ -63,11 +63,11 @@ where
     T: IntoIterator<Item = Pauli>,
 {
     let mut basis: Vec<Pauli> = basis.into_iter().collect();
-    while basis.len() % 11 != 0 {
+    while !basis.len().is_multiple_of(11) {
         basis.push(Pauli::I);
     }
 
-    assert!(basis.len() % 11 == 0);
+    assert!(basis.len().is_multiple_of(11));
     basis
 }
 
