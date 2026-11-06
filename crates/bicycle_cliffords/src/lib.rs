@@ -14,7 +14,7 @@
 
 pub mod measurement;
 pub use measurement::{
-    CodeMeasurement, MeasurementChoices, GROSS_MEASUREMENT, TWOGROSS_MEASUREMENT,
+    CodeMeasurement, GROSS_MEASUREMENT, MeasurementChoices, TWOGROSS_MEASUREMENT,
 };
 
 pub mod native_measurement;

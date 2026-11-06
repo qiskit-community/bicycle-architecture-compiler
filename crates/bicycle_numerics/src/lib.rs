@@ -14,7 +14,7 @@
 
 use bicycle_common::BicycleISA;
 
-use bicycle_compiler::{operation::Operation, PathArchitecture};
+use bicycle_compiler::{PathArchitecture, operation::Operation};
 use log::trace;
 use model::Model;
 use serde::{Deserialize, Serialize};
@@ -39,7 +39,7 @@ impl IsaCounter {
             BicycleISA::JointMeasure(_) => self.joint_measurements += 1,
             _ => unreachable!("There should not be any other instructions, {}", instr),
         }
-        trace!("Now at: {:?}", &self);
+        trace!("Now at: {:?}", self);
     }
 }
 

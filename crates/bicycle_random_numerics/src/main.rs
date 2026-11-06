@@ -3,8 +3,8 @@ use std::{env, error::Error, io, path::Path};
 use bicycle_cliffords::{CompleteMeasurementTable, MeasurementChoices};
 use bicycle_common::{BicycleISA, Pauli, TwoBases};
 use bicycle_numerics::{
-    model::{ErrorPrecision, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
     OutputData,
+    model::{ErrorPrecision, GROSS_1E3, GROSS_1E4, TWO_GROSS_1E3, TWO_GROSS_1E4},
 };
 use fixed::traits::LosslessTryInto;
 use log::{debug, trace};

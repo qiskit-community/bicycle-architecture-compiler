@@ -373,14 +373,14 @@ mod tests {
                 // Therefore it can be implemented with one basic shift.
                 else if generators.contains(&el) {
                     if n != 1 {
-                        println!("Fail 1: {:?}", &el);
+                        println!("Fail 1: {:?}", el);
                     }
                     assert!(n == 1)
                 } else {
                     // Yod+25 asserts that the only other possibility is n == 2.
                     // We believe this. We only check that our matching rules believe it too.
                     if n != 2 {
-                        println!("Fail 2: {:?}", &el);
+                        println!("Fail 2: {:?}", el);
                     }
                     assert!(n == 2)
                 }
