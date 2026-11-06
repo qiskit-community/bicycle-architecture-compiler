@@ -30,7 +30,7 @@ license = "Apache-2.0"
 keywords = ["quantum", "compiler", "benchmarking", "architecture"]
 categories = ["science", "compilers"]
 repository = "https://github.com/qiskit-community/bicycle-architecture-compiler"
-rust-version = "1.86.0"
+rust-version = "1.93.0"
 edition = "2024"
 
 [workspace.dependencies]
