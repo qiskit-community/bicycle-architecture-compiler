@@ -57,4 +57,5 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
       # Default members only: the PyO3 crates are non-default and need a Python to link.
-      - run: cargo test --verbose
+      # Release mode: the tests are CPU-bound and slow unoptimized.
+      - run: cargo test --release --verbose
