@@ -16,7 +16,7 @@ jobs:
     outputs:
       version: ${{ steps.msrv.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: msrv
         # Single source of truth: [workspace.package] rust-version in Cargo.toml
         run: |
@@ -28,7 +28,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Lint on current stable on purpose: new clippy lints surface early.
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -50,7 +50,7 @@ jobs:
           - name: stable
             toolchain: stable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           # Overrides the ref's default; equals the MSRV for the MSRV leg.
