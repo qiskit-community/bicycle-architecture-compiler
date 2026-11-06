@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  msrv:
+    name: Read MSRV
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.msrv.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: msrv
+        # Single source of truth: [workspace.package] rust-version in Cargo.toml
+        run: |
+          version=$(sed -n 's/^rust-version *= *"\(.*\)"/\1/p' Cargo.toml | head -n1)
+          test -n "$version" || { echo "rust-version not found in Cargo.toml"; exit 1; }
+          echo "MSRV: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Lint on current stable on purpose: new clippy lints surface early.
+      - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - run: rustup default stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: test (${{ matrix.name }})
+    needs: msrv
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: MSRV
+            toolchain: ${{ needs.msrv.outputs.version }}
+          - name: stable
+            toolchain: stable
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install ${{ matrix.toolchain }} --profile minimal
+      - run: rustup default ${{ matrix.toolchain }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --verbose
