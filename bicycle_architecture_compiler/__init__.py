@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from bicycle_architecture_compiler.numerics import estimate
+from bicycle_architecture_compiler.numerics import estimate, estimate_from_config
 
-__all__ = ["estimate"]
+__all__ = ["estimate", "estimate_from_config"]

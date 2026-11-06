@@ -20,5 +20,12 @@ def estimate(
     code: Literal["gross", "two_gross"],
     physical_error: Literal["1e-3", "1e-4"],
     epsilon: str,
-    measurement_table: str | None,
+    measurement_table: str | None = None,
+) -> dict[str, Any]: ...
+def estimate_from_config(
+    circuit: QuantumCircuit,
+    code: Literal["gross", "two_gross"],
+    model_config: str,
+    epsilon: str,
+    measurement_table: str | None = None,
 ) -> dict[str, Any]: ...

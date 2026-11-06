@@ -9,10 +9,10 @@ name = "py_bicycle"
 crate-type = ["cdylib"]
 
 [dependencies]
-bicycle_compiler = "0.3.0"
-bicycle_cliffords = "0.3.0"
-bicycle_common = "0.3.0"
-bicycle_numerics = "0.3.0"
+bicycle_compiler.workspace = true
+bicycle_cliffords.workspace = true
+bicycle_common.workspace = true
+bicycle_numerics.workspace = true
 bitcode = "0.6.9"
 clap = { version = "4.6.0", features = ["derive"] }
 hashbrown = "0.16.1"

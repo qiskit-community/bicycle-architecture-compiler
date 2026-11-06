@@ -1,0 +1,13 @@
+[timing]
+idle = 8 # must be non-zero, it is the idling granularity
+shift = 0
+inmodule = 0
+intermodule = 0
+t_inj = 0
+
+[error]
+idle = "0"
+shift = "0"
+inmodule = "0"
+intermodule = "0"
+t_inj = "0"

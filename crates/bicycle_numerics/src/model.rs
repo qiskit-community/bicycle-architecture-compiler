@@ -12,20 +12,59 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::{error::Error, path::Path};
+
 use bicycle_common::BicycleISA;
 use fixed::types::U32F96;
+use serde::Deserialize;
 
 // Because we need to support precision up to 10^-20,
 // which is >2^-65
 pub type ErrorPrecision = U32F96;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+/// Timing and error model of the bicycle instructions.
+///
+/// Besides the presets in this module, a model can be read from a TOML file with
+/// [`Model::from_file`]. Timings are in syndrome cycles and error rates are strings,
+/// for example:
+///
+/// ```toml
+/// [timing]
+/// idle = 8
+/// shift = 12
+/// inmodule = 120
+/// intermodule = 120
+/// t_inj = 471
+///
+/// [error]
+/// idle = "1.61e-9"
+/// shift = "4.01e-7"
+/// inmodule = "1.11e-5"
+/// intermodule = "2.01e-3"
+/// t_inj = "2.01e-3"
+/// ```
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Model {
     timing: TimingModel,
     error: ErrorModel,
 }
 
 impl Model {
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
+        let model: Self = toml::from_str(&std::fs::read_to_string(path)?)?;
+        model.validate()?;
+        Ok(model)
+    }
+
+    fn validate(&self) -> Result<(), Box<dyn Error>> {
+        // The idle time is divided by, so 0 would crash the numerics
+        if self.timing.idle == 0 {
+            return Err("timing.idle must be non-zero".into());
+        }
+        Ok(())
+    }
+
     pub fn timing(&self, instruction: &BicycleISA) -> u64 {
         self.timing.timing(instruction)
     }
@@ -39,7 +78,8 @@ impl Model {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct TimingModel {
     idle: u64,
     shift: u64,
@@ -61,7 +101,10 @@ impl TimingModel {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+// Error rates are deserialized from strings (the `serde-str` feature of `fixed`) to keep the
+// decimal value exact
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ErrorModel {
     idle: ErrorPrecision,
     shift: ErrorPrecision,
@@ -172,3 +215,58 @@ pub const FAKE_SLOW: Model = Model {
         t_inj: 2167 + 216,
     },
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const GROSS_1E3_TOML: &str = r#"
+        [timing]
+        idle = 8
+        shift = 12
+        inmodule = 120
+        intermodule = 120
+        t_inj = 471
+
+        [error]
+        idle = "1.61e-9"
+        shift = "4.01e-7"
+        inmodule = "1.11e-5"
+        intermodule = "2.01e-3"
+        t_inj = "2.01e-3"
+    "#;
+
+    #[test]
+    fn toml_matches_preset() {
+        assert_eq!(GROSS_1E3, toml::from_str(GROSS_1E3_TOML).unwrap());
+    }
+
+    #[test]
+    fn misspelled_key() {
+        let config = GROSS_1E3_TOML.replace(r#"shift = "4.01e-7""#, r#"shfit = "4.01e-7""#);
+        let err = toml::from_str::<Model>(&config).unwrap_err();
+        assert!(err.message().contains("unknown field `shfit`"), "{err}");
+    }
+
+    #[test]
+    fn unknown_key() {
+        let config = format!("{GROSS_1E3_TOML}\nt_gate = \"1e-3\"\n");
+        let err = toml::from_str::<Model>(&config).unwrap_err();
+        assert!(err.message().contains("unknown field `t_gate`"), "{err}");
+    }
+
+    #[test]
+    fn zero_idle_time() {
+        let config = GROSS_1E3_TOML.replace("idle = 8", "idle = 0");
+        let model = toml::from_str::<Model>(&config).unwrap();
+        let err = model.validate().unwrap_err();
+        assert_eq!(err.to_string(), "timing.idle must be non-zero");
+    }
+
+    #[test]
+    fn missing_key() {
+        let config = GROSS_1E3_TOML.replace("t_inj = 471", "");
+        let err = toml::from_str::<Model>(&config).unwrap_err();
+        assert!(err.message().contains("missing field `t_inj`"), "{err}");
+    }
+}
