@@ -64,6 +64,11 @@ class TestEstimateFunction(unittest.TestCase):
         with self.assertRaises(ValueError):
             estimate_from_config(QuantumCircuit(), "gross", path, "1e-10")
 
+    def test_zero_idle_model_config(self):
+        path = os.path.join(ERROR_MODELS, "zero_idle.toml")
+        with self.assertRaisesRegex(ValueError, "timing.idle must be non-zero"):
+            estimate_from_config(QuantumCircuit(), "gross", path, "1e-10")
+
     def test_zero_model_config(self):
         bell = QuantumCircuit(2)
         bell.h(0)

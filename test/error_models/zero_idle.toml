@@ -1,0 +1,13 @@
+[timing]
+idle = 0 # invalid, the idle time must be non-zero
+shift = 0
+inmodule = 0
+intermodule = 0
+t_inj = 0
+
+[error]
+idle = "0"
+shift = "0"
+inmodule = "0"
+intermodule = "0"
+t_inj = "0"

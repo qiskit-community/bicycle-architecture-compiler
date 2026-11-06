@@ -52,7 +52,17 @@ pub struct Model {
 
 impl Model {
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
-        Ok(toml::from_str(&std::fs::read_to_string(path)?)?)
+        let model: Self = toml::from_str(&std::fs::read_to_string(path)?)?;
+        model.validate()?;
+        Ok(model)
+    }
+
+    fn validate(&self) -> Result<(), Box<dyn Error>> {
+        // The idle time is divided by, so 0 would crash the numerics
+        if self.timing.idle == 0 {
+            return Err("timing.idle must be non-zero".into());
+        }
+        Ok(())
     }
 
     pub fn timing(&self, instruction: &BicycleISA) -> u64 {
@@ -243,6 +253,14 @@ mod tests {
         let config = format!("{GROSS_1E3_TOML}\nt_gate = \"1e-3\"\n");
         let err = toml::from_str::<Model>(&config).unwrap_err();
         assert!(err.message().contains("unknown field `t_gate`"), "{err}");
+    }
+
+    #[test]
+    fn zero_idle_time() {
+        let config = GROSS_1E3_TOML.replace("idle = 8", "idle = 0");
+        let model = toml::from_str::<Model>(&config).unwrap();
+        let err = model.validate().unwrap_err();
+        assert_eq!(err.to_string(), "timing.idle must be non-zero");
     }
 
     #[test]
