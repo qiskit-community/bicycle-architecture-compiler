@@ -37,11 +37,10 @@ pub fn remove_duplicate_measurements_chunked(
                 for (i, instr) in ops_list {
                     history.resize_with(history.len().max(i + 1), Default::default);
 
-                    if let BicycleISA::Measure(_) = instr {
-                        if history[*i] == Some(*instr) {
+                    if let BicycleISA::Measure(_) = instr
+                        && history[*i] == Some(*instr) {
                             return false;
                         }
-                    }
                     // Copy seen instructions into history
                     // Cannot reference because that would make instructions immutable
                     history[*i] = Some(*instr);
