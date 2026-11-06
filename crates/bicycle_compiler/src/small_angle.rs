@@ -92,8 +92,7 @@ pub fn synthesize_angle_direct(
     debug!("Synthesizing angle: {theta}");
 
     // Do I need scientific notation here? E.g. for the accuracy.
-    let gates = run_gridsynth(theta, accuracy)
-        .expect("gridsynth should run successfully");
+    let gates = run_gridsynth(theta, accuracy).expect("gridsynth should run successfully");
 
     compile_rots(&gates).expect("Should be able to parse MA normal form provided by gridsynth")
 }

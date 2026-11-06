@@ -56,4 +56,5 @@ jobs:
           # Overrides the ref's default; equals the MSRV for the MSRV leg.
           toolchain: ${{ matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace --verbose
+      # Default members only: the PyO3 crates are non-default and need a Python to link.
+      - run: cargo test --verbose

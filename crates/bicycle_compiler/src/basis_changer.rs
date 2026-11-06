@@ -75,8 +75,8 @@ impl Default for BasisChanger {
 mod tests {
     use super::*;
 
-    use bicycle_common::AutomorphismData;
     use Pauli::{X, Y, Z};
+    use bicycle_common::AutomorphismData;
 
     #[test]
     fn test_change_pauli() {
