@@ -84,7 +84,7 @@ impl PauliString {
         let self_x = self.0 ^ (self_z << 12);
         let self_transpose = self_x << 12 | self_z;
 
-        (self_transpose & rhs.0).count_ones() % 2 == 0
+        (self_transpose & rhs.0).count_ones().is_multiple_of(2)
     }
 
     /// Assuming self is a measurement, apply rhs from the left if it anti-commutes with self.
@@ -135,11 +135,7 @@ impl Index<usize> for PauliString {
     type Output = bool;
 
     fn index(&self, i: usize) -> &Self::Output {
-        if self.get_bit(i) {
-            &true
-        } else {
-            &false
-        }
+        if self.get_bit(i) { &true } else { &false }
     }
 }
 

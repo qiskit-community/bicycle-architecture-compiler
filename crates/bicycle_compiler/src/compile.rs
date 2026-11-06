@@ -113,7 +113,7 @@ pub fn compile_measurement(
     let basis = extend_basis(basis);
 
     // Find implementation for each block
-    let block_instrs = basis.chunks_exact(11).map(|paulis| {
+    let block_instrs = basis.as_chunks::<11>().0.iter().map(|paulis| {
         // Only apply a controlled-Pauli if its non-trivial
         if paulis.iter().all(|p| *p == Pauli::I) {
             (None, BasisChanger::default())
@@ -224,30 +224,35 @@ pub fn compile_rotation(
     let y1 = TwoBases::new(Pauli::Y, Pauli::I).unwrap();
 
     // Find implementation for each block
-    let block_instrs = basis.chunks_exact(11).enumerate().map(|(block_i, paulis)| {
-        // Only apply a controlled-Pauli if its non-trivial
-        if paulis.iter().all(|p| *p == Pauli::I) {
-            (None, BasisChanger::default())
-        } else {
-            let mut ps = vec![Pauli::I];
-            ps.extend_from_slice(paulis);
-            let p: PauliString = (&ps[..]).try_into().unwrap();
-            let meas_impl = measurement_table.min_data(p);
-
-            let p_pivot = meas_impl.measures().get_pauli(0);
-
-            let changer = if block_i < n - 1 {
-                // Y |-> p_pivot.
-                select_basis_change(Pauli::Y, p_pivot)
+    let block_instrs = basis
+        .as_chunks::<11>()
+        .0
+        .iter()
+        .enumerate()
+        .map(|(block_i, paulis)| {
+            // Only apply a controlled-Pauli if its non-trivial
+            if paulis.iter().all(|p| *p == Pauli::I) {
+                (None, BasisChanger::default())
             } else {
-                // magic module next to factory
-                // X |-> p_pivot
-                select_basis_change(Pauli::X, p_pivot)
-            };
+                let mut ps = vec![Pauli::I];
+                ps.extend_from_slice(paulis);
+                let p: PauliString = (&ps[..]).try_into().unwrap();
+                let meas_impl = measurement_table.min_data(p);
 
-            (Some(measurement_table.min_data(p)), (changer))
-        }
-    });
+                let p_pivot = meas_impl.measures().get_pauli(0);
+
+                let changer = if block_i < n - 1 {
+                    // Y |-> p_pivot.
+                    select_basis_change(Pauli::Y, p_pivot)
+                } else {
+                    // magic module next to factory
+                    // X |-> p_pivot
+                    select_basis_change(Pauli::X, p_pivot)
+                };
+
+                (Some(measurement_table.min_data(p)), (changer))
+            }
+        });
     let (meas_impls, basis_changes): (Vec<_>, Vec<_>) = block_instrs.unzip();
     let block_basis = BlockBases(basis_changes);
     assert!(meas_impls.len() <= n);
@@ -599,9 +604,7 @@ mod tests {
 
                 // measurements
                 for (block_i, meas_impl) in implementations.iter().enumerate() {
-                    expected.extend(
-                        native_instructions(block_i, meas_impl.base_measurement()).into_iter(),
-                    );
+                    expected.extend(native_instructions(block_i, meas_impl.base_measurement()));
                 }
                 expected.extend(
                     ghz_meas(0, arch.data_blocks())
@@ -744,9 +747,7 @@ mod tests {
 
                 // measurements
                 for (block_i, meas_impl) in implementations.iter().enumerate() {
-                    expected.extend(
-                        native_instructions(block_i, meas_impl.base_measurement()).into_iter(),
-                    );
+                    expected.extend(native_instructions(block_i, meas_impl.base_measurement()));
                 }
 
                 let mut middle_ops = ghz_meas(0, arch.data_blocks());

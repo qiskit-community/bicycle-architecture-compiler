@@ -84,7 +84,7 @@ mod ffi;
 
 use pyo3::prelude::*;
 use pyo3::types::PyCapsule;
-use std::ffi::{CString, c_void};
+use std::ffi::{c_void, CString};
 use std::ptr::NonNull;
 use std::sync::OnceLock;
 
