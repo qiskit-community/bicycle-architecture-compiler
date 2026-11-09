@@ -1,5 +1,3 @@
-Cargo.lock
-
 data/
 **/tmp/
 .python-version
