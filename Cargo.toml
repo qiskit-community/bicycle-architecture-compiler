@@ -41,6 +41,7 @@ bicycle_common = { path = "crates/bicycle_common", version = "0.3.0" }
 bicycle_compiler = { path = "crates/bicycle_compiler", version = "0.3.0" }
 bicycle_numerics = { path = "crates/bicycle_numerics", version = "0.3.0" }
 bicycle_random_numerics = { path = "crates/bicycle_random_numerics", version = "0.3.0" }
+bicycle_pyext = { path = "crates/pyext", version = "0.3.0" }
 
 [workspace.metadata.release]
 tag-name = "v{{version}}"

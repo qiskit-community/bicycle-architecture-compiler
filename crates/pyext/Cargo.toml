@@ -5,8 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [lib]
-name = "py_bicycle"
-crate-type = ["cdylib"]
+name = "bicycle_pyext"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 bicycle_compiler.workspace = true
@@ -17,4 +17,9 @@ bitcode = "0.6.9"
 clap = { version = "4.6.0", features = ["derive"] }
 hashbrown = "0.16.1"
 pyo3 = "0.27"
+pyo3-stub-gen = "0.23"
 qiskit-pyo3-ffi = { path = "../qiskit-pyo3-ffi", version = "0.1.0" }
+
+[[bin]]
+name = "stub_gen"
+doc = false

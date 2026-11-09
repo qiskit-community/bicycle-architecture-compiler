@@ -21,6 +21,7 @@ use pyo3::{
     sync::PyOnceLock,
     types::{PyDict, PyString, PyType},
 };
+use pyo3_stub_gen::{StubGenConfig, StubInfo, derive::gen_stub_pyfunction};
 
 use crate::bicycle::iter_pbc_circuit;
 use crate::table::{CodeType, get_measurement_table};
@@ -79,11 +80,14 @@ fn qc_type(py: Python<'_>) -> &Py<PyType> {
 ///         print(data["total_error"])
 ///
 ///     To use a custom timing and error model, see ``estimate_from_config``.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (circuit, code, physical_error, epsilon, measurement_table = None))]
 fn estimate<'py>(
     circuit: Bound<'py, PyAny>,
+    #[gen_stub(override_type(type_repr = r#"typing.Literal["gross", "two_gross"]"#, imports = ("typing")))]
     code: Bound<'py, PyString>,
+    #[gen_stub(override_type(type_repr = r#"typing.Literal["1e-3", "1e-4"]"#, imports = ("typing")))]
     physical_error: Bound<'py, PyString>,
     epsilon: Bound<'py, PyString>,
     measurement_table: Option<Bound<'py, PyString>>,
@@ -157,10 +161,12 @@ fn estimate<'py>(
 ///
 ///         data = estimate_from_config(pbc, "gross", "model.toml", "1e-10")
 ///         print(data["total_error"])
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (circuit, code, model_config, epsilon, measurement_table = None))]
 fn estimate_from_config<'py>(
     circuit: Bound<'py, PyAny>,
+    #[gen_stub(override_type(type_repr = r#"typing.Literal["gross", "two_gross"]"#, imports = ("typing")))]
     code: Bound<'py, PyString>,
     model_config: Bound<'py, PyString>,
     epsilon: Bound<'py, PyString>,
@@ -247,7 +253,7 @@ fn run_estimate<'py>(
 }
 
 #[pymodule]
-mod numerics {
+mod _lib {
     use pyo3::prelude::*;
     use qiskit_pyo3_ffi as ffi;
 
@@ -259,4 +265,18 @@ mod numerics {
 
     #[pymodule_export]
     use super::{estimate, estimate_from_config};
+}
+
+pub fn stub_info() -> pyo3_stub_gen::Result<StubInfo> {
+    let mut config = StubGenConfig::default();
+    config.use_type_statement = false;
+    config.doc_gen = None;
+
+    let manifest_dir: &::std::path::Path = env!("CARGO_MANIFEST_DIR").as_ref();
+    StubInfo::from_project_root(
+        "bicycle_architecture_compiler._lib".to_string(),
+        manifest_dir.join("../.."),
+        true,
+        config,
+    )
 }

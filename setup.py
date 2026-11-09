@@ -36,7 +36,7 @@ features = []
 setup(
     rust_extensions=[
         RustExtension(
-            "bicycle_architecture_compiler.numerics",
+            "bicycle_architecture_compiler._lib",
             "crates/pyext/Cargo.toml",
             args=("--verbose",),
             binding=Binding.PyO3,

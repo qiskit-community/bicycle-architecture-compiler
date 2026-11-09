@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: lint test
+.PHONY: lint test stubs
+
+checks: lint test
 
 lint:
 	black test
@@ -20,3 +22,6 @@ lint:
 
 test:
 	pytest test
+
+stubs:
+	cargo run -p bicycle_pyext --bin stub_gen
