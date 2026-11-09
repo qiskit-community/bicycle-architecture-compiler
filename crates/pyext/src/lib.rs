@@ -13,5 +13,5 @@
 // limitations under the License.
 
 mod bicycle;
-mod py;
+pub mod py;
 mod table;
