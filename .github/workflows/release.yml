@@ -1,0 +1,55 @@
+name: Release Python package
+
+on:
+  push:
+    tags: ["py-v*"]
+  # Builds (but never publishes) on PRs labelled `ci: test wheels`. `labeled` triggers a run when
+  # the label is added, `synchronize` rebuilds on new pushes.
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+jobs:
+  wheels:
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'ci: test wheels')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-15-intel, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      # Only used for macOS and Windows: Linux builds run in manylinux containers, which install
+      # Rust via `before-all` in pyproject.toml.
+      - run: rustup toolchain install stable --override --profile minimal --no-self-update
+      # Configured in [tool.cibuildwheel] in pyproject.toml
+      - uses: pypa/cibuildwheel@v4.3.5
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+
+  sdist:
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'ci: test wheels')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: pipx run build --sdist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  publish:
+    needs: [wheels, sdist]
+    # Only tag pushes publish, never PRs.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: pypi # must match the PyPI trusted publisher
+    permissions:
+      id-token: write # trusted publishing
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@release/v1
