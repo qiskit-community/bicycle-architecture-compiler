@@ -10,7 +10,8 @@ on:
 
 jobs:
   wheels:
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'ci: test wheels')
+    # Quoted, since the `: ` in the label name would otherwise break the YAML.
+    if: "github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'ci: test wheels')"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -29,7 +30,7 @@ jobs:
           path: wheelhouse/*.whl
 
   sdist:
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'ci: test wheels')
+    if: "github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'ci: test wheels')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
