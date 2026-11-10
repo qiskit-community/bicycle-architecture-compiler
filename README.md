@@ -2,7 +2,7 @@
 
 [Tour de Gross arXiv:2506.03094](https://arxiv.org/abs/2506.03094) presents the Bicycle Architecture - a modular architecture for fault-tolerant quantum computation based on bivariate bicycle codes. The analysis features:
 
- - A universal Instruction Set Archirecture (ISA) of logical gates in bivariate bicyle codes
+ - A universal Instruction Set Architecture (ISA) of logical gates in bivariate bicycle codes
  - Circuit-level noise benchmarks of all the ISA instructions
  - An end-to-end compilation scheme from Pauli-Based Computation (PBC) to the bicycle ISA
 
@@ -14,7 +14,7 @@ Some example use cases are:
 
 ## Installation
 
-This software is tested on some Linux and macOS platforms.
+This section, and the following sections, deal with the Rust installation. The Python interface is installed separately, see [Python interface](#python-interface).
 
 ### Rust
 
@@ -46,18 +46,6 @@ Furthermore, the following commandline applications are helpful and may be requi
 * GNU `parallel` in order to
   run [./scripts/run_random_numerics.sh](./scripts/run_random_numerics.sh) in parallel.
 
-### Python interface
-
-A minimal Python interface is provided as `bicycle_architecture_compiler` package,
-which can be locally installed via 
-```sh
-shell> pip install .
-```
-Note that installing in editable mode compiles the Rust crates in debug mode, which can be
-rebuilt in release mode via
-```sh
-shell> python setup.py build_rust --inplace --release
-```
 
 ## Usage
 
@@ -110,5 +98,51 @@ the package
 shell> make lint
 shell> make test
 ```
+
+## Python interface
+
+Separately from the Rust crates, a minimal Python interface is provided by the
+`bicycle_architecture_compiler` package, which can be installed from PyPI via
+```sh
+shell> pip install bicycle_architecture_compiler
+```
+or from a local clone via `pip install .`.
+Note that installing in editable mode compiles the Rust crates in debug mode, which can be
+rebuilt in release mode via
+```sh
+shell> python setup.py build_rust --inplace --release
+```
+
+The package exposes two functions, which compile a Qiskit `QuantumCircuit` of Pauli-based
+computation (PBC) instructions to the bicycle ISA and estimate its error and resources:
+
+ - `estimate` uses one of the preset timing and error models (`"gross"` or `"two_gross"` code at
+   a physical error rate of `"1e-3"` or `"1e-4"`),
+ - `estimate_from_config` reads a custom timing and error model from a TOML file,
+   see e.g. [`./test/error_models/gross3.toml`](./test/error_models/gross3.toml).
+
+For example:
+
+```python
+from qiskit.circuit import QuantumCircuit
+from qiskit.transpiler import generate_preset_pbc_pass_manager
+from bicycle_architecture_compiler import estimate
+
+bell = QuantumCircuit(2)
+bell.h(0)
+bell.cx(0, 1)
+pbc = generate_preset_pbc_pass_manager().run(bell)  # convert to PBC instructions
+
+data = estimate(pbc, "gross", "1e-3", "1e-10")  # code, physical error, gridsynth accuracy
+print(data["total_error"], data["end_time"], data["counts"])
+```
+or
+```python
+from bicycle_architecture_compiler import estimate_from_config
+
+data = estimate_from_config(pbc, "gross", "model.toml", "1e-10")
+```
+The measurement table is generated in the local directory on first use, unless a path is passed
+via the `measurement_table` argument.
 
 
