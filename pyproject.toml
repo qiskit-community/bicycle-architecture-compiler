@@ -59,6 +59,9 @@ environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.macos]
+# Rust's x86_64 macOS target requires at least 10.12, but cibuildwheel defaults to 10.9. arm64 builds
+# are unaffected, since they require at least 11.0 anyway.
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.12" }
 repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.windows]
