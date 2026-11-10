@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bicycle_architecture_compiler"
-version = "0.1.0"
+version = "0.1.0rc1"
 description = "Resource estimation for the Tour de Gross fault-tolerant architecture"
 readme = "README.md"
 requires-python = ">=3.11"
