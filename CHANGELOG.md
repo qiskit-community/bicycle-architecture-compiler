@@ -1,3 +1,21 @@
+## [Py 0.1.0] - 2026-11-10
+
+This is the first release of the Python package `bicycle_architecture_compiler`.
+
+### 🚀 Features
+
+- Add `estimate` and `estimate_from_config` to run the compiler on a 
+  ``qiskit.QuantumCircuit`` containing only PBC instructions and return the accumulated
+  numerics (error, end time and operation counts) of the circuit. 
+
+### 🧪 Testing
+
+- A minimal Python test suite can be run via `make test` and linted via `make lint`.
+
+### ⚙️ Miscellaneous Tasks
+
+- Python stubs for Python API exposed from Rust can be generated via `make stubs`.
+
 ## [0.3.0] - 2026-10-29
 
 ### 🚀 Features
