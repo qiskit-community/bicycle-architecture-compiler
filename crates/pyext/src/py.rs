@@ -274,9 +274,9 @@ pub fn stub_info() -> pyo3_stub_gen::Result<StubInfo> {
 
     let manifest_dir: &::std::path::Path = env!("CARGO_MANIFEST_DIR").as_ref();
     StubInfo::from_project_root(
-        "bicycle_architecture_compiler._lib".to_string(),
-        manifest_dir.join("../.."),
-        true,
+        "_lib".to_string(),
+        manifest_dir.join("../../bicycle_architecture_compiler"),
+        false,
         config,
     )
 }

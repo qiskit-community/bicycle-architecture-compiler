@@ -1,0 +1,24 @@
+name: Test release on TestPyPI
+
+on:
+  push:
+    tags: ["py-test-v*"]
+
+jobs:
+  build:
+    uses: ./.github/workflows/build_wheels.yml
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi # must match the TestPyPI trusted publisher
+    permissions:
+      id-token: write # trusted publishing
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/

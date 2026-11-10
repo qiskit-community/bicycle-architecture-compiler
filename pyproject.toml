@@ -4,12 +4,69 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bicycle_architecture_compiler"
-version = "0.3.0"
+version = "0.1.0"
 description = "Resource estimation for the Tour de Gross fault-tolerant architecture"
-dependencies = ["qiskit>=2.4"]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["qiskit>=2.5"]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = [
+    "quantum",
+    "quantum computing",
+    "fault-tolerant quantum computing",
+    "ftqc",
+    "resource estimation",
+    "quantum resource estimation",
+    "gross code",
+    "tour de gross",
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Quantum Computing",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Compilers",
+    "Development Status :: 3 - Alpha",
+]
+
+[project.urls]
+Repository = "https://github.com/qiskit-community/bicycle-architecture-compiler"
+Issues = "https://github.com/qiskit-community/bicycle-architecture-compiler/issues"
 
 [tool.setuptools]
 packages = ["bicycle_architecture_compiler"]
+
+[tool.setuptools.package-data]
+bicycle_architecture_compiler = ["_lib.pyi"]
+
+[tool.cibuildwheel]
+build = "cp311-* cp312-* cp313-* cp314-*"
+# Qiskit doesn't publish musllinux or 32-bit wheels, so neither do we
+skip = "*-musllinux_*"
+archs = ["auto64"]
+test-command = "python -m unittest discover -s {project}/test"
+
+[tool.cibuildwheel.linux]
+# The manylinux build containers don't ship Rust.
+before-all = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal"
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+# The default repair, plus a check that the extension only uses the limited API its abi3 tag claims.
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
+
+[tool.cibuildwheel.macos]
+# Rust's x86_64 macOS target requires at least 10.12, but cibuildwheel defaults to 10.9. arm64 builds
+# are unaffected, since they require at least 11.0 anyway.
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.12" }
+repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
+
+[tool.cibuildwheel.windows]
+# There is no default repair on Windows, but the wheel still has to end up in {dest_dir}.
+repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict --report {wheel}"
 
 # development dependencies only (not included in built distribution)
 [dependency-groups]

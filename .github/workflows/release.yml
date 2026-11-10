@@ -1,0 +1,23 @@
+name: Release Python package
+
+on:
+  push:
+    tags: ["py-v*"]
+
+jobs:
+  build:
+    uses: ./.github/workflows/build_wheels.yml
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi # must match the PyPI trusted publisher
+    permissions:
+      id-token: write # trusted publishing
+    steps:
+      # The artifacts uploaded by the called workflow belong to this run.
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@release/v1
