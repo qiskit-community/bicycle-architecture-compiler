@@ -2,7 +2,7 @@
 
 [Tour de Gross arXiv:2506.03094](https://arxiv.org/abs/2506.03094) presents the Bicycle Architecture - a modular architecture for fault-tolerant quantum computation based on bivariate bicycle codes. The analysis features:
 
- - A universal Instruction Set Archirecture (ISA) of logical gates in bivariate bicyle codes
+ - A universal Instruction Set Architecture (ISA) of logical gates in bivariate bicycle codes
  - Circuit-level noise benchmarks of all the ISA instructions
  - An end-to-end compilation scheme from Pauli-Based Computation (PBC) to the bicycle ISA
 
