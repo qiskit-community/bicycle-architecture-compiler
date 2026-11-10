@@ -72,7 +72,7 @@ def iter_qiskit_pbc_circuit(
             for pauli, i in zip(paulis, indices):
                 basis[i] = pauli
 
-            angle = evo.params[0] * np.real(coeff)
+            angle = -2 * evo.params[0] * np.real(coeff)
 
             rot = {"Rotation": {"basis": basis, "angle": str(angle)}}
             yield to_str(rot)
